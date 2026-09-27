@@ -1,0 +1,8 @@
+# Git ignore file for CRD Global Solutions Website
+.DS_Store
+Thumbs.db
+*.log
+.env
+node_modules/
+.vscode/
+*.tmp

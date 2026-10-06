@@ -1,334 +1,412 @@
 /**
- * CRD GLOBAL SOLUTIONS – MAIN JAVASCRIPT
- * Handles: sticky header, mobile nav, login modal,
- *          form validation, scroll animations, active nav tracking
+ * CRD GLOBAL SOLUTIONS - CORE ENGINE & DYNAMIC RENDERER
+ * Supports live rendering from CRD_SITE_DATA & in-browser Admin Edit modal
  */
 
 'use strict';
 
-/* ================================================================
-   DOM READY
-   ================================================================ */
+// 1. Data Loader & State Management (Loads default or localStorage data)
+function getSiteData() {
+  const saved = localStorage.getItem('CRD_CUSTOM_DATA');
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch (e) {
+      console.warn("Could not parse saved custom data, reverting to defaults", e);
+    }
+  }
+  return window.CRD_SITE_DATA;
+}
+
+function saveSiteData(newData) {
+  localStorage.setItem('CRD_CUSTOM_DATA', JSON.stringify(newData));
+  renderAllSections();
+}
+
+function resetSiteData() {
+  localStorage.removeItem('CRD_CUSTOM_DATA');
+  renderAllSections();
+}
+
+// 2. Render Functions
+function renderAllSections() {
+  const data = getSiteData();
+  
+  // Render Top Header Contact & Brand
+  renderTopHeader(data.company);
+  
+  // Render Hero
+  renderHero(data.hero, data.company);
+  
+  // Render Quick Categories (6 Top Cards)
+  renderQuickCategories(data.quickCategories);
+  
+  // Render Our Solar Solutions (8 Icons Grid)
+  renderSolutions(data.solutions);
+  
+  // Render Popular Products (6 Product Cards)
+  renderProducts(data.products, data.company);
+  
+  // Render Banners (PM Surya Ghar & Solar Pump)
+  renderBanners(data.banners, data.company);
+  
+  // Render Why Choose Us (6 Features)
+  renderWhyChooseUs(data.whyChooseUs);
+  
+  // Render Projects Gallery (6 Cards)
+  renderProjects(data.projects);
+  
+  // Render Testimonials (Customer Reviews)
+  renderTestimonials(data.testimonials);
+  
+  // Render About & Location
+  renderAboutAndLocation(data.about, data.company);
+  
+  // Render Footer
+  renderFooter(data.company);
+
+  // Initialize Lucide icons
+  if (window.lucide) {
+    window.lucide.createIcons();
+  }
+}
+
+function renderTopHeader(c) {
+  const brandLogo = document.getElementById('top-brand-logo');
+  if (brandLogo) {
+    brandLogo.src = c.logoImg || 'assets/images/crd-logo.jpg';
+    brandLogo.alt = c.name;
+  }
+  
+  const brandName = document.getElementById('top-brand-name');
+  if (brandName) brandName.textContent = c.name;
+  
+  const brandSub = document.getElementById('top-brand-sub');
+  if (brandSub) brandSub.textContent = c.logoSubtext || "Solar | Energy | Sustainable Future";
+  
+  const brandGst = document.getElementById('top-brand-gst');
+  if (brandGst) brandGst.textContent = `GSTIN: ${c.gstNo}`;
+  
+  const callValue = document.getElementById('top-call-value');
+  if (callValue) {
+    callValue.innerHTML = `<a href="tel:+91${c.phone1}">${c.phone1}</a> / <a href="tel:+91${c.phone2}">${c.phone2}</a>`;
+  }
+  
+  const emailValue = document.getElementById('top-email-value');
+  if (emailValue) {
+    emailValue.innerHTML = `<a href="mailto:${c.email}">${c.email}</a>`;
+  }
+  
+  const locValue = document.getElementById('top-loc-value');
+  if (locValue) {
+    locValue.textContent = `${c.address.line1}, ${c.address.line2}`;
+  }
+}
+
+function renderHero(h, c) {
+  const badge = document.getElementById('hero-badge-pill');
+  if (badge) badge.innerHTML = `<i data-lucide="sun"></i> ${h.badge}`;
+  
+  const title = document.getElementById('hero-main-title');
+  if (title) {
+    title.innerHTML = `${h.headlineMain} <br/><span class="highlight-green">${h.headlineSub}</span>`;
+  }
+  
+  const desc = document.getElementById('hero-subtitle-desc');
+  if (desc) desc.textContent = h.description;
+  
+  const tagsContainer = document.getElementById('hero-feature-tags');
+  if (tagsContainer && h.keyPoints) {
+    tagsContainer.innerHTML = h.keyPoints.map(kp => `
+      <div class="hero-tag">
+        <i data-lucide="${kp.icon || 'check-circle'}"></i>
+        <span>${kp.text}</span>
+      </div>
+    `).join('');
+  }
+  
+  const ctaBtn = document.getElementById('hero-cta-btn');
+  if (ctaBtn) {
+    ctaBtn.textContent = h.ctaBtn || "Get Free Consultation →";
+  }
+  
+  const waBtn = document.getElementById('hero-wa-btn');
+  if (waBtn) {
+    waBtn.href = `https://wa.me/91${c.phone1}?text=Hello%20CRD%20Global%20Solutions,%20I%20want%20to%20know%20more%20about%20Solar%20Solutions.`;
+  }
+}
+
+function renderQuickCategories(cats) {
+  const container = document.getElementById('quick-categories-grid');
+  if (!container || !cats) return;
+  
+  container.innerHTML = cats.map(cat => `
+    <a href="${cat.link || '#solutions'}" class="cat-card-item">
+      <div class="cat-card-img-wrap">
+        <img src="${cat.image}" alt="${cat.title}" loading="lazy" />
+      </div>
+      <div class="cat-card-content">
+        <div class="cat-card-title">${cat.title}</div>
+        <div class="cat-card-sub">${cat.subtitle}</div>
+      </div>
+    </a>
+  `).join('');
+}
+
+function renderSolutions(solutions) {
+  const container = document.getElementById('solutions-icon-grid');
+  if (!container || !solutions) return;
+  
+  container.innerHTML = solutions.map(sol => `
+    <div class="sol-icon-card" onclick="openEnquiryModal('${sol.title}')">
+      <div class="sol-icon-box">
+        <i data-lucide="${sol.icon || 'sun'}"></i>
+      </div>
+      <div class="sol-icon-title">${sol.title}</div>
+    </div>
+  `).join('');
+}
+
+function renderProducts(products, c) {
+  const container = document.getElementById('products-cards-grid');
+  if (!container || !products) return;
+  
+  container.innerHTML = products.map(p => `
+    <div class="product-item-card">
+      <div class="prod-img-box">
+        <img src="${p.image}" alt="${p.name}" loading="lazy" />
+      </div>
+      <div class="prod-info-box">
+        <div class="prod-name-title">${p.name}</div>
+        <div class="prod-brand-tag">${p.brand}</div>
+        <div class="prod-price-tag">${p.price}</div>
+        <button class="btn-enquire-card" onclick="enquireProduct('${p.name}', '${p.whatsappMsg}')">
+          Enquire Now
+        </button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderBanners(b, c) {
+  // PM Surya Ghar
+  const pmTitle = document.getElementById('pm-banner-title');
+  if (pmTitle) pmTitle.textContent = b.pmSuryaGhar.title;
+  
+  const pmHead = document.getElementById('pm-banner-headline');
+  if (pmHead) pmHead.textContent = b.pmSuryaGhar.headline;
+  
+  const pmPerks = document.getElementById('pm-banner-perks');
+  if (pmPerks && b.pmSuryaGhar.perks) {
+    pmPerks.innerHTML = b.pmSuryaGhar.perks.map(pk => `
+      <div class="banner-perk-item">
+        <span class="perk-bold">${pk.label}</span>
+        <span class="perk-sub">${pk.desc}</span>
+      </div>
+    `).join('');
+  }
+  
+  // Solar Water Pump
+  const pumpTitle = document.getElementById('pump-banner-title');
+  if (pumpTitle) pumpTitle.textContent = b.solarPump.title;
+  
+  const pumpSub = document.getElementById('pump-banner-sub');
+  if (pumpSub) pumpSub.textContent = b.solarPump.subtitle;
+  
+  const pumpBtn = document.getElementById('pump-banner-btn');
+  if (pumpBtn) {
+    pumpBtn.onclick = () => {
+      window.open(`https://wa.me/91${c.phone1}?text=${encodeURIComponent(b.solarPump.whatsappMsg)}`, '_blank');
+    };
+  }
+}
+
+function renderWhyChooseUs(list) {
+  const container = document.getElementById('why-crd-grid');
+  if (!container || !list) return;
+  
+  container.innerHTML = list.map(item => `
+    <div class="why-crd-card">
+      <div class="why-icon-round">
+        <i data-lucide="${item.icon || 'check-circle'}"></i>
+      </div>
+      <div class="why-card-title">${item.title}</div>
+      <div class="why-card-desc">${item.desc}</div>
+    </div>
+  `).join('');
+}
+
+function renderProjects(projects) {
+  const container = document.getElementById('projects-gallery-grid');
+  if (!container || !projects) return;
+  
+  container.innerHTML = projects.map(p => `
+    <div class="project-card-item">
+      <div class="proj-img-wrap">
+        <img src="${p.image}" alt="${p.title}" loading="lazy" />
+      </div>
+      <div class="proj-info-col">
+        <div class="proj-title-txt">${p.title}</div>
+        <div class="proj-loc-txt">${p.location} (${p.capacity})</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderTestimonials(reviews) {
+  const container = document.getElementById('reviews-grid-strip');
+  if (!container || !reviews) return;
+  
+  container.innerHTML = reviews.map(r => `
+    <div class="review-item-box">
+      <div class="review-avatar-char">${r.initial}</div>
+      <div class="review-text-wrap">
+        <div class="reviewer-name">${r.name}</div>
+        <div class="star-rating-row">★★★★★</div>
+        <p class="review-comment-p">${r.comment}</p>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderAboutAndLocation(about, c) {
+  const aboutText = document.getElementById('about-summary-text');
+  if (aboutText) aboutText.textContent = about.text;
+  
+  const aboutImg = document.getElementById('about-thumb-img');
+  if (aboutImg && about.image) aboutImg.src = about.image;
+  
+  const locText = document.getElementById('location-summary-text');
+  if (locText) {
+    locText.textContent = `${c.address.line1}, ${c.address.line2}`;
+  }
+}
+
+function renderFooter(c) {
+  const ftName = document.getElementById('footer-company-name');
+  if (ftName) ftName.textContent = c.name;
+  
+  const ftGst = document.getElementById('footer-gst-no');
+  if (ftGst) ftGst.textContent = `GSTIN: ${c.gstNo}`;
+  
+  const ftPhone = document.getElementById('footer-phone');
+  if (ftPhone) {
+    ftPhone.innerHTML = `<a href="tel:+91${c.phone1}">+91 ${c.phone1}</a> / <a href="tel:+91${c.phone2}">+91 ${c.phone2}</a>`;
+  }
+  
+  const ftEmail = document.getElementById('footer-email');
+  if (ftEmail) {
+    ftEmail.innerHTML = `<a href="mailto:${c.email}">${c.email}</a>`;
+  }
+  
+  const ftAddr = document.getElementById('footer-address');
+  if (ftAddr) {
+    ftAddr.textContent = `${c.address.line1}, ${c.address.line2}`;
+  }
+  
+  // Floating WA
+  const floatWa = document.getElementById('floating-wa');
+  if (floatWa) {
+    floatWa.href = `https://wa.me/91${c.phone1}?text=Hello%20CRD%20Global%20Solutions,%20I%20have%20an%20enquiry.`;
+  }
+}
+
+// 3. User Actions (Enquiry, WhatsApp, Modal Triggers)
+function openEnquiryModal(serviceName = "Solar Consultation") {
+  const modal = document.getElementById('enquiry-modal');
+  const serviceInput = document.getElementById('enquiry-service-field');
+  if (serviceInput) serviceInput.value = serviceName;
+  if (modal) modal.classList.add('open');
+}
+
+function closeEnquiryModal() {
+  const modal = document.getElementById('enquiry-modal');
+  if (modal) modal.classList.remove('open');
+}
+
+function enquireProduct(prodName, defaultMsg) {
+  const data = getSiteData();
+  const phone = data.company.phone1;
+  const msg = defaultMsg || `Hello CRD Global Solutions, I want to enquire about ${prodName}.`;
+  window.open(`https://wa.me/91${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+function handleEnquirySubmit(e) {
+  e.preventDefault();
+  const form = e.target;
+  const name = form.name.value;
+  const phone = form.phone.value;
+  const service = form.service.value;
+  const note = form.message.value;
+  
+  const data = getSiteData();
+  const waMsg = `*New Website Enquiry - CRD Global Solutions*\n\n*Name:* ${name}\n*Phone:* ${phone}\n*Service/Product:* ${service}\n*Details:* ${note || 'N/A'}`;
+  
+  // Open WhatsApp with populated info
+  window.open(`https://wa.me/91${data.company.phone1}?text=${encodeURIComponent(waMsg)}`, '_blank');
+  
+  alert("Thank you! Your enquiry details have been prepared for WhatsApp submission.");
+  form.reset();
+  closeEnquiryModal();
+}
+
+// 4. In-Browser Dynamic Editor for All Info (Admin Settings)
+function openAdminEditor() {
+  const data = getSiteData();
+  const editorModal = document.getElementById('admin-editor-modal');
+  
+  document.getElementById('edit-company-name').value = data.company.name;
+  document.getElementById('edit-phone1').value = data.company.phone1;
+  document.getElementById('edit-phone2').value = data.company.phone2;
+  document.getElementById('edit-email').value = data.company.email;
+  document.getElementById('edit-gst').value = data.company.gstNo;
+  document.getElementById('edit-address1').value = data.company.address.line1;
+  document.getElementById('edit-address2').value = data.company.address.line2;
+  document.getElementById('edit-logo-url').value = data.company.logoImg;
+  
+  // JSON RAW for all products/cards
+  document.getElementById('edit-raw-json').value = JSON.stringify(data, null, 2);
+  
+  if (editorModal) editorModal.classList.add('open');
+}
+
+function closeAdminEditor() {
+  const editorModal = document.getElementById('admin-editor-modal');
+  if (editorModal) editorModal.classList.remove('open');
+}
+
+function saveAdminEditor(e) {
+  e.preventDefault();
+  try {
+    // Attempt parse raw json if modified, else update form fields
+    const rawInput = document.getElementById('edit-raw-json').value;
+    let data = JSON.parse(rawInput);
+    
+    // Quick overrides from top inputs
+    data.company.name = document.getElementById('edit-company-name').value;
+    data.company.phone1 = document.getElementById('edit-phone1').value;
+    data.company.phone2 = document.getElementById('edit-phone2').value;
+    data.company.email = document.getElementById('edit-email').value;
+    data.company.gstNo = document.getElementById('edit-gst').value;
+    data.company.address.line1 = document.getElementById('edit-address1').value;
+    data.company.address.line2 = document.getElementById('edit-address2').value;
+    data.company.logoImg = document.getElementById('edit-logo-url').value;
+    
+    saveSiteData(data);
+    alert("Website information updated successfully!");
+    closeAdminEditor();
+  } catch (err) {
+    alert("Invalid JSON format in advanced editor: " + err.message);
+  }
+}
+
+// 5. Mobile Menu Toggle
+function toggleMobileNav() {
+  const nav = document.getElementById('nav-links-menu');
+  if (nav) nav.classList.toggle('open');
+}
+
+// Global initialization
 document.addEventListener('DOMContentLoaded', () => {
-
-  // ----------------------------------------------------------------
-  // STICKY HEADER – add class on scroll
-  // ----------------------------------------------------------------
-  const header = document.getElementById('site-header');
-  let lastScroll = 0;
-
-  const onScroll = () => {
-    const y = window.scrollY;
-    header.classList.toggle('scrolled', y > 20);
-    lastScroll = y;
-  };
-  window.addEventListener('scroll', onScroll, { passive: true });
-  onScroll(); // run once on load
-
-  // ----------------------------------------------------------------
-  // MOBILE NAV – hamburger toggle
-  // ----------------------------------------------------------------
-  const hamburger = document.getElementById('hamburger');
-  const mainNav   = document.getElementById('main-nav');
-
-  const closeNav = () => {
-    hamburger.setAttribute('aria-expanded', 'false');
-    mainNav.classList.remove('open');
-    document.body.style.overflow = '';
-  };
-
-  const openNav = () => {
-    hamburger.setAttribute('aria-expanded', 'true');
-    mainNav.classList.add('open');
-    document.body.style.overflow = 'hidden';
-  };
-
-  hamburger.addEventListener('click', () => {
-    const isOpen = hamburger.getAttribute('aria-expanded') === 'true';
-    isOpen ? closeNav() : openNav();
-  });
-
-  // Close nav when a link is clicked
-  mainNav.querySelectorAll('.nav-link').forEach(link => {
-    link.addEventListener('click', closeNav);
-  });
-
-  // Close nav on outside click
-  document.addEventListener('click', e => {
-    if (!header.contains(e.target) && mainNav.classList.contains('open')) {
-      closeNav();
-    }
-  });
-
-  // Close nav on Escape key
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && mainNav.classList.contains('open')) closeNav();
-  });
-
-  // ----------------------------------------------------------------
-  // LOGIN MODAL – portal coming soon
-  // ----------------------------------------------------------------
-  const loginBtn    = document.getElementById('login-btn');
-  const loginModal  = document.getElementById('login-modal');
-  const modalClose  = document.getElementById('modal-close');
-  const modalDismiss= document.getElementById('modal-dismiss');
-
-  const openModal = (e) => {
-    e.preventDefault();
-    loginModal.hidden = false;
-    document.body.style.overflow = 'hidden';
-    modalClose.focus();
-    closeNav(); // close mobile nav if open
-  };
-
-  const closeModal = () => {
-    loginModal.hidden = true;
-    document.body.style.overflow = '';
-    loginBtn.focus();
-  };
-
-  loginBtn.addEventListener('click', openModal);
-  modalClose.addEventListener('click', closeModal);
-  modalDismiss.addEventListener('click', closeModal);
-
-  // Close modal on overlay click
-  loginModal.addEventListener('click', e => {
-    if (e.target === loginModal) closeModal();
-  });
-
-  // Close modal on Escape
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && !loginModal.hidden) closeModal();
-  });
-
-  // Trap focus in modal
-  loginModal.addEventListener('keydown', e => {
-    if (e.key !== 'Tab') return;
-    const focusable = loginModal.querySelectorAll(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-    );
-    const first = focusable[0];
-    const last  = focusable[focusable.length - 1];
-    if (e.shiftKey) {
-      if (document.activeElement === first) { e.preventDefault(); last.focus(); }
-    } else {
-      if (document.activeElement === last)  { e.preventDefault(); first.focus(); }
-    }
-  });
-
-  // ----------------------------------------------------------------
-  // ACTIVE NAV LINK – highlight based on scroll position
-  // ----------------------------------------------------------------
-  const navLinks = document.querySelectorAll('.nav-link');
-  const sections = [];
-
-  navLinks.forEach(link => {
-    const id = link.getAttribute('href')?.slice(1);
-    if (id) {
-      const el = document.getElementById(id);
-      if (el) sections.push({ id, el, link });
-    }
-  });
-
-  const updateActiveNav = () => {
-    const scrollMid = window.scrollY + window.innerHeight * 0.4;
-    let current = sections[0];
-
-    sections.forEach(s => {
-      if (s.el.offsetTop <= scrollMid) current = s;
-    });
-
-    navLinks.forEach(l => l.classList.remove('active'));
-    if (current) current.link.classList.add('active');
-  };
-
-  window.addEventListener('scroll', updateActiveNav, { passive: true });
-  updateActiveNav();
-
-  // ----------------------------------------------------------------
-  // SCROLL ANIMATIONS – IntersectionObserver
-  // ----------------------------------------------------------------
-  const animatedEls = document.querySelectorAll('[data-animate]');
-
-  if ('IntersectionObserver' in window) {
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (!entry.isIntersecting) return;
-        const el    = entry.target;
-        const delay = parseInt(el.dataset.delay || '0', 10);
-        setTimeout(() => el.classList.add('animated'), delay);
-        observer.unobserve(el);
-      });
-    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
-
-    animatedEls.forEach(el => observer.observe(el));
-  } else {
-    // Fallback for older browsers
-    animatedEls.forEach(el => el.classList.add('animated'));
-  }
-
-  // ----------------------------------------------------------------
-  // ENQUIRY FORM – validation + success message
-  // ----------------------------------------------------------------
-  const form        = document.getElementById('enquiry-form');
-  const successMsg  = document.getElementById('form-success');
-  const submitBtn   = document.getElementById('submit-btn');
-
-  if (form) {
-    const validators = {
-      name: (v) => v.trim().length >= 2 ? '' : 'Please enter your full name.',
-      mobile: (v) => /^[6-9][0-9]{9}$/.test(v.trim()) ? '' : 'Enter a valid 10-digit Indian mobile number.',
-      city: (v) => v.trim().length >= 2 ? '' : 'Please enter your city or district.',
-    };
-
-    const getError = (el) => el.parentElement.querySelector('.field-error');
-
-    const validateField = (field) => {
-      const v = validators[field.name];
-      if (!v) return true;
-      const msg = v(field.value);
-      const errEl = getError(field);
-      if (errEl) errEl.textContent = msg;
-      field.classList.toggle('error', !!msg);
-      field.setAttribute('aria-invalid', !!msg);
-      return !msg;
-    };
-
-    // Live validation on blur
-    form.querySelectorAll('input, select, textarea').forEach(field => {
-      field.addEventListener('blur', () => validateField(field));
-      field.addEventListener('input', () => {
-        if (field.classList.contains('error')) validateField(field);
-      });
-    });
-
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
-
-      // Validate all required fields
-      let valid = true;
-      ['name', 'mobile', 'city'].forEach(name => {
-        const field = form.elements[name];
-        if (!validateField(field)) valid = false;
-      });
-
-      if (!valid) {
-        // Focus first error
-        const firstErr = form.querySelector('.error');
-        if (firstErr) firstErr.focus();
-        return;
-      }
-
-      // Disable button to prevent double submit
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Submitting…';
-
-      /**
-       * FUTURE INTEGRATION:
-       * Replace the setTimeout below with a real fetch() to your backend:
-       *
-       * const data = new FormData(form);
-       * fetch('/api/enquiry', { method: 'POST', body: data })
-       *   .then(r => r.json())
-       *   .then(showSuccess)
-       *   .catch(showError);
-       */
-      setTimeout(() => {
-        form.reset();
-        form.style.display = 'none';
-        successMsg.hidden = false;
-        successMsg.focus();
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = `
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-            <line x1="22" y1="2" x2="11" y2="13"/>
-            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
-          </svg>
-          Submit Enquiry`;
-      }, 900);
-    });
-  }
-
-  // ----------------------------------------------------------------
-  // SMOOTH SCROLL – polyfill for anchor links
-  // ----------------------------------------------------------------
-  document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-    anchor.addEventListener('click', function (e) {
-      const target = document.querySelector(this.getAttribute('href'));
-      if (!target) return;
-      e.preventDefault();
-      const top = target.getBoundingClientRect().top + window.scrollY
-                  - parseInt(getComputedStyle(document.documentElement).getPropertyValue('--header-h') || '72');
-      window.scrollTo({ top, behavior: 'smooth' });
-    });
-  });
-
-  // ----------------------------------------------------------------
-  // HERO SECTION – stagger animation on load
-  // ----------------------------------------------------------------
-  const heroText = document.querySelector('.hero-text');
-  if (heroText) {
-    heroText.style.transition = 'opacity 0.9s cubic-bezier(0.16,1,0.3,1), transform 0.9s cubic-bezier(0.16,1,0.3,1)';
-    heroText.style.opacity = '0';
-    heroText.style.transform = 'translateY(30px)';
-    requestAnimationFrame(() => {
-      setTimeout(() => {
-        heroText.style.opacity = '1';
-        heroText.style.transform = 'none';
-      }, 200);
-    });
-  }
-
-  // ----------------------------------------------------------------
-  // PERFORMANCE: Lazy-load the Google Maps iframe
-  // ----------------------------------------------------------------
-  const mapIframe = document.querySelector('.map-wrap iframe');
-  if (mapIframe && 'IntersectionObserver' in window) {
-    const src = mapIframe.getAttribute('src');
-    mapIframe.removeAttribute('src');
-    const mapObserver = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          mapIframe.setAttribute('src', src);
-          mapObserver.unobserve(mapIframe);
-        }
-      });
-    }, { rootMargin: '200px' });
-    mapObserver.observe(mapIframe);
-  }
-
-  // ----------------------------------------------------------------
-  // UTILITY: Log info in dev (remove in production)
-  // ----------------------------------------------------------------
-  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    console.info(
-      '%cCRD Global Solutions Website',
-      'background:#1A3C6E;color:#fff;padding:4px 12px;border-radius:4px;font-weight:bold;',
-      '\nDevelopment mode. Login portal is a placeholder. Backend integration pending.'
-    );
-  }
-
+  renderAllSections();
 });
-
-/* ================================================================
-   /login ROUTE HANDLER (future-ready)
-   When the site is served as an SPA or with routing, this function
-   can be called to redirect to the actual portal URL.
-   ================================================================ */
-window.CRDPortal = {
-  /**
-   * Redirect to the login portal.
-   * In future, replace the URL with the actual software portal URL.
-   */
-  redirectToLogin: function () {
-    window.location.href = '/login';
-  },
-
-  /**
-   * Check if user is authenticated (placeholder).
-   * Replace with real auth check using JWT/session.
-   */
-  isAuthenticated: function () {
-    return false; // TODO: integrate with auth system
-  },
-};

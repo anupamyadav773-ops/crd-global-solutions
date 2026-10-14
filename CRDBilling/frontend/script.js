@@ -1,4 +1,4 @@
-const body = document.body;
+﻿const body = document.body;
 const lampPullCord = document.getElementById("lampPullCord");
 const usernameInput = document.getElementById("username");
 const passwordInput = document.getElementById("password");
@@ -201,7 +201,7 @@ if (loginForm) {
         }
 
         try {
-            const baseUrl = window.API_BASE_URL || (typeof API_BASE_URL !== "undefined" ? API_BASE_URL : "https://paribilling-api.onrender.com");
+            const baseUrl = window.API_BASE_URL || (typeof API_BASE_URL !== "undefined" ? API_BASE_URL : "https://crdbilling-api.onrender.com");
             const response = await fetch(`${baseUrl}/login`, {
                 method: "POST",
                 headers: {
@@ -255,3 +255,4 @@ if (loginForm) {
 
 // Initial state: Lamp is OFF by default, login panel hidden until lamp is lit
 setLampState(false, false);
+

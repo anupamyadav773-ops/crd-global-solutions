@@ -8,7 +8,7 @@ function getApiBaseUrl() {
         return API_BASE_URL;
     }
     const isLocal = typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" || window.location.protocol === "file:");
-    return isLocal ? "http://127.0.0.1:5000" : "https://paribilling-api.onrender.com";
+    return isLocal ? "http://127.0.0.1:5000" : "https://crdbilling-api.onrender.com";
 }
 
 window.API_BASE_URL = getApiBaseUrl();
@@ -2189,4 +2189,5 @@ async function loadMyLeaves() {
         container.innerHTML = `<div style="color: #ef4444; padding: 16px;">Error loading leaves.</div>`;
     }
 }
+
 

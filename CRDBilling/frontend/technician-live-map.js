@@ -58,7 +58,7 @@ async function loadLiveLocations(isManual = false) {
     if (liveIndicator) liveIndicator.innerText = "Fetching...";
 
     try {
-        const base = window.API_BASE_URL || "https://paribilling-api.onrender.com";
+        const base = window.API_BASE_URL || "https://crdbilling-api.onrender.com";
         const res = await fetch(`${base}/api/technicians/live-locations`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
@@ -560,4 +560,5 @@ function escapeHtml(str) {
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
 }
+
 

@@ -1,4 +1,4 @@
-/* global API_BASE_URL */
+﻿/* global API_BASE_URL */
 
 /**
  * ==============================================================================
@@ -35,7 +35,7 @@ async function loadTechniciansDropdown() {
     if (!select) return;
 
     try {
-        const base = window.API_BASE_URL || "https://paribilling-api.onrender.com";
+        const base = window.API_BASE_URL || "https://crdbilling-api.onrender.com";
         const res = await fetch(`${base}/api/employees`);
         if (!res.ok) return;
         const data = await res.json();
@@ -69,7 +69,7 @@ async function loadActivityLogs(isManual = false) {
     }
 
     try {
-        const base = window.API_BASE_URL || "https://paribilling-api.onrender.com";
+        const base = window.API_BASE_URL || "https://crdbilling-api.onrender.com";
         const params = new URLSearchParams();
 
         // Pagination
@@ -457,7 +457,7 @@ function toggleAutoRefresh() {
 
 async function exportLogsCSV() {
     try {
-        const base = window.API_BASE_URL || "https://paribilling-api.onrender.com";
+        const base = window.API_BASE_URL || "https://crdbilling-api.onrender.com";
         const params = new URLSearchParams();
         params.set("limit", "1000"); // export up to 1000
         params.set("offset", "0");
@@ -562,3 +562,4 @@ function escapeHtml(str) {
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
 }
+

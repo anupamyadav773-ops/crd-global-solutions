@@ -66,7 +66,7 @@ async function loadHistoryData() {
     const dateVal = dateInput ? dateInput.value : "";
     const jobId = jobFilter ? jobFilter.value : "all";
 
-    const base = window.API_BASE_URL || "https://paribilling-api.onrender.com";
+    const base = window.API_BASE_URL || "https://crdbilling-api.onrender.com";
     let url = `${base}/api/admin/technician-gps-history?date=${encodeURIComponent(dateVal)}`;
     if (empId) url += `&employee_id=${encodeURIComponent(empId)}`;
     if (jobId && jobId !== "all") url += `&service_job_id=${encodeURIComponent(jobId)}`;
@@ -579,7 +579,7 @@ async function simulateSampleRoute() {
     if (!confirmSim) return;
 
     try {
-        const base = window.API_BASE_URL || "https://paribilling-api.onrender.com";
+        const base = window.API_BASE_URL || "https://crdbilling-api.onrender.com";
         const res = await fetch(`${base}/api/admin/technician-gps-history/simulate-route`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -612,4 +612,5 @@ function escapeHtml(str) {
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
 }
+
 

@@ -1,4 +1,4 @@
-(() => {
+﻿(() => {
     const TOKEN_KEY = "pari_auth_token";
     const USER_KEY = "pari_current_user";
     const originalFetch = window.fetch.bind(window);
@@ -314,11 +314,11 @@
         applyRoleBasedUI();
     }
 
-    window.API_BASE_URL = window.API_BASE_URL || "https://paribilling-api.onrender.com";
+    window.API_BASE_URL = window.API_BASE_URL || "https://crdbilling-api.onrender.com";
 
     window.fetch = async function authenticatedFetch(input, init = {}) {
         let targetUrl = input;
-        const base = window.API_BASE_URL || "https://paribilling-api.onrender.com";
+        const base = window.API_BASE_URL || "https://crdbilling-api.onrender.com";
         if (typeof targetUrl === "string") {
             targetUrl = targetUrl
                 .replace(/^API_BASE_URL\/?/, base + "/")
@@ -364,7 +364,7 @@
             return;
         }
         try {
-            const base = window.API_BASE_URL || "https://paribilling-api.onrender.com";
+            const base = window.API_BASE_URL || "https://crdbilling-api.onrender.com";
             const response = await originalFetch(base + "/settings/business-profile", {
                 headers: { "Authorization": `Bearer ${token}` }
             });

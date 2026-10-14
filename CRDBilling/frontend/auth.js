@@ -1,4 +1,4 @@
-﻿(() => {
+(() => {
     const TOKEN_KEY = "pari_auth_token";
     const USER_KEY = "pari_current_user";
     const originalFetch = window.fetch.bind(window);
@@ -16,9 +16,7 @@
 
     function redirectToLogin() {
         clearAuthentication();
-        if (!window.location.pathname.endsWith("index.html")) {
-            window.location.replace("index.html");
-        }
+        window.location.href = "/";
     }
 
     function getCurrentUser() {

@@ -1,4 +1,4 @@
-﻿/* global API_BASE_URL */
+/* global API_BASE_URL */
 
 // ============================================================
 //  SCRAP MANAGEMENT MODULE  -  scrap.js
@@ -926,7 +926,8 @@ function logout() {
     } else {
         localStorage.clear();
     }
-    window.location.replace('index.html');
+    sessionStorage.clear();
+    window.location.replace('/');
 }
 
 // -------  Module Startup  -----------------------------------

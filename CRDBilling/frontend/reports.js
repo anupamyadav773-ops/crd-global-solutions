@@ -647,5 +647,7 @@ function logout() {
     if (typeof window.clearPariAuthentication === 'function') {
         window.clearPariAuthentication();
     }
-    window.location.href = 'index.html';
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.href = '/';
 }

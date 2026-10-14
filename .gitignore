@@ -1,4 +1,4 @@
-# Git ignore file for CRD Global Solutions Website
+# Git ignore file for CRD Global Solutions
 .DS_Store
 Thumbs.db
 *.log
@@ -6,3 +6,16 @@ Thumbs.db
 node_modules/
 .vscode/
 *.tmp
+__pycache__/
+*.pyc
+.venv/
+CRDBilling/.venv/
+CRDBilling/**/__pycache__/
+CRDBilling/**/*.pyc
+CRDBilling/**/node_modules/
+CRDBilling/android_app/.gradle/
+CRDBilling/android_app/build/
+CRDBilling/android_app/app/build/
+CRDBilling/*.zip
+CRDBilling/backups/
+START_CRD_BILLING.bat

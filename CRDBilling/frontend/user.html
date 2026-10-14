@@ -1,0 +1,87 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRD Global Solutions - User</title>
+    <link rel="stylesheet" href="user.css">
+</head>
+
+<body>
+    <div class="page-shell">
+        <div class="page-header">
+            <div>
+                <h1 id="pageTitle">Add User</h1>
+                <p id="pageSubtitle">Create a new user account</p>
+            </div>
+            <a href="user-list.html" class="back-button">? Users List</a>
+        </div>
+
+        <form id="userForm" class="user-form">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="username">Username *</label>
+                    <input type="text" id="username" placeholder="Enter username" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="full_name">Full Name *</label>
+                    <input type="text" id="full_name" placeholder="Enter full name" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="mobile">Mobile</label>
+                    <input type="tel" id="mobile" placeholder="Enter mobile number">
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" placeholder="Enter email address">
+                </div>
+
+                <div class="form-group">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                        <label for="role" style="margin-bottom: 0;">Role *</label>
+                        <a href="user-list.html?tab=roles" style="font-size: 12px; color: #2563eb; text-decoration: none; font-weight: 600;" title="Manage and edit roles">🛡️ Edit Roles (रोल एडिट करें)</a>
+                    </div>
+                    <select id="role">
+                        <option value="Admin">Admin</option>
+                        <option value="Manager">Manager</option>
+                        <option value="Staff" selected>Staff</option>
+                    </select>
+                    <small id="rolePermissionsSummary" style="display:block;margin-top:6px;font-size:12px;color:#64748b;line-height:1.4;"></small>
+                </div>
+
+                <div class="form-group">
+                    <label for="status">Status</label>
+                    <select id="status">
+                        <option value="Active" selected>Active</option>
+                        <option value="Inactive">Inactive</option>
+                    </select>
+                </div>
+
+                <div class="form-group password-field" id="passwordGroup">
+                    <label for="password">Password *</label>
+                    <input type="password" id="password" placeholder="Enter password">
+                </div>
+
+                <div class="form-group password-field" id="confirmPasswordGroup">
+                    <label for="confirm_password">Confirm Password *</label>
+                    <input type="password" id="confirm_password" placeholder="Confirm password">
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="button" class="cancel-btn" onclick="window.location.href='user-list.html'">Cancel</button>
+                <button type="submit" class="save-btn" id="saveButton">Save User</button>
+            </div>
+        </form>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script src="user.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,160 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRD Global Solutions - Sales Invoices</title>
+    <link rel="stylesheet" href="sales-list.css">
+    <link rel="stylesheet" href="invoice-templates.css">
+</head>
+
+<body>
+    <div class="page-container">
+
+        <div class="page-header">
+            <div>
+                <h1>Sales Invoices</h1>
+                <p>Manage all sales records</p>
+            </div>
+
+            <div class="header-buttons">
+                <a href="dashboard.html">← Dashboard</a>
+                <a href="quotation-list.html" style="background: #8e44ad;">📄 Quotations</a>
+                <a href="sales-invoice.html" class="add-button">+ New Sale</a>
+            </div>
+        </div>
+
+        <div class="search-box">
+            <form id="salesFilterForm" class="filter-grid">
+                <div class="field-group">
+                    <label for="searchInvoiceNumber">Invoice No.</label>
+                    <input type="text" id="searchInvoiceNumber" placeholder="Search Invoice Number">
+                </div>
+
+                <div class="field-group">
+                    <label for="searchCustomer">Customer</label>
+                    <input type="text" id="searchCustomer" placeholder="Search Customer">
+                </div>
+
+                <div class="field-group">
+                    <label for="fromDate">From Date</label>
+                    <input type="date" id="fromDate">
+                </div>
+
+                <div class="field-group">
+                    <label for="toDate">To Date</label>
+                    <input type="date" id="toDate">
+                </div>
+
+                <div class="field-group">
+                    <label for="paymentStatusFilter">Payment Status</label>
+                    <select id="paymentStatusFilter">
+                        <option value="">All</option>
+                        <option value="Paid">Paid</option>
+                        <option value="Unpaid">Unpaid</option>
+                        <option value="Partial">Partial</option>
+                        <option value="Pending">Pending</option>
+                    </select>
+                </div>
+
+                
+
+                <div class="filter-actions">
+                    <button type="submit" class="primary-btn">Search / Apply</button>
+                    <button type="button" id="resetFilters" class="secondary-btn">Reset</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Invoice No.</th>
+                        <th>Date</th>
+                        <th>Customer</th>
+                        <th>Subtotal</th>
+                        <th>Discount</th>
+                        <th>Tax</th>
+                        <th>Grand Total</th>
+                        <th>Payment Method</th>
+                        <th>Payment Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="salesTableBody">
+                    <tr>
+                        <td colspan="10" class="empty-message">Loading sales invoices...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="previewModal" class="modal hidden" aria-modal="true" role="dialog">
+        <div class="modal-content preview-modal-content">
+            <div class="modal-header">
+                <h3>Invoice Preview</h3>
+                <button type="button" class="close-modal" id="closePreviewModal">×</button>
+            </div>
+            <div class="template-switch-bar no-print">
+                <label for="invoiceTemplateSelect" style="font-size:13px;font-weight:600;color:#555;">Template:</label>
+                <select id="invoiceTemplateSelect" style="font-size:13px;padding:4px 10px;border-radius:6px;border:1px solid #ccc;background:#fff;">
+                    <option value="modern">Modern</option>
+                    <option value="classic">Classic</option>
+                    <option value="minimal">Minimal</option>
+                    <option value="thermal">Thermal (80mm)</option>
+                </select>
+            </div>
+            <div id="previewContent" class="preview-content"></div>
+            <div class="modal-actions">
+                <button type="button" class="secondary-button" id="closePreviewButton">Close</button>
+                <button type="button" class="primary-button" id="printPreviewButton">Print</button>
+            </div>
+        </div>
+    </div>
+
+    
+    <!-- ==========================================
+         80MM THERMAL RECEIPT MODAL
+    =========================================== -->
+    <div id="thermalModal" class="modal hidden" aria-modal="true" role="dialog">
+        <div style="background:#fff; border-radius:8px; max-width:400px; width:95%; max-height:90vh; overflow-y:auto; padding:20px; box-shadow:0 10px 30px rgba(0,0,0,0.3);">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:10px; margin-bottom:15px;">
+                <h3 style="margin:0; font-size:16px; color:#17202a;">🧾 80mm Thermal POS Slip</h3>
+                <button type="button" onclick="closeThermalModal()" style="border:none; background:none; font-size:22px; cursor:pointer;">×</button>
+            </div>
+            <div id="thermalPrintArea" style="background:#fff; padding:10px; border:1px dashed #ccc; border-radius:4px;">
+                <!-- Thermal POS receipt rendered here -->
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:15px; border-top:1px solid #eee; padding-top:12px;">
+                <button type="button" onclick="closeThermalModal()" class="secondary-button" style="padding:6px 14px;">Close</button>
+                <button type="button" onclick="printThermalDirect()" class="primary-button" style="background:#ff6600; padding:6px 18px;">🖨️ Print Slip (80mm)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         SALES RETURN / CREDIT NOTE MODAL
+    =========================================== -->
+    <div id="salesReturnModal" class="modal hidden" aria-modal="true" role="dialog">
+        <div style="background:#fff; border-radius:8px; max-width:650px; width:90%; max-height:90vh; overflow-y:auto; padding:24px; box-shadow:0 10px 30px rgba(0,0,0,0.3);">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:12px; margin-bottom:15px;">
+                <h3 style="margin:0; font-size:18px; color:#17202a;">↩️ Sales Return / Credit Note (सामान वापसी)</h3>
+                <button type="button" onclick="closeSalesReturnModal()" style="border:none; background:none; font-size:24px; cursor:pointer;">×</button>
+            </div>
+            <div id="salesReturnContent">
+                <!-- Dynamic return items form -->
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js?v=2.2"></script>
+    <script src="auth.js?v=2.2"></script>
+    <script src="invoice-templates.js?v=2.2"></script>
+    <script src="sales-list.js?v=2.2"></script>
+</body>
+
+</html>
+

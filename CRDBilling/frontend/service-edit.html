@@ -1,0 +1,513 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRD Global Solutions - Edit Service Job</title>
+    <link rel="stylesheet" href="service-edit.css?v=2.2">
+    <style>
+        .full-width {
+            grid-column: 1 / -1;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .badge-received { background: #e8f4fd; color: #2e86de; }
+        .badge-progress { background: #fef9e7; color: #f39c12; }
+        .badge-ready { background: #eafaf1; color: #27ae60; }
+        .badge-delivered { background: #d4efdf; color: #1e8449; }
+        .badge-cancelled { background: #fadbd8; color: #c0392b; }
+
+        .btn-action {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 9px 15px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            text-decoration: none;
+        }
+        .btn-primary { background: #17202a; color: white; }
+        .btn-secondary { background: #f4f6f9; color: #333; border: 1px solid #ccc; }
+        .btn-wa { background: #25D366; color: white; }
+        .btn-print { background: #2e86de; color: white; }
+        .btn-invoice { background: #8e44ad; color: white; }
+        .btn-danger { background: #e74c3c; color: white; }
+        .btn-sm { padding: 6px 10px; font-size: 12px; }
+
+        .parts-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        .parts-table th, .parts-table td {
+            border: 1px solid #e0e0e0;
+            padding: 10px 12px;
+            text-align: left;
+            font-size: 13px;
+        }
+        .parts-table th {
+            background: #f8f9fa;
+            font-weight: bold;
+            color: #495057;
+        }
+        .parts-add-box {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr auto;
+            gap: 12px;
+            align-items: end;
+            background: #fdfefe;
+            border: 1px dashed #2e86de;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+        @media (max-width: 768px) {
+            .parts-add-box {
+                grid-template-columns: 1fr;
+            }
+        }
+        .invoice-card-done {
+            background: #eafaf1;
+            border: 1px solid #a9dfbf;
+            padding: 15px 20px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .invoice-card-prompt {
+            background: #fdf6ec;
+            border: 1px solid #f5cba7;
+            padding: 18px 20px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="service-container">
+
+    <div class="page-header">
+        <div>
+            <h1>🔧 Edit Service Job</h1>
+            <p id="subHeading">Update service details, spare parts & invoice status</p>
+        </div>
+
+        <div class="header-actions">
+            <button type="button" class="btn-action btn-print" onclick="openJobSheetModal()">
+                🖨️ Job Sheet
+            </button>
+            <button type="button" class="btn-action btn-wa" onclick="sendWhatsAppCurrent()">
+                📲 WhatsApp
+            </button>
+            <a href="service-list.html" class="btn-action btn-primary">
+                ← Service List
+            </a>
+            <a href="dashboard.html" class="btn-action btn-secondary">
+                Dashboard
+            </a>
+        </div>
+    </div>
+
+    <div id="loadingMessage" class="message">
+        Loading service details...
+    </div>
+
+    <div id="errorMessage" class="message error" style="display:none;"></div>
+
+    <div id="editArea" style="display:none;">
+
+        <!-- 1-CLICK INVOICE STATUS BANNER -->
+        <div class="card" style="padding: 15px; margin-bottom: 20px;">
+            <div id="invoiceBannerArea">
+                <!-- Dynamically populated -->
+            </div>
+        </div>
+
+        <!-- BASIC DEVICE & CUSTOMER INFO -->
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 12px; margin-bottom: 15px;">
+                <h2 style="margin: 0; border: none; padding: 0;">Device & Customer Information</h2>
+                <div id="statusBadgeContainer"></div>
+            </div>
+
+            <div class="info-grid">
+                <div>
+                    <span>Job / Token No</span>
+                    <strong id="serviceNumber">-</strong>
+                </div>
+                <div>
+                    <span>Received Date</span>
+                    <strong id="serviceDate">-</strong>
+                </div>
+                <div>
+                    <span>Customer Name (ग्राहक का नाम)</span>
+                    <input type="text" id="customerName" style="width:100%; box-sizing:border-box; margin-top:4px; padding:6px 10px; border:1px solid #cbd5e1; border-radius:4px; font-weight:bold; font-size:14px; background:#fff;" placeholder="Customer Name">
+                </div>
+                <div>
+                    <span>Mobile Number (मोबाइल नंबर)</span>
+                    <input type="text" id="customerMobile" style="width:100%; box-sizing:border-box; margin-top:4px; padding:6px 10px; border:1px solid #cbd5e1; border-radius:4px; font-weight:bold; font-size:14px; background:#fff;" placeholder="10-digit Mobile">
+                </div>
+                <div>
+                    <span>Product Name</span>
+                    <strong id="productName">-</strong>
+                </div>
+                <div>
+                    <span>Brand / Model</span>
+                    <strong id="brandModel">-</strong>
+                </div>
+                <div>
+                    <span>Serial Number</span>
+                    <strong id="serialNumber">-</strong>
+                </div>
+                <div>
+                    <span>Warranty</span>
+                    <strong id="warrantyStatus">-</strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- SERVICE DETAILS & STATUS -->
+        <div class="card">
+            <h2>Service Status & Repair Charges</h2>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Complaint Type / कार्य प्रकार</label>
+                    <select id="complaintType">
+                        <option value="Hardware Repair">Hardware Repair (हार्डवेयर रिपेयर)</option>
+                        <option value="Chip Level Repair">Chip Level Repair (चिप लेवल रिपेयर)</option>
+                        <option value="Software / OS">Software / OS Installation</option>
+                        <option value="On-Site / Field Visit">On-Site / Field Visit (साइट विजिट)</option>
+                        <option value="Networking / CCTV">Networking / CCTV</option>
+                        <option value="General Service">General Service / Cleaning</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Priority (प्राथमिकता)</label>
+                    <select id="priority">
+                        <option value="Normal">Normal (सामान्य)</option>
+                        <option value="Low">Low</option>
+                        <option value="High">High (उच्च)</option>
+                        <option value="Critical">Critical / Urgent (तत्काल)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Service Status</label>
+                    <select id="serviceStatus">
+                        <option value="Received">Received</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Ready">Ready</option>
+                        <option value="Delivered">Delivered</option>
+                        <option value="Cancelled">Cancelled</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Appointment / Visit Date</label>
+                    <input type="date" id="appointmentDate">
+                </div>
+
+                <div class="form-group">
+                    <label>Appointment Time</label>
+                    <input type="time" id="appointmentStartTime">
+                </div>
+
+                <div class="form-group">
+                    <label>Estimated Duration (अनुमानित समय)</label>
+                    <select id="estimatedDurationMinutes">
+                        <option value="30">30 Minutes (Quick Check)</option>
+                        <option value="45">45 Minutes</option>
+                        <option value="60">1 Hour (Standard)</option>
+                        <option value="90">1.5 Hours</option>
+                        <option value="120">2 Hours (Deep Diagnosis)</option>
+                        <option value="180">3 Hours (Chip Level)</option>
+                        <option value="240">4 Hours</option>
+                        <option value="480">Full Day</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        Assigned Technician (तकनीशियन)
+                        <span id="techLiveHint" style="font-size:11px; font-weight:normal; margin-left:6px; padding:2px 6px; border-radius:4px; display:none;"></span>
+                    </label>
+                    <select id="technician">
+                        <option value="">Select Technician</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Estimated Charges (₹)</label>
+                    <input type="number" id="estimatedCharges" min="0" step="0.01">
+                </div>
+
+                <div class="form-group">
+                    <label>Advance Paid (₹)</label>
+                    <input type="number" id="advancePaid" min="0" step="0.01">
+                </div>
+
+                <div class="form-group">
+                    <label>Final Service / Labor Charges (₹)</label>
+                    <input type="number" id="finalCharges" min="0" step="0.01">
+                </div>
+
+                <div class="form-group">
+                    <label>Expected Delivery Date</label>
+                    <input type="date" id="expectedDeliveryDate">
+                </div>
+
+                <div class="form-group full-width">
+                    <label>Physical Condition / Body Scratches</label>
+                    <input type="text" id="physicalCondition" placeholder="e.g. Scratches on lid, screen scratch-free, without bag">
+                </div>
+
+                <div class="form-group full-width">
+                    <label>Accessories Received</label>
+                    <textarea id="accessories" rows="2" placeholder="Charger, cable, power cord etc."></textarea>
+                </div>
+
+                <div class="form-group full-width">
+                    <label>Customer Complaint / Problem Reported</label>
+                    <textarea id="complaint" rows="3" placeholder="Describe customer complaint..."></textarea>
+                </div>
+
+                <div class="form-group full-width">
+                    <label>Internal Technician Notes / Diagnostic Report</label>
+                    <textarea id="notes" rows="3" placeholder="Diagnosis, repairs performed, technical observations..."></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- SPARE PARTS CONSUMPTION -->
+        <div class="card">
+            <h2>⚙️ Spare Parts Consumption (इन्वेंट्री पार्ट्स खपत)</h2>
+            <p style="font-size: 13px; color: #666; margin-bottom: 12px;">
+                जो पार्ट्स इस रिपेयर में लगाए गए हैं, उन्हें यहाँ जोड़ें। यह स्टॉक से स्वतः कम हो जाएँगे और इनवॉइस में जुड़ेंगे।
+            </p>
+
+            <table class="parts-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Product / Part Name</th>
+                        <th>Serial No.</th>
+                        <th>Quantity</th>
+                        <th>Unit Rate (₹)</th>
+                        <th>Line Total (₹)</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="partsTableBody">
+                    <tr>
+                        <td colspan="7" style="text-align:center; color:#888;">No spare parts attached yet.</td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr style="background:#f8f9fa; font-weight:bold;">
+                        <td colspan="5" style="text-align:right;">Total Spare Parts Cost:</td>
+                        <td id="totalPartsCost">₹ 0.00</td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+
+            <!-- ADD SPARE PART FORM -->
+            <div class="parts-add-box">
+                <div>
+                    <label style="font-size:12px; font-weight:bold; display:block; margin-bottom:4px;">Select Product / Part</label>
+                    <select id="partProductId" onchange="onPartProductSelected()">
+                        <option value="">-- Choose Spare Part from Inventory --</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size:12px; font-weight:bold; display:block; margin-bottom:4px;">Part Serial No.</label>
+                    <input type="text" id="partSerialNo" placeholder="Optional serial">
+                </div>
+                <div>
+                    <label style="font-size:12px; font-weight:bold; display:block; margin-bottom:4px;">Quantity</label>
+                    <input type="number" id="partQuantity" value="1" min="1" step="1">
+                </div>
+                <div>
+                    <label style="font-size:12px; font-weight:bold; display:block; margin-bottom:4px;">Rate / Price (₹)</label>
+                    <input type="number" id="partRate" value="0" min="0" step="0.01">
+                </div>
+                <div>
+                    <button type="button" class="btn-action btn-primary" onclick="addSparePart()">
+                        ➕ Add Part
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCRAP PARTS FROM THIS JOB -->
+        <div class="card" id="jobScrapSection">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
+                <h2 style="margin:0;">♻️ Defective / Scrap Parts from this Job (खराब सामान / स्क्रैप)</h2>
+                <button type="button" class="btn-action btn-sm" style="background:#e67e22; color:white;" onclick="openJobAddScrapModal()">
+                    ➕ Add Scrap Part
+                </button>
+            </div>
+            <p style="font-size: 13px; color: #666; margin-bottom: 12px;">
+                इस रिपेयर जॉब से निकला खराब सामान (Dead RAM, Hard Disk, SMPS आदि) यहाँ स्क्रैप में रिकॉर्ड करें ताकि कबाड़ी को बेचने का हिसाब रहे।
+            </p>
+
+            <table class="parts-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Scrap Item Name</th>
+                        <th>Total Qty</th>
+                        <th>Available Qty</th>
+                        <th>Unit</th>
+                        <th>Defect / Reason</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="jobScrapTableBody">
+                    <tr>
+                        <td colspan="8" style="text-align:center; color:#888;">इस जॉब से अभी कोई खराब सामान (Scrap) दर्ज नहीं है।</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- BRAND RMA / WARRANTY CLAIM -->
+        <div class="card">
+            <h2>🏢 Brand RMA / Warranty Claim (ब्रांड वारंटी क्लेम ट्रैकिंग)</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>RMA / Claim Status</label>
+                    <select id="rmaStatus">
+                        <option value="None">None (In-House Repair)</option>
+                        <option value="Claim Initiated">Claim Initiated</option>
+                        <option value="Sent to Brand Center">Sent to Brand Center</option>
+                        <option value="Received from Brand">Received from Brand</option>
+                        <option value="Replaced">Replaced by Brand</option>
+                        <option value="Rejected">Claim Rejected</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Brand Service Center Name</label>
+                    <input type="text" id="rmaCenterName" placeholder="e.g. Dell Authorized Service Center, Indore">
+                </div>
+                <div class="form-group">
+                    <label>Courier / Docket / RMA No.</label>
+                    <input type="text" id="rmaDocketNo" placeholder="Tracking / Docket number">
+                </div>
+                <div class="form-group">
+                    <label>Date Sent to Center</label>
+                    <input type="date" id="rmaSentDate">
+                </div>
+                <div class="form-group">
+                    <label>Date Received from Center</label>
+                    <input type="date" id="rmaReceivedDate">
+                </div>
+            </div>
+        </div>
+
+        <!-- SAVE AREA -->
+        <div class="save-area" style="display: flex; gap: 15px; justify-content: flex-end; align-items: center;">
+            <button type="button" class="btn-action btn-print" onclick="openJobSheetModal()">
+                🖨️ Print Job Sheet
+            </button>
+            <button type="button" class="btn-action btn-wa" onclick="sendWhatsAppCurrent()">
+                📲 Send WhatsApp Alert
+            </button>
+            <button type="button" id="saveButton" style="background:#27ae60; color:white; border:none; padding:14px 28px; border-radius:6px; font-size:16px; font-weight:bold; cursor:pointer;">
+                💾 Update Service Job
+            </button>
+        </div>
+
+    </div>
+
+</div>
+
+<!-- ==========================================
+     JOB SHEET PRINT MODAL
+=========================================== -->
+<div id="jobSheetModal" class="modal hidden" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9999; justify-content:center; align-items:center;">
+    <div style="background:#fff; border-radius:8px; max-width:700px; width:90%; max-height:90vh; overflow-y:auto; padding:24px; box-shadow:0 10px 30px rgba(0,0,0,0.3);">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:12px; margin-bottom:15px;">
+            <h3 style="margin:0; font-size:20px; color:#17202a;">🖨️ Customer Job Sheet / Gate Pass Slip</h3>
+            <button type="button" onclick="closeJobSheetModal()" style="border:none; background:none; font-size:24px; cursor:pointer;">×</button>
+        </div>
+        <div id="jobSheetPrintArea">
+            <!-- Dynamic Job Sheet Content -->
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:20px; border-top:1px solid #eee; padding-top:15px;">
+            <button type="button" onclick="closeJobSheetModal()" style="padding:8px 16px; border:1px solid #ccc; background:#fff; border-radius:5px; cursor:pointer;">Close</button>
+            <button type="button" onclick="printJobSheetDirect()" style="padding:8px 20px; background:#ff6600; color:#fff; border:none; border-radius:5px; font-weight:bold; cursor:pointer;">🖨️ Print Slip</button>
+        </div>
+    </div>
+</div>
+<!-- ==========================================
+     JOB SCRAP ADD MODAL
+=========================================== -->
+<div id="jobScrapModal" class="modal hidden" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9999; justify-content:center; align-items:center;">
+    <div style="background:#fff; border-radius:8px; max-width:550px; width:90%; padding:24px; box-shadow:0 10px 30px rgba(0,0,0,0.3);">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:12px; margin-bottom:15px;">
+            <h3 style="margin:0; font-size:18px; color:#17202a;">♻️ Add Scrap Part from Job</h3>
+            <button type="button" onclick="closeJobAddScrapModal()" style="border:none; background:none; font-size:24px; cursor:pointer;">×</button>
+        </div>
+        <form onsubmit="saveJobScrapPart(event)">
+            <div style="margin-bottom:12px;">
+                <label style="font-size:12px; font-weight:bold; display:block; margin-bottom:4px;">Scrap Item Name *</label>
+                <input type="text" id="jobScrapItemName" placeholder="e.g. Dead Seagate 500GB HDD, Burnt SMPS" required style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">
+            </div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:12px;">
+                <div>
+                    <label style="font-size:12px; font-weight:bold; display:block; margin-bottom:4px;">Quantity *</label>
+                    <input type="number" id="jobScrapQuantity" value="1" min="0.1" step="0.1" required style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">
+                </div>
+                <div>
+                    <label style="font-size:12px; font-weight:bold; display:block; margin-bottom:4px;">Unit</label>
+                    <select id="jobScrapUnit" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">
+                        <option value="Nos">Nos</option>
+                        <option value="Kg">Kg</option>
+                        <option value="Pcs">Pcs</option>
+                        <option value="Set">Set</option>
+                    </select>
+                </div>
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="font-size:12px; font-weight:bold; display:block; margin-bottom:4px;">Defect / Reason (खराबी का कारण)</label>
+                <input type="text" id="jobScrapReason" placeholder="e.g. Head crashed, Bad sectors, Burnt" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">
+            </div>
+            <div style="margin-bottom:15px;">
+                <label style="font-size:12px; font-weight:bold; display:block; margin-bottom:4px;">Remark</label>
+                <input type="text" id="jobScrapRemark" placeholder="Optional remark..." style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:10px;">
+                <button type="button" onclick="closeJobAddScrapModal()" style="padding:8px 16px; border:1px solid #ccc; background:#fff; border-radius:4px; cursor:pointer;">Cancel</button>
+                <button type="submit" style="padding:8px 18px; background:#e67e22; color:#fff; border:none; border-radius:4px; font-weight:bold; cursor:pointer;" id="jobScrapSubmitBtn">💾 Save to Scrap</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="config.js?v=2.2"></script>
+<script src="auth.js?v=2.2"></script>
+<script src="service-edit.js?v=2.2"></script>
+
+</body>
+</html>
+

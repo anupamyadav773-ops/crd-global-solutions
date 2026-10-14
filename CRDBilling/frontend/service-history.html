@@ -1,0 +1,339 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>CRD Global Solutions - Service & Warranty History</title>
+
+    <link rel="stylesheet" href="service-history.css">
+</head>
+
+<body>
+
+<div class="service-container">
+
+    <!-- HEADER -->
+
+    <div class="page-header">
+
+        <div>
+            <h1>Service & Warranty History</h1>
+
+            <p>
+                Complete product history using Serial Number
+            </p>
+        </div>
+
+        <div class="header-actions">
+
+            <a href="service-entry.html">
+                + New Service
+            </a>
+
+            <a href="dashboard.html">
+                ← Dashboard
+            </a>
+
+        </div>
+
+    </div>
+
+
+    <!-- SEARCH -->
+
+    <div class="search-card">
+
+        <label for="serialNumber">
+            Product Serial Number
+        </label>
+
+        <div class="search-box">
+
+            <input
+                type="text"
+                id="serialNumber"
+                placeholder="Enter Serial Number e.g. SR3"
+                autocomplete="off"
+            >
+
+            <button
+                type="button"
+                id="searchButton"
+            >
+                Search
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- ERROR -->
+
+    <div
+        id="errorMessage"
+        class="error-message"
+        style="display:none;"
+    ></div>
+
+
+    <!-- RESULT -->
+
+    <div
+        id="resultArea"
+        style="display:none;"
+    >
+
+
+        <!-- PRODUCT INFORMATION -->
+
+        <div class="info-card">
+
+            <div class="card-title">
+                Product Information
+            </div>
+
+            <div class="info-grid">
+
+                <div>
+                    <span>Product</span>
+                    <strong id="productName">-</strong>
+                </div>
+
+                <div>
+                    <span>Brand</span>
+                    <strong id="brand">-</strong>
+                </div>
+
+                <div>
+                    <span>Serial Number</span>
+                    <strong id="serial">-</strong>
+                </div>
+
+                <div>
+                    <span>Status</span>
+                    <strong id="status">-</strong>
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- PURCHASE INFORMATION -->
+
+        <div class="info-card">
+
+            <div class="card-title">
+                Purchase Information
+            </div>
+
+            <div class="info-grid">
+
+                <div>
+                    <span>Supplier</span>
+                    <strong id="supplierName">-</strong>
+                </div>
+
+                <div>
+                    <span>Purchase Invoice</span>
+                    <strong id="purchaseInvoice">-</strong>
+                </div>
+
+                <div>
+                    <span>Purchase Date</span>
+                    <strong id="purchaseDate">-</strong>
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- WARRANTY INFORMATION -->
+
+        <div class="info-card">
+
+            <div class="card-title">
+                Warranty Information
+            </div>
+
+            <div class="info-grid">
+
+                <div>
+                    <span>Warranty Start</span>
+                    <strong id="warrantyStart">-</strong>
+                </div>
+
+                <div>
+                    <span>Warranty End</span>
+                    <strong id="warrantyEnd">-</strong>
+                </div>
+
+                <div>
+                    <span>Warranty Status</span>
+                    <strong id="warrantyStatus">
+                        -
+                    </strong>
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- SALE INFORMATION -->
+
+        <div class="info-card">
+
+            <div class="card-title">
+                Sale Information
+            </div>
+
+            <div class="info-grid">
+
+                <div>
+                    <span>Customer</span>
+                    <strong id="customerName">-</strong>
+                </div>
+
+                <div>
+                    <span>Mobile</span>
+                    <strong id="customerMobile">-</strong>
+                </div>
+
+                <div>
+                    <span>Sales Invoice</span>
+                    <strong id="saleInvoice">-</strong>
+                </div>
+
+                <div>
+                    <span>Sale Date</span>
+                    <strong id="saleDate">-</strong>
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =====================================
+             SERVICE HISTORY
+        ====================================== -->
+
+        <div class="info-card service-history-card">
+
+            <div class="card-title service-title">
+
+                <div>
+                    Service History
+                </div>
+
+                <span id="serviceCount">
+                    0 Jobs
+                </span>
+
+            </div>
+
+
+            <!-- SERVICE LOADING -->
+
+            <div
+                id="serviceLoading"
+                class="service-message"
+                style="display:none;"
+            >
+                Loading service history...
+            </div>
+
+
+            <!-- NO SERVICE -->
+
+            <div
+                id="serviceEmpty"
+                class="service-message"
+                style="display:none;"
+            >
+                No service complaints found for
+                this serial number.
+            </div>
+
+
+            <!-- SERVICE TABLE -->
+
+            <div
+                id="serviceTableWrapper"
+                class="table-wrapper"
+                style="display:none;"
+            >
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Service No.
+                            </th>
+
+                            <th>
+                                Date
+                            </th>
+
+                            <th>
+                                Complaint
+                            </th>
+
+                            <th>
+                                Technician
+                            </th>
+
+                            <th>
+                                Status
+                            </th>
+
+                            <th>
+                                Estimated
+                            </th>
+
+                            <th>
+                                Final
+                            </th>
+
+                            <th>
+                                Delivered
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody
+                        id="serviceTableBody"
+                    >
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+
+    </div>
+
+
+</div>
+
+
+<script src="config.js"></script>
+<script src="auth.js"></script>
+<script src="service-history.js"></script>
+
+</body>
+
+</html>
+

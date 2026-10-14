@@ -1,0 +1,183 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRD Global Solutions - Field Service Complaints</title>
+    <link rel="stylesheet" href="service-list.css?v=2.2">
+    <link rel="stylesheet" href="field-service-list.css?v=2.2">
+</head>
+<body>
+
+<div class="service-container">
+
+    <!-- PAGE HEADER -->
+    <div class="page-header">
+        <div>
+            <h1>🛵 Field Service Complaints</h1>
+            <p>Customer on-site visits & field technician complaints (ऑन-साइट सर्विस)</p>
+        </div>
+
+        <div class="header-actions">
+            <a href="field-service-entry.html" style="background:#10b981; color:#fff;">➕ New Field Service</a>
+            <a href="technician-schedule.html" style="background:#0284c7; color:#fff;">📅 Tech Schedule</a>
+            <a href="service-list.html" style="background:#4b5563; color:#fff;">🏪 Shop Services</a>
+            <a href="dashboard.html">← Dashboard</a>
+        </div>
+    </div>
+
+    <!-- SUMMARY STATS -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-info">
+                <h3 id="statTotal">0</h3>
+                <p>Total Complaints</p>
+            </div>
+            <div class="stat-icon">🛵</div>
+        </div>
+
+        <div class="stat-card orange">
+            <div class="stat-info">
+                <h3 id="statPending">0</h3>
+                <p>Pending / Unassigned</p>
+            </div>
+            <div class="stat-icon">⏳</div>
+        </div>
+
+        <div class="stat-card blue">
+            <div class="stat-info">
+                <h3 id="statActive">0</h3>
+                <p>In Progress / Active</p>
+            </div>
+            <div class="stat-icon">🏃</div>
+        </div>
+
+        <div class="stat-card purple">
+            <div class="stat-info">
+                <h3 id="statCompleted">0</h3>
+                <p>Completed / Delivered</p>
+            </div>
+            <div class="stat-icon">✅</div>
+        </div>
+    </div>
+
+    <!-- TOOLBAR / FILTERS -->
+    <div class="toolbar" style="display:flex; flex-wrap:wrap; gap:10px;">
+        <input
+            type="text"
+            id="searchInput"
+            placeholder="Search complaint no, customer, mobile, site address..."
+            style="flex:1; min-width:240px;"
+        >
+
+        <select id="statusFilter">
+            <option value="">All Statuses</option>
+            <option value="Pending">Pending (Not Started)</option>
+            <option value="Assigned">Assigned</option>
+            <option value="On The Way">On The Way</option>
+            <option value="Reached">Reached Location</option>
+            <option value="Work Started">Work Started / In Progress</option>
+            <option value="Hold">On Hold</option>
+            <option value="Completed">Completed</option>
+            <option value="Delivered">Delivered / Closed</option>
+            <option value="Cancelled">Cancelled</option>
+        </select>
+
+        <select id="priorityFilter">
+            <option value="">All Priorities</option>
+            <option value="Urgent">Urgent</option>
+            <option value="High">High</option>
+            <option value="Normal">Normal</option>
+            <option value="Low">Low</option>
+        </select>
+
+        <select id="techFilter">
+            <option value="">All Technicians</option>
+            <option value="unassigned">-- Unassigned Only --</option>
+        </select>
+
+        <button id="refreshButton" style="padding:8px 16px; background:#17202a; color:#fff; border:none; border-radius:5px; cursor:pointer;">Refresh</button>
+    </div>
+
+    <!-- TABLE CARD -->
+    <div class="table-card">
+        <table>
+            <thead>
+                <tr>
+                    <th>Job No.</th>
+                    <th>Estimated Reach & Slot</th>
+                    <th>Customer & Mobile</th>
+                    <th>Site Address</th>
+                    <th>Product & Issue</th>
+                    <th>Priority</th>
+                    <th>Assigned Tech</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="fieldServiceTableBody">
+                <tr>
+                    <td colspan="9" class="loading">Loading field service complaints...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+<!-- ==========================================
+     JOB SHEET / COMPLAINT SLIP PRINT MODAL
+=========================================== -->
+<div id="jobSheetModal" class="modal hidden" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9999; justify-content:center; align-items:flex-start; overflow-y:auto; overflow-x:hidden; padding:20px 10px; box-sizing:border-box;">
+    <div style="background:#fff; border-radius:8px; max-width:760px; width:100%; margin:auto; padding:20px; box-shadow:0 10px 30px rgba(0,0,0,0.3); box-sizing:border-box; overflow:hidden;">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:12px; margin-bottom:15px;">
+            <h3 style="margin:0; font-size:19px; color:#17202a;">🖨️ Field Service Complaint Slip / Gate Pass</h3>
+            <button type="button" onclick="closeJobSheetModal()" style="border:none; background:none; font-size:24px; cursor:pointer; line-height:1; color:#64748b;">×</button>
+        </div>
+        <div id="jobSheetPrintArea" style="width:100%; box-sizing:border-box; overflow:hidden;">
+            <!-- Dynamic Job Sheet Content -->
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:20px; border-top:1px solid #eee; padding-top:15px;">
+            <button type="button" onclick="closeJobSheetModal()" style="padding:8px 16px; border:1px solid #ccc; background:#fff; border-radius:5px; cursor:pointer; font-weight:500;">Close</button>
+            <button type="button" onclick="printJobSheetDirect()" style="padding:8px 20px; background:#10b981; color:#fff; border:none; border-radius:5px; font-weight:bold; cursor:pointer;">🖨️ Print Slip</button>
+        </div>
+    </div>
+</div>
+
+<!-- ==========================================
+     QUICK ASSIGN MODAL
+=========================================== -->
+<div id="quickAssignModal" class="modal hidden" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9999; justify-content:center; align-items:center;">
+    <div style="background:#fff; border-radius:8px; max-width:500px; width:90%; padding:24px; box-shadow:0 10px 30px rgba(0,0,0,0.3);">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:12px; margin-bottom:15px;">
+            <h3 style="margin:0; font-size:18px; color:#17202a;">👨‍🔧 Assign Field Technician</h3>
+            <button type="button" onclick="closeQuickAssignModal()" style="border:none; background:none; font-size:24px; cursor:pointer;">×</button>
+        </div>
+        <input type="hidden" id="quickAssignJobId">
+        <div style="margin-bottom:12px;">
+            <label style="display:block; font-size:13px; font-weight:bold; margin-bottom:5px;">Select Technician (Real-time Status)</label>
+            <select id="quickAssignTechSelect" onchange="onQuickAssignTechChanged(this.value)" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;"></select>
+            <div id="quickAssignStatusNotice" style="display:none; font-size:12px; margin-top:6px; padding:6px 10px; border-radius:4px; font-weight:500;"></div>
+        </div>
+        <div style="margin-bottom:12px;">
+            <label style="display:block; font-size:13px; font-weight:bold; margin-bottom:5px;">Estimated Reach Date / कब पहुँचेगा (तारीख)</label>
+            <input type="date" id="quickAssignDate" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">
+        </div>
+        <div style="margin-bottom:12px;">
+            <label style="display:block; font-size:13px; font-weight:bold; margin-bottom:5px;">Estimated Reach Time / लगभग कब पहुँचेगा (समय)</label>
+            <input type="time" id="quickAssignTime" value="10:00" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">
+            <small style="color:#0284c7; font-size:11px;">⚡ Auto-fills based on technician availability</small>
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:15px;">
+            <button type="button" onclick="closeQuickAssignModal()" style="padding:8px 14px; border:1px solid #ccc; background:#fff; border-radius:4px; cursor:pointer;">Cancel</button>
+            <button type="button" id="confirmQuickAssignBtn" onclick="saveQuickAssignment()" style="padding:8px 18px; background:#0284c7; color:#fff; border:none; border-radius:4px; font-weight:bold; cursor:pointer;">Confirm Assignment</button>
+        </div>
+    </div>
+</div>
+
+<script src="config.js?v=2.2"></script>
+<script src="auth.js?v=2.2"></script>
+<script src="field-service-list.js?v=2.2"></script>
+</body>
+</html>
+

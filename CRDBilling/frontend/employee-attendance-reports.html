@@ -1,0 +1,185 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Attendance Reports - CRD Global Solutions</title>
+    <link rel="stylesheet" href="employees.css?v=1.1">
+    <link rel="stylesheet" href="employee-attendance-reports.css?v=1.0">
+</head>
+<body>
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+        <div class="logo">CRD Global Solutions</div>
+        <div class="menu">
+            <a href="dashboard.html">🏠 Dashboard</a>
+            <a href="customer-list.html">👥 Customers</a>
+            <a href="product-list.html">📦 Products</a>
+            <a href="sales-list.html">🧾 Billing</a>
+            <a href="quotation-list.html">📄 Quotations</a>
+            <a href="purchase-list.html">🛒 Purchases</a>
+
+            <div class="menu-dropdown service-menu-dropdown">
+                <a href="javascript:void(0)" class="menu-dropdown-toggle" onclick="toggleServiceMenu(event)">
+                    <span class="dropdown-label">🔧 Services</span>
+                    <span class="dropdown-chevron">▾</span>
+                </a>
+                <div class="menu-dropdown-content">
+                    <a href="service-list.html">🏪 Shop Service List</a>
+                    <a href="service-entry.html">➕ Shop Service Entry</a>
+                    <a href="field-service-list.html">🛵 Field Service List</a>
+                    <a href="field-service-entry.html">➕ Field Service Entry</a>
+                </div>
+            </div>
+
+            <div class="menu-dropdown field-tech-menu-dropdown">
+                <a href="javascript:void(0)" class="menu-dropdown-toggle" onclick="toggleFieldTechMenu(event)">
+                    <span class="dropdown-label">🛠️ Field Technician</span>
+                    <span class="dropdown-chevron">▾</span>
+                </a>
+                <div class="menu-dropdown-content">
+                    <a href="field-service-list.html">🛵 Field Complaints</a>
+                    <a href="technician-schedule.html">📅 Tech Schedule</a>
+                    <a href="technician-live-map.html">🗺️ Live Map Tracking</a>
+                    <a href="technician-gps-history.html">📍 GPS Location History</a>
+                    <a href="technician-activity-log.html">📜 Activity Log</a>
+                    <a href="employees.html">👷 Employees</a>
+                    <a href="attendance.html">📍 Attendance & GPS</a>
+                    <a href="employee-attendance-reports.html" class="active">📊 Attendance Reports</a>
+                    <a href="technician-performance.html">🎯 Technician Performance</a>
+                    <a href="technician-tools.html">🧰 Tech Tools</a>
+                    <a href="technician-inventory.html">📦 Tech Inventory</a>
+                    <a href="device-management.html" data-role="admin">🔒 Device Security</a>
+                </div>
+            </div>
+
+            <a href="supplier.html">🚚 Suppliers</a>
+            <a href="expense-list.html">💰 Expenses</a>
+            <a href="reports.html">📈 Reports</a>
+            <a href="scrap.html">♻️ Scrap</a>
+            <a href="user-list.html" data-role="admin">👤 Users</a>
+            <a href="settings.html" data-role="admin">⚙️ Settings</a>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Topbar -->
+        <header class="topbar">
+            <div>
+                <h2>📊 Employee Attendance Reports</h2>
+                <p style="color: #64748b; font-size: 0.9rem;">Daily, Monthly, Employee-wise, Working-hours & Leave/absence reports</p>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+                <button class="btn btn-secondary" onclick="refreshCurrentReport()">🔄 Refresh</button>
+                <button class="btn btn-secondary" onclick="exportReportCSV()">📥 Export CSV</button>
+                <button class="btn btn-primary" onclick="printReport()">🖨️ Print Report</button>
+            </div>
+        </header>
+
+        <div class="container">
+            <!-- Print Header (Hidden on screen, shown in print) -->
+            <div class="print-only-header">
+                <h1 style="font-size: 20px; font-weight: bold; margin-bottom: 4px;">CRD Global Solutions - Attendance Report</h1>
+                <p id="printMetaText" style="font-size: 13px; color: #555;">Report Type: Daily Report | Date: --</p>
+            </div>
+
+            <!-- 5 Report Navigation Tabs -->
+            <div class="report-tabs-bar">
+                <button class="report-tab-btn active" id="tabDaily" onclick="switchReportTab('daily')">
+                    📅 Daily Report
+                </button>
+                <button class="report-tab-btn" id="tabMonthly" onclick="switchReportTab('monthly')">
+                    🗓️ Monthly Report
+                </button>
+                <button class="report-tab-btn" id="tabEmployeeWise" onclick="switchReportTab('employee_wise')">
+                    👤 Employee-wise Report
+                </button>
+                <button class="report-tab-btn" id="tabWorkingHours" onclick="switchReportTab('working_hours')">
+                    ⏱️ Working-hours Report
+                </button>
+                <button class="report-tab-btn" id="tabLeaves" onclick="switchReportTab('leaves')">
+                    🏖️ Leave/Absence Report
+                </button>
+            </div>
+
+            <!-- Dynamic Filter Bar -->
+            <div class="filter-card">
+                <div class="filter-row">
+                    <!-- Dynamic inputs based on active tab -->
+                    <div class="filter-inputs" id="filterInputsContainer">
+                        <!-- Filled by JS -->
+                    </div>
+
+                    <!-- Filter action buttons -->
+                    <div class="filter-actions">
+                        <button class="btn btn-primary" onclick="applyFilters()" style="padding: 8px 16px;">
+                            🔍 Apply Filter
+                        </button>
+                        <button class="btn btn-secondary" onclick="resetFilters()" style="padding: 8px 14px;">
+                            Reset
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dynamic KPI Stats Grid -->
+            <div class="report-stats-grid" id="statsGridContainer">
+                <!-- Filled dynamically by JS -->
+            </div>
+
+            <!-- Report Table Container -->
+            <div class="report-table-card">
+                <div class="report-table-header">
+                    <div class="report-table-title" id="reportTableTitle">
+                        📋 Report Table
+                    </div>
+                    <div class="report-table-actions">
+                        <span id="recordCountBadge" style="font-size: 0.85rem; font-weight: 600; color: #64748b; align-self: center;">
+                            0 records
+                        </span>
+                    </div>
+                </div>
+                <div class="report-table-responsive">
+                    <table class="report-table" id="reportDataTable">
+                        <thead id="reportTableHead">
+                            <!-- Filled dynamically by JS -->
+                        </thead>
+                        <tbody id="reportTableBody">
+                            <tr>
+                                <td colspan="10" style="text-align: center; color: #64748b; padding: 30px;">
+                                    Loading report data...
+                                </td>
+                            </tr>
+                        </tbody>
+                        <tfoot id="reportTableFoot" style="display: none;">
+                            <!-- Optional totals row -->
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Global App Config & Scripts -->
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script src="employee-attendance-reports.js"></script>
+
+    <!-- Sidebar dropdown toggle scripts -->
+    <script>
+        function toggleServiceMenu(e) {
+            if (e) e.stopPropagation();
+            const dd = document.querySelector('.service-menu-dropdown');
+            if (dd) dd.classList.toggle('open');
+        }
+        function toggleFieldTechMenu(e) {
+            if (e) e.stopPropagation();
+            const dd = document.querySelector('.field-tech-menu-dropdown');
+            if (dd) dd.classList.toggle('open');
+        }
+    </script>
+</body>
+</html>
+

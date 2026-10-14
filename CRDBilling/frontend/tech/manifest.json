@@ -1,0 +1,27 @@
+﻿{
+  "name": "CRD Global Solutions Field Technician",
+  "short_name": "CRD Tech",
+  "description": "CRD Global Solutions Field Technician Management App",
+  "start_url": "index.html",
+  "scope": "./",
+  "id": "/tech/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#1e3a8a",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "assets/pari_logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/pari_logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
+

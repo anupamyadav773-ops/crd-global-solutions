@@ -1,0 +1,372 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Technician Performance - CRD Global Solutions</title>
+    <link rel="stylesheet" href="employees.css?v=1.1">
+    <link rel="stylesheet" href="employee-attendance-reports.css?v=1.0">
+    <link rel="stylesheet" href="technician-performance.css?v=1.0">
+</head>
+<body>
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+        <div class="logo">CRD Global Solutions</div>
+        <div class="menu">
+            <a href="dashboard.html">🏠 Dashboard</a>
+            <a href="customer-list.html">👥 Customers</a>
+            <a href="product-list.html">📦 Products</a>
+            <a href="sales-list.html">🧾 Billing</a>
+            <a href="quotation-list.html">📄 Quotations</a>
+            <a href="purchase-list.html">🛒 Purchases</a>
+
+            <div class="menu-dropdown service-menu-dropdown">
+                <a href="javascript:void(0)" class="menu-dropdown-toggle" onclick="toggleServiceMenu(event)">
+                    <span class="dropdown-label">🔧 Services</span>
+                    <span class="dropdown-chevron">▾</span>
+                </a>
+                <div class="menu-dropdown-content">
+                    <a href="service-list.html">🏪 Shop Service List</a>
+                    <a href="service-entry.html">➕ Shop Service Entry</a>
+                    <a href="field-service-list.html">🛵 Field Service List</a>
+                    <a href="field-service-entry.html">➕ Field Service Entry</a>
+                </div>
+            </div>
+
+            <div class="menu-dropdown field-tech-menu-dropdown">
+                <a href="javascript:void(0)" class="menu-dropdown-toggle" onclick="toggleFieldTechMenu(event)">
+                    <span class="dropdown-label">🛠️ Field Technician</span>
+                    <span class="dropdown-chevron">▾</span>
+                </a>
+                <div class="menu-dropdown-content">
+                    <a href="field-service-list.html">🛵 Field Complaints</a>
+                    <a href="technician-schedule.html">📅 Tech Schedule</a>
+                    <a href="technician-live-map.html">🗺️ Live Map Tracking</a>
+                    <a href="technician-gps-history.html">📍 GPS Location History</a>
+                    <a href="technician-activity-log.html">📜 Activity Log</a>
+                    <a href="employees.html">👷 Employees</a>
+                    <a href="attendance.html">📍 Attendance & GPS</a>
+                    <a href="employee-attendance-reports.html">📊 Attendance Reports</a>
+                    <a href="technician-performance.html" class="active">🎯 Technician Performance</a>
+                    <a href="technician-tools.html">🧰 Tech Tools</a>
+                    <a href="technician-inventory.html">📦 Tech Inventory</a>
+                    <a href="device-management.html" data-role="admin">🔒 Device Security</a>
+                </div>
+            </div>
+
+            <a href="supplier.html">🚚 Suppliers</a>
+            <a href="expense-list.html">💰 Expenses</a>
+            <a href="reports.html">📈 Reports</a>
+            <a href="scrap.html">♻️ Scrap</a>
+            <a href="user-list.html" data-role="admin">👤 Users</a>
+            <a href="settings.html" data-role="admin">⚙️ Settings</a>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Topbar -->
+        <header class="topbar">
+            <div>
+                <h2>🎯 Technician Performance Dashboard</h2>
+                <p style="color: #64748b; font-size: 0.9rem;">Monitor technician efficiency, job completion, working hours, and customer feedback</p>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+                <button class="btn btn-secondary" onclick="loadPerformanceData()">🔄 Refresh</button>
+                <button class="btn btn-secondary" onclick="exportPerformanceCSV()">📥 Export CSV</button>
+                <button class="btn btn-primary" onclick="window.print()">🖨️ Print Report</button>
+            </div>
+        </header>
+
+        <div class="container">
+            <!-- Printable Header -->
+            <div class="print-only-header">
+                <h1 style="font-size: 20px; font-weight: bold; margin-bottom: 4px;">CRD Global Solutions - Technician Performance Report</h1>
+                <p id="printMetaPeriod" style="font-size: 13px; color: #555;">Period: This Month | Generated: --</p>
+            </div>
+
+            <!-- Time Range & Filter Bar -->
+            <div class="perf-filter-bar">
+                <div class="perf-filter-presets">
+                    <button class="perf-preset-btn" onclick="setTimePreset('today')">Today</button>
+                    <button class="perf-preset-btn" onclick="setTimePreset('this_week')">This Week</button>
+                    <button class="perf-preset-btn active" id="btnPresetMonth" onclick="setTimePreset('this_month')">This Month</button>
+                    <button class="perf-preset-btn" onclick="setTimePreset('last_month')">Last Month</button>
+                    <button class="perf-preset-btn" onclick="setTimePreset('all')">All Time</button>
+                </div>
+
+                <div class="perf-custom-dates">
+                    <span class="filter-label">From:</span>
+                    <input type="date" id="filterFromDate" class="input-control" style="width: 135px;" onchange="onCustomDateChange()">
+                    <span class="filter-label">To:</span>
+                    <input type="date" id="filterToDate" class="input-control" style="width: 135px;" onchange="onCustomDateChange()">
+                    <select id="filterTechSelect" class="input-control" style="min-width: 160px;" onchange="loadPerformanceData()">
+                        <option value="all">All Technicians</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="loadPerformanceData()" style="padding: 7px 14px;">Apply</button>
+                </div>
+            </div>
+
+            <!-- 7 Top KPI Summary Cards -->
+            <div class="perf-stats-grid">
+                <!-- 1. Total Jobs -->
+                <div class="perf-stat-card">
+                    <div class="perf-stat-icon" style="background:#eff6ff; color:#2563eb;">💼</div>
+                    <div class="perf-stat-info">
+                        <h4>Total Jobs</h4>
+                        <div class="stat-value" id="statTotalJobs">0</div>
+                        <div class="stat-sub">Assigned Services</div>
+                    </div>
+                </div>
+
+                <!-- 2. Completed Jobs -->
+                <div class="perf-stat-card">
+                    <div class="perf-stat-icon" style="background:#dcfce7; color:#16a34a;">✅</div>
+                    <div class="perf-stat-info">
+                        <h4>Completed</h4>
+                        <div class="stat-value" id="statCompletedJobs">0</div>
+                        <div class="stat-sub" id="statCompRate">Rate: 0%</div>
+                    </div>
+                </div>
+
+                <!-- 3. Pending Jobs -->
+                <div class="perf-stat-card">
+                    <div class="perf-stat-icon" style="background:#fef3c7; color:#d97706;">⏳</div>
+                    <div class="perf-stat-info">
+                        <h4>Pending</h4>
+                        <div class="stat-value" id="statPendingJobs">0</div>
+                        <div class="stat-sub">In Progress / Assigned</div>
+                    </div>
+                </div>
+
+                <!-- 4. Delayed Jobs -->
+                <div class="perf-stat-card">
+                    <div class="perf-stat-icon" style="background:#fee2e2; color:#dc2626;">🚨</div>
+                    <div class="perf-stat-info">
+                        <h4>Delayed Jobs</h4>
+                        <div class="stat-value" id="statDelayedJobs">0</div>
+                        <div class="stat-sub" style="color:#ef4444;">Overdue Attention</div>
+                    </div>
+                </div>
+
+                <!-- 5. Average Job Duration -->
+                <div class="perf-stat-card">
+                    <div class="perf-stat-icon" style="background:#e0f2fe; color:#0284c7;">⏱️</div>
+                    <div class="perf-stat-info">
+                        <h4>Avg Duration</h4>
+                        <div class="stat-value" id="statAvgDuration">--</div>
+                        <div class="stat-sub">Per completed job</div>
+                    </div>
+                </div>
+
+                <!-- 6. Working Hours -->
+                <div class="perf-stat-card">
+                    <div class="perf-stat-icon" style="background:#f3e8ff; color:#9333ea;">🕒</div>
+                    <div class="perf-stat-info">
+                        <h4>Working Hours</h4>
+                        <div class="stat-value" id="statWorkingHours">0h</div>
+                        <div class="stat-sub">Attendance Clocked</div>
+                    </div>
+                </div>
+
+                <!-- 7. Customer Feedback -->
+                <div class="perf-stat-card">
+                    <div class="perf-stat-icon" style="background:#fffbeb; color:#f59e0b;">⭐</div>
+                    <div class="perf-stat-info">
+                        <h4>Customer Rating</h4>
+                        <div class="stat-value" id="statAvgRating">5.0 ★</div>
+                        <div class="stat-sub" id="statFeedbackCount">0 Reviews</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Technician Leaderboard & Scorecard Table -->
+            <div class="report-table-card">
+                <div class="report-table-header">
+                    <div class="report-table-title">
+                        🏆 Technician Performance Leaderboard & Scorecard
+                    </div>
+                    <div class="report-table-actions">
+                        <span id="scorecardCountBadge" style="font-size: 0.85rem; font-weight: 600; color: #64748b; align-self: center;">
+                            0 technicians
+                        </span>
+                    </div>
+                </div>
+                <div class="report-table-responsive">
+                    <table class="report-table" id="perfLeaderboardTable">
+                        <thead>
+                            <tr>
+                                <th style="width: 50px;">Rank</th>
+                                <th>Technician</th>
+                                <th>Department</th>
+                                <th>Total Jobs</th>
+                                <th>Completed</th>
+                                <th>Pending</th>
+                                <th>Delayed</th>
+                                <th>Completion Rate</th>
+                                <th>Avg Job Time</th>
+                                <th>Working Hours</th>
+                                <th>Customer Rating</th>
+                                <th>Performance Status</th>
+                                <th style="text-align: right;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="perfLeaderboardBody">
+                            <tr>
+                                <td colspan="13" style="text-align: center; color: #64748b; padding: 30px;">
+                                    Loading performance metrics...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Customer Reviews Stream Section -->
+            <div class="report-table-card" style="padding: 20px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                    <div style="font-size: 1.05rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+                        💬 Recent Customer Feedback & Reviews
+                    </div>
+                    <button class="btn btn-secondary" onclick="openAddFeedbackModal()" style="font-size: 0.85rem; padding: 6px 12px;">
+                        ➕ Log Customer Feedback
+                    </button>
+                </div>
+                <div class="feedback-stream-grid" id="customerFeedbackContainer">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Technician Drilldown Modal -->
+    <div class="modal-overlay" id="drilldownModal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h3 id="modalTechName" style="font-size: 1.15rem; color: #0f172a; font-weight: 700;">Technician Drilldown</h3>
+                    <p id="modalTechSubtitle" style="font-size: 0.85rem; color: #64748b;">Performance & Job History</p>
+                </div>
+                <button type="button" class="btn btn-secondary" onclick="closeDrilldownModal()" style="padding: 4px 8px;">✕</button>
+            </div>
+            <div class="modal-body">
+                <!-- Modal Tabs -->
+                <div class="modal-tabs">
+                    <button class="modal-tab-btn active" id="mTabJobs" onclick="switchModalTab('jobs')">Assigned Jobs</button>
+                    <button class="modal-tab-btn" id="mTabReviews" onclick="switchModalTab('reviews')">Customer Reviews</button>
+                    <button class="modal-tab-btn" id="mTabAttendance" onclick="switchModalTab('attendance')">Attendance & Hours</button>
+                </div>
+
+                <!-- Modal Tab 1: Jobs -->
+                <div id="modalPaneJobs">
+                    <table class="report-table">
+                        <thead>
+                            <tr>
+                                <th>Job #</th>
+                                <th>Customer</th>
+                                <th>Status</th>
+                                <th>Appointment</th>
+                                <th>Duration</th>
+                                <th>Delay Flag</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modalJobsTableBody">
+                            <!-- Filled dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Modal Tab 2: Reviews -->
+                <div id="modalPaneReviews" style="display: none;">
+                    <div id="modalReviewsList" style="display: flex; flex-direction: column; gap: 10px;">
+                        <!-- Filled dynamically -->
+                    </div>
+                </div>
+
+                <!-- Modal Tab 3: Attendance -->
+                <div id="modalPaneAttendance" style="display: none;">
+                    <table class="report-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Check In</th>
+                                <th>Check Out</th>
+                                <th>Hours Clocked</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modalAttendanceTableBody">
+                            <!-- Filled dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeDrilldownModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Log Customer Feedback Modal -->
+    <div class="modal-overlay" id="addFeedbackModal" style="display: none;">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3 style="font-size: 1.15rem; color: #0f172a; font-weight: 700;">➕ Log Customer Feedback</h3>
+                <button type="button" class="btn btn-secondary" onclick="closeAddFeedbackModal()" style="padding: 4px 8px;">✕</button>
+            </div>
+            <form onsubmit="submitCustomerFeedbackForm(event)">
+                <div class="modal-body">
+                    <div style="margin-bottom: 14px;">
+                        <label class="filter-label" style="display: block; margin-bottom: 6px;">Select Service Job *</label>
+                        <select id="fbServiceJobSelect" class="input-control" style="width: 100%;" required>
+                            <option value="">-- Choose Job --</option>
+                        </select>
+                    </div>
+
+                    <div style="margin-bottom: 14px;">
+                        <label class="filter-label" style="display: block; margin-bottom: 6px;">Customer Star Rating *</label>
+                        <div class="star-input-group" id="starInputGroup">
+                            <span onclick="setFormRating(1)">★</span>
+                            <span onclick="setFormRating(2)">★</span>
+                            <span onclick="setFormRating(3)">★</span>
+                            <span onclick="setFormRating(4)">★</span>
+                            <span onclick="setFormRating(5)">★</span>
+                        </div>
+                        <input type="hidden" id="fbRatingVal" value="5">
+                        <small style="color:#64748b;" id="fbRatingText">5 Stars - Excellent</small>
+                    </div>
+
+                    <div style="margin-bottom: 14px;">
+                        <label class="filter-label" style="display: block; margin-bottom: 6px;">Customer Feedback / Remarks *</label>
+                        <textarea id="fbFeedbackText" class="input-control" style="width: 100%; min-height: 80px;" placeholder="Customer comments on service quality, punctuality, satisfaction..." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeAddFeedbackModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="btnSaveFeedback">Save Feedback</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script src="technician-performance.js"></script>
+
+    <script>
+        function toggleServiceMenu(e) {
+            if (e) e.stopPropagation();
+            const dd = document.querySelector('.service-menu-dropdown');
+            if (dd) dd.classList.toggle('open');
+        }
+        function toggleFieldTechMenu(e) {
+            if (e) e.stopPropagation();
+            const dd = document.querySelector('.field-tech-menu-dropdown');
+            if (dd) dd.classList.toggle('open');
+        }
+    </script>
+</body>
+</html>
+

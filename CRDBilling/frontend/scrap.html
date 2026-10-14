@@ -1,0 +1,453 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRD Global Solutions - Scrap Management</title>
+    <link rel="stylesheet" href="scrap.css">
+</head>
+<body>
+
+    <!-- =========================
+         Sidebar
+    ========================== -->
+    <aside class="sidebar">
+        <div class="logo">CRD Global Solutions</div>
+        <div class="menu">
+            <a href="dashboard.html">🏠 Dashboard</a>
+            <a href="customer-list.html">👥 Customers</a>
+            <a href="product-list.html">📦 Products</a>
+            <a href="sales-list.html">🧾 Billing</a>
+            <a href="quotation-list.html">📄 Quotations</a>
+            <a href="purchase-list.html">🛒 Purchases</a>
+            <div class="menu-dropdown service-menu-dropdown">
+                <a href="javascript:void(0)" class="menu-dropdown-toggle" onclick="toggleServiceMenu(event)">
+                    <span class="dropdown-label">🔧 Services</span>
+                    <span class="dropdown-chevron">▾</span>
+                </a>
+                <div class="menu-dropdown-content">
+                    <a href="service-list.html">🏪 Shop Service List</a>
+                    <a href="service-entry.html">➕ Shop Service Entry</a>
+                    <a href="field-service-list.html">🛵 Field Service List</a>
+                    <a href="field-service-entry.html">➕ Field Service Entry</a>
+                </div>
+            </div>
+
+            <div class="menu-dropdown field-tech-menu-dropdown">
+                <a href="javascript:void(0)" class="menu-dropdown-toggle" onclick="toggleFieldTechMenu(event)">
+                    <span class="dropdown-label">🛠️ Field Technician</span>
+                    <span class="dropdown-chevron">▾</span>
+                </a>
+                <div class="menu-dropdown-content">
+                    <a href="field-service-list.html">🛵 Field Complaints</a>
+                    <a href="technician-schedule.html">📅 Tech Schedule</a>
+                    <a href="technician-live-map.html">🗺️ Live Map Tracking</a>
+                    <a href="technician-gps-history.html">📍 GPS Location History</a>
+                    <a href="technician-activity-log.html">📜 Activity Log</a>
+                    <a href="employees.html">👷 Employees</a>
+                    <a href="attendance.html">📍 Attendance & GPS</a>
+                    <a href="employee-attendance-reports.html">📊 Attendance Reports</a>
+                    <a href="technician-performance.html">🎯 Technician Performance</a>
+                    <a href="technician-tools.html">🧰 Tech Tools</a>
+                    <a href="technician-inventory.html">📦 Tech Inventory</a>
+                    <a href="device-management.html" data-role="admin">🔒 Device Security</a>
+                </div>
+            </div>
+            <a href="supplier.html">🚚 Suppliers</a>
+            <a href="expense-list.html">💰 Expenses</a>
+            <a href="reports.html">📈 Reports</a>
+            <a href="scrap.html" class="active">♻️ Scrap</a>
+            <a href="user-list.html" data-role="admin">👤 Users</a>
+            <a href="settings.html" data-role="admin">⚙️ Settings</a>
+        </div>
+    </aside>
+
+    <!-- =========================
+         Main Area
+    ========================== -->
+    <main class="main-content">
+        <!-- Top Bar -->
+        <header class="topbar">
+            <div>
+                <h2>♻️ Scrap Management</h2>
+                <p>दुकान का खराब सामान (Dead Parts) रिकॉर्ड करें व कबाड़ी बिक्री हिसाब रखें</p>
+            </div>
+            <div class="user-area">
+                <span id="userNameBadge">User</span>
+                <button onclick="logout()">Logout</button>
+            </div>
+        </header>
+
+        <!-- =========================
+             Mini Dashboard Cards (4 Metrics)
+        ========================== -->
+        <section class="scrap-dashboard-grid">
+            <div class="stat-card card-avail-items">
+                <div class="stat-icon">📦</div>
+                <div class="stat-info">
+                    <div class="stat-label">Available Items</div>
+                    <div class="stat-value" id="dashAvailItems">0</div>
+                    <div class="stat-sub">सक्रिय खराब सामान प्रकार</div>
+                </div>
+            </div>
+
+            <div class="stat-card card-avail-qty">
+                <div class="stat-icon">⚖️</div>
+                <div class="stat-info">
+                    <div class="stat-label">Total Available Qty</div>
+                    <div class="stat-value" id="dashAvailQty">0.00</div>
+                    <div class="stat-sub">कबाड़ी को बेचने योग्य कुल नग / मात्रा</div>
+                </div>
+            </div>
+
+            <div class="stat-card card-month-sales">
+                <div class="stat-icon">💰</div>
+                <div class="stat-info">
+                    <div class="stat-label">This Month Scrap Sale</div>
+                    <div class="stat-value" id="dashMonthSale">₹ 0.00</div>
+                    <div class="stat-sub">इस माह कबाड़ी से मिली राशि</div>
+                </div>
+            </div>
+
+            <div class="stat-card card-last-sale">
+                <div class="stat-icon">🤝</div>
+                <div class="stat-info">
+                    <div class="stat-label">Last Scrap Sale</div>
+                    <div class="stat-value" id="dashLastSale" style="font-size:17px;">-</div>
+                    <div class="stat-sub" id="dashLastSaleSub">कोई बिक्री नहीं</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- =========================
+             Module Shell (Tabs & Tables)
+        ========================== -->
+        <div class="scrap-shell">
+            <!-- Tabs Navigation -->
+            <div class="tab-nav">
+                <div class="tab-buttons">
+                    <button type="button" class="tab-btn active" id="tabBtnInventory" onclick="switchTab('inventory')">
+                        📦 Scrap Inventory (स्क्रैप सामान)
+                    </button>
+                    <button type="button" class="tab-btn" id="tabBtnSales" onclick="switchTab('sales')">
+                        🧾 Scrap Sales History (कबाड़ी बिक्री इतिहास)
+                    </button>
+                </div>
+                <div class="tab-actions">
+                    <button type="button" class="btn-action btn-primary" onclick="openAddScrapModal()">
+                        ➕ Add Scrap Part
+                    </button>
+                    <button type="button" class="btn-action btn-warning" onclick="openSellScrapModal()">
+                        🤝 Sell to Kabadi (कबाड़ी को बेचें)
+                    </button>
+                </div>
+            </div>
+
+            <!-- TAB 1: SCRAP INVENTORY -->
+            <div id="tabInventoryContent">
+                <!-- Filters Bar -->
+                <div class="filter-bar">
+                    <input type="text" id="searchInventory" placeholder="Search item, reason, repair job no, customer..." oninput="debounceFilterScraps()">
+                    
+                    <select id="statusFilter" onchange="loadScraps()">
+                        <option value="All">All Status</option>
+                        <option value="Available" selected>Available (उपलब्ध)</option>
+                        <option value="Sold">Sold (बिक चुका)</option>
+                    </select>
+
+                    <select id="sourceFilter" onchange="loadScraps()">
+                        <option value="All">All Sources</option>
+                        <option value="Repair">Repair (रिपेयर जॉब)</option>
+                        <option value="Purchase">Purchase (खरीद/सप्लायर)</option>
+                        <option value="Counter">Counter / Shop (दुकान)</option>
+                        <option value="Other">Other (अन्य)</option>
+                    </select>
+
+                    <input type="date" id="startDateFilter" title="From Date" onchange="loadScraps()">
+                    <input type="date" id="endDateFilter" title="To Date" onchange="loadScraps()">
+
+                    <button type="button" class="btn-action btn-secondary btn-sm" onclick="resetInventoryFilters()">
+                        🔄 Reset
+                    </button>
+                </div>
+
+                <!-- Table -->
+                <div class="table-wrap">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 50px;">#</th>
+                                <th style="width: 110px;">Date</th>
+                                <th>Item Name</th>
+                                <th style="width: 140px;">Available / Total</th>
+                                <th style="width: 80px;">Unit</th>
+                                <th>Source & Ref</th>
+                                <th>Reason / Problem</th>
+                                <th style="width: 100px;">Status</th>
+                                <th style="width: 150px;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="scrapsTableBody">
+                            <tr>
+                                <td colspan="9" class="empty-cell">Loading scrap items...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- TAB 2: SCRAP SALES HISTORY -->
+            <div id="tabSalesContent" style="display:none;">
+                <!-- Filters Bar -->
+                <div class="filter-bar">
+                    <input type="text" id="searchSales" placeholder="Search sale no, party name, mobile..." oninput="debounceFilterSales()">
+                    <input type="date" id="saleStartDateFilter" title="From Date" onchange="loadScrapSales()">
+                    <input type="date" id="saleEndDateFilter" title="To Date" onchange="loadScrapSales()">
+                    <button type="button" class="btn-action btn-secondary btn-sm" onclick="resetSalesFilters()">
+                        🔄 Reset
+                    </button>
+                </div>
+
+                <!-- Table -->
+                <div class="table-wrap">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 120px;">Sale No.</th>
+                                <th style="width: 110px;">Date</th>
+                                <th>Party Name (कबाड़ी)</th>
+                                <th>Mobile</th>
+                                <th style="width: 110px;">Items Sold</th>
+                                <th style="width: 110px;">Total Qty</th>
+                                <th style="width: 130px;">Total Amount (₹)</th>
+                                <th style="width: 110px;">Payment Mode</th>
+                                <th>Remark</th>
+                                <th style="width: 120px;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="salesTableBody">
+                            <tr>
+                                <td colspan="10" class="empty-cell">Loading scrap sales...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ==========================================
+         MODAL 1: ADD / EDIT SCRAP ITEM
+    =========================================== -->
+    <div id="scrapModal" class="modal-backdrop" style="display:none;">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h3 id="scrapModalTitle">➕ Add Scrap Item</h3>
+                <button type="button" class="modal-close" onclick="closeScrapModal()">×</button>
+            </div>
+            <form id="scrapForm" onsubmit="saveScrapItem(event)">
+                <input type="hidden" id="scrapEditId" value="">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="scrapItemName">Scrap Item Name (खराब सामान का नाम) *</label>
+                        <input type="text" id="scrapItemName" placeholder="e.g. Dead Seagate 500GB HDD, Burnt 450W SMPS" required>
+                    </div>
+
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label for="scrapQuantity">Quantity (मात्रा) *</label>
+                            <input type="number" id="scrapQuantity" value="1" min="0.1" step="0.1" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="scrapUnit">Unit (इकाई)</label>
+                            <select id="scrapUnit">
+                                <option value="Nos">Nos (नग)</option>
+                                <option value="Kg">Kg (किलो)</option>
+                                <option value="Pcs">Pcs (पीस)</option>
+                                <option value="Set">Set (सेट)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label for="scrapDate">Date (तारीख) *</label>
+                            <input type="date" id="scrapDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="scrapSourceType">Source (कहाँ से निकला)</label>
+                            <select id="scrapSourceType" onchange="onSourceTypeChanged()">
+                                <option value="Repair">Repair (रिपेयर जॉब से निकला)</option>
+                                <option value="Purchase">Purchase (खरीद / पुराना बदला)</option>
+                                <option value="Counter">Counter / Shop (दुकान का पुराना)</option>
+                                <option value="Other">Other (अन्य)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group" id="jobRefGroup">
+                        <label for="scrapJobRef">Job / Customer Reference (जॉब नं. / ग्राहक)</label>
+                        <input type="text" id="scrapJobRef" placeholder="e.g. SRV-2026-0001 or Ramesh Kumar">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="scrapReason">Reason / Problem (खराबी का कारण)</label>
+                        <input type="text" id="scrapReason" placeholder="e.g. Head crashed, Burnt coil, Dead PCB, Water damage">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="scrapRemark">Remark (टिप्पणी - ऐच्छिक)</label>
+                        <textarea id="scrapRemark" rows="2" placeholder="Any additional notes..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-action btn-secondary" onclick="closeScrapModal()">Cancel</button>
+                    <button type="submit" class="btn-action btn-primary" id="scrapSaveBtn">Save Scrap Item</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         MODAL 2: SELL SCRAP TO KABADI
+    =========================================== -->
+    <div id="sellModal" class="modal-backdrop" style="display:none;">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-header">
+                <h3>🤝 Sell Scrap to Kabadi (कबाड़ी को स्क्रैप बेचें)</h3>
+                <button type="button" class="modal-close" onclick="closeSellModal()">×</button>
+            </div>
+            <form id="sellForm" onsubmit="saveScrapSale(event)">
+                <div class="modal-body">
+                    <!-- Party Details -->
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label for="sellPartyName">Kabadi / Buyer Party Name (कबाड़ी का नाम / फर्म) *</label>
+                            <input type="text" id="sellPartyName" placeholder="e.g. Ramu Kabadiwala" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="sellMobile">Mobile Number (मोबाइल नंबर)</label>
+                            <input type="text" id="sellMobile" placeholder="e.g. 9876543210">
+                        </div>
+                    </div>
+
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label for="sellDate">Sale Date (बिक्री की तारीख) *</label>
+                            <input type="date" id="sellDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="sellPaymentMode">Payment Mode (भुगतान माध्यम)</label>
+                            <select id="sellPaymentMode">
+                                <option value="Cash">Cash (नकद)</option>
+                                <option value="UPI">UPI / PhonePe / GPay</option>
+                                <option value="Bank Transfer">Bank Transfer / NEFT</option>
+                                <option value="Credit / Udhaar">Credit / Udhaar (उधार)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="sellRemark">Remark / Notes</label>
+                        <input type="text" id="sellRemark" placeholder="e.g. Bulk sale of mixed motherboards and HDDs">
+                    </div>
+
+                    <!-- Items Selection -->
+                    <div style="margin-top: 20px; border-top: 1px solid #edf1f5; padding-top: 15px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:8px;">
+                            <label style="font-weight:bold; font-size:14px; color:#17202a;">
+                                📦 Select Scrap Items to Sell (बेचने वाले सामान चुनें)
+                            </label>
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                <button type="button" class="btn-action btn-secondary btn-sm" onclick="scrollSaleItems('top')" title="ऊपर स्क्रॉल करें">
+                                    ⬆️ Scroll Top
+                                </button>
+                                <button type="button" class="btn-action btn-secondary btn-sm" onclick="scrollSaleItems('bottom')" title="नीचे स्क्रॉल करें">
+                                    ⬇️ Scroll Bottom
+                                </button>
+                                <button type="button" class="btn-action btn-primary btn-sm" onclick="addSaleItemRow()">
+                                    ➕ Add Row
+                                </button>
+                            </div>
+                        </div>
+                        <p style="font-size:12px; color:#777; margin-bottom:10px;">
+                            केवल उपलब्ध (Available) स्क्रैप सामान ही यहाँ दिखेंगे। प्रत्येक आइटम की बेचने वाली मात्रा व कुल मिलने वाली रकम दर्ज करें:
+                        </p>
+
+                        <div id="saleItemsScrollWrap" class="sale-items-scroll">
+                            <table class="sale-items-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 44%;">Select Scrap Item</th>
+                                        <th style="width: 25%;">Selling Qty (मात्रा)</th>
+                                        <th style="width: 25%;">Sale Amount (₹ कुल रकम)</th>
+                                        <th style="width: 6%; text-align:center;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="saleItemsBody">
+                                    <!-- Dynamic Rows -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Live Total Box -->
+                        <div class="sale-total-box">
+                            <div class="total-label">Total Scrap Sale Amount (कुल मिलने वाली रकम):</div>
+                            <div class="total-val" id="sellTotalDisplay">₹ 0.00</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn-action btn-secondary" onclick="closeSellModal()">Cancel</button>
+                    <button type="submit" class="btn-action btn-success" id="saveSaleSubmitBtn">Confirm & Record Scrap Sale</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         MODAL 3: SCRAP ITEM DETAILS & HISTORY
+    =========================================== -->
+    <div id="detailModal" class="modal-backdrop" style="display:none;">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-header">
+                <h3>🔍 Scrap Item Details & Sale History</h3>
+                <button type="button" class="modal-close" onclick="closeDetailModal()">×</button>
+            </div>
+            <div class="modal-body" id="detailModalBody">
+                <!-- Dynamic Content -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-action btn-secondary" onclick="closeDetailModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         MODAL 4: PRINTABLE SALE SLIP
+    =========================================== -->
+    <div id="slipModal" class="modal-backdrop" style="display:none;">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-header">
+                <h3>🖨️ Scrap Sale Receipt Slip</h3>
+                <button type="button" class="modal-close" onclick="closeSlipModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div id="slipPrintArea">
+                    <!-- Dynamic Slip Content -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-action btn-secondary" onclick="closeSlipModal()">Close</button>
+                <button type="button" class="btn-action btn-warning" onclick="printSlipDirect()">🖨️ Print Slip</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script src="scrap.js?v=1.1"></script>
+</body>
+</html>

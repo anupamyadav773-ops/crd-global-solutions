@@ -1,0 +1,288 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CRD Global Solutions - Reports</title>
+    <link rel="stylesheet" href="reports.css" />
+</head>
+
+<body>
+    <aside class="sidebar">
+        <div class="logo">CRD Global Solutions</div>
+
+        <div class="menu">
+            <a href="dashboard.html">🏠 Dashboard</a>
+            <a href="customer-list.html">👥 Customers</a>
+            <a href="product-list.html">📦 Products</a>
+            <a href="sales-list.html">🧾 Billing</a>
+            <a href="quotation-list.html">📄 Quotations</a>
+            <a href="purchase-list.html">🛒 Purchases</a>
+            <div class="menu-dropdown service-menu-dropdown">
+                <a href="javascript:void(0)" class="menu-dropdown-toggle" onclick="toggleServiceMenu(event)">
+                    <span class="dropdown-label">🔧 Services</span>
+                    <span class="dropdown-chevron">▾</span>
+                </a>
+                <div class="menu-dropdown-content">
+                    <a href="service-list.html">🏪 Shop Service List</a>
+                    <a href="service-entry.html">➕ Shop Service Entry</a>
+                    <a href="field-service-list.html">🛵 Field Service List</a>
+                    <a href="field-service-entry.html">➕ Field Service Entry</a>
+                </div>
+            </div>
+
+            <div class="menu-dropdown field-tech-menu-dropdown">
+                <a href="javascript:void(0)" class="menu-dropdown-toggle" onclick="toggleFieldTechMenu(event)">
+                    <span class="dropdown-label">🛠️ Field Technician</span>
+                    <span class="dropdown-chevron">▾</span>
+                </a>
+                <div class="menu-dropdown-content">
+                    <a href="field-service-list.html">🛵 Field Complaints</a>
+                    <a href="technician-schedule.html">📅 Tech Schedule</a>
+                    <a href="technician-live-map.html">🗺️ Live Map Tracking</a>
+                    <a href="technician-gps-history.html">📍 GPS Location History</a>
+                    <a href="technician-activity-log.html">📜 Activity Log</a>
+                    <a href="employees.html">👷 Employees</a>
+                    <a href="attendance.html">📍 Attendance & GPS</a>
+                    <a href="employee-attendance-reports.html">📊 Attendance Reports</a>
+                    <a href="technician-performance.html">🎯 Technician Performance</a>
+                    <a href="technician-tools.html">🧰 Tech Tools</a>
+                    <a href="technician-inventory.html">📦 Tech Inventory</a>
+                    <a href="device-management.html" data-role="admin">🔒 Device Security</a>
+                </div>
+            </div>
+            <a href="supplier.html">🚚 Suppliers</a>
+            <a href="expense-list.html">💰 Expenses</a>
+            <a href="reports.html" class="active">📈 Reports</a>
+            <a href="scrap.html">♻️ Scrap</a>
+            <a href="user-list.html" data-role="admin">👤 Users</a>
+            <a href="settings.html" data-role="admin">⚙️ Settings</a>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="topbar">
+            <div>
+                <h2>Reports</h2>
+                <p>Business performance summary</p>
+            </div>
+
+            <div class="user-area">
+                <span>Admin</span>
+                <button onclick="logout()">Logout</button>
+            </div>
+        </header>
+
+        <section class="reports-shell">
+            <div class="report-selector" id="reportSelector">
+                <button class="report-tab active" data-report="sales" type="button">Sales</button>
+                <button class="report-tab" data-report="purchases" type="button">Purchases</button>
+                <button class="report-tab" data-report="expenses" type="button">Expenses</button>
+                <button class="report-tab" data-report="profit-loss" type="button">Profit &amp; Loss</button>
+                <button class="report-tab" data-report="outstanding" type="button">Customer Outstanding</button>
+                <button class="report-tab" data-report="services" type="button">Services</button>
+                <button class="report-tab" data-report="inventory" type="button">Inventory</button>
+                <button class="report-tab" data-report="fast-moving" type="button">🚀 Fast Moving Products</button>
+                <button class="report-tab" data-report="scrap" type="button">♻️ Scrap Report</button>
+            </div>
+
+            <div class="filter-box">
+                <div class="filter-grid">
+                    <div class="form-group date-filter-group">
+                        <label for="fromDate">From Date</label>
+                        <input type="date" id="fromDate" />
+                    </div>
+
+                    <div class="form-group date-filter-group">
+                        <label for="toDate">To Date</label>
+                        <input type="date" id="toDate" />
+                    </div>
+
+                    <div class="form-group hidden customer-only">
+                        <label for="customerFilter">Customer</label>
+                        <select id="customerFilter">
+                            <option value="">All Customers</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group hidden supplier-only">
+                        <label for="supplierFilter">Supplier</label>
+                        <select id="supplierFilter">
+                            <option value="">All Suppliers</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group hidden expense-category-only">
+                        <label for="categoryFilter">Expense Category (खर्च श्रेणी)</label>
+                        <select id="categoryFilter">
+                            <option value="">All Categories</option>
+                            <option value="Electricity">Electricity</option>
+                            <option value="Internet">Internet</option>
+                            <option value="Telephone">Telephone</option>
+                            <option value="Rent">Rent</option>
+                            <option value="Salary">Salary</option>
+                            <option value="Transport">Transport</option>
+                            <option value="Repair & Maintenance">Repair & Maintenance</option>
+                            <option value="Office Supplies">Office Supplies</option>
+                            <option value="Advertising">Advertising</option>
+                            <option value="Software">Software</option>
+                            <option value="Bank Charges">Bank Charges</option>
+                            <option value="Taxes">Taxes</option>
+                            <option value="Courier">Courier</option>
+                            <option value="Travel">Travel</option>
+                            <option value="Miscellaneous">Miscellaneous</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group hidden inventory-only">
+                        <label for="inventoryStockStatus">Stock Status (स्टॉक स्थिति)</label>
+                        <select id="inventoryStockStatus">
+                            <option value="">All Stock (सभी स्टॉक)</option>
+                            <option value="out_of_stock">🔴 Out of Stock (खत्म सामान - 0 Qty)</option>
+                            <option value="low_stock">⚠️ Low Stock (कम सामान - Low Stock)</option>
+                            <option value="in_stock">🟢 In Stock (उपलब्ध स्टॉक)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group hidden inventory-only">
+                        <label for="inventoryCategoryFilter">Product Category (उत्पाद श्रेणी)</label>
+                        <select id="inventoryCategoryFilter">
+                            <option value="">All Categories (सभी श्रेणियां)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group hidden payment-status-only">
+                        <label for="paymentStatusFilter">Payment Status</label>
+                        <select id="paymentStatusFilter">
+                            <option value="">All</option>
+                            <option value="Paid">Paid</option>
+                            <option value="Unpaid">Unpaid</option>
+                            <option value="Partial">Partial</option>
+                            <option value="Pending">Pending</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group hidden payment-method-only">
+                        <label for="paymentMethodFilter">Payment Method</label>
+                        <select id="paymentMethodFilter">
+                            <option value="">All Methods</option>
+                            <option value="Cash">Cash</option>
+                            <option value="UPI">UPI</option>
+                            <option value="Bank Transfer">Bank Transfer</option>
+                            <option value="Card">Card</option>
+                            <option value="Cheque">Cheque</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group hidden service-status-only">
+                        <label for="serviceStatusFilter">Service Status (सर्विस स्थिति)</label>
+                        <select id="serviceStatusFilter">
+                            <option value="">All Services (सभी सर्विस)</option>
+                            <option value="overdue_pending">⚠️ Overdue / Pending (तय तारीख से देरी)</option>
+                            <option value="delivered_after_due">⏱️ Delivered After Due Date (देरी से डिलीवर)</option>
+                            <option value="delivered_on_time">✅ Delivered On Time (समय पर डिलीवर)</option>
+                            <option value="Received">Received (प्राप्त)</option>
+                            <option value="In Progress">In Progress (कार्य प्रगति पर)</option>
+                            <option value="Ready">Ready (तैयार)</option>
+                            <option value="Delivered">Delivered (डिलीवर हो गया)</option>
+                            <option value="Cancelled">Cancelled (रद्द)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group hidden service-status-only">
+                        <label for="serviceSearchInput">Search</label>
+                        <input type="text" id="serviceSearchInput" placeholder="Service no, serial, customer, product, complaint" />
+                    </div>
+
+                    <div class="form-group hidden fast-moving-only">
+                        <label for="fastMovingCategory">Category (उत्पाद श्रेणी)</label>
+                        <select id="fastMovingCategory">
+                            <option value="">All Product Categories (सभी श्रेणियां)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group hidden fast-moving-only">
+                        <label for="fastMovingSort">Sort By (क्रम)</label>
+                        <select id="fastMovingSort">
+                            <option value="qty_desc">🔥 Highest Sold Qty (सर्वाधिक बिकी मात्रा)</option>
+                            <option value="revenue_desc">💰 Highest Revenue (सर्वाधिक बिक्री राशि)</option>
+                            <option value="qty_asc">🐢 Lowest Sold Qty (सबसे कम बिकी मात्रा)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group hidden fast-moving-only">
+                        <label for="fastMovingFilter">Product Filter</label>
+                        <select id="fastMovingFilter">
+                            <option value="sold_only">Sold Products Only (केवल बिके उत्पाद)</option>
+                            <option value="all">All Products (सभी उत्पाद - 0 बिक्री सहित)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group hidden fast-moving-only">
+                        <label for="fastMovingSearch">Search Product / Brand</label>
+                        <input type="text" id="fastMovingSearch" placeholder="Search by name or brand..." />
+                    </div>
+
+                    <div class="form-group hidden scrap-only">
+                        <label for="scrapStatusFilter">Status (स्थिति)</label>
+                        <select id="scrapStatusFilter">
+                            <option value="All">All Status (सभी)</option>
+                            <option value="Available">Available (उपलब्ध)</option>
+                            <option value="Sold">Sold (बिक चुका)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group hidden scrap-only">
+                        <label for="scrapSourceFilter">Source (स्रोत)</label>
+                        <select id="scrapSourceFilter">
+                            <option value="All">All Sources (सभी स्रोत)</option>
+                            <option value="Repair">Repair (रिपेयर जॉब)</option>
+                            <option value="Purchase">Purchase (खरीद)</option>
+                            <option value="Counter">Counter / Shop (दुकान)</option>
+                            <option value="Other">Other (अन्य)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group hidden scrap-only">
+                        <label for="scrapSearchInput">Search Item / Job</label>
+                        <input type="text" id="scrapSearchInput" placeholder="Item name, reason, job ref..." />
+                    </div>
+
+                </div>
+
+                <div class="filter-actions">
+                    <button id="applyFiltersBtn" class="primary-btn" type="button">Apply</button>
+                    <button id="resetFiltersBtn" class="secondary-btn" type="button">Reset</button>
+                    <button id="printReportBtn" class="outline-btn" type="button">Print Report</button>
+                    <button id="exportCsvBtn" class="outline-btn" type="button">Export to CSV</button>
+                    <button id="exportExcelBtn" class="outline-btn" type="button">Export to Excel</button>
+                </div>
+            </div>
+
+            <div id="summaryCards" class="summary-cards"></div>
+
+            <div class="report-panel">
+                <div class="report-panel-header">
+                    <h3 id="reportTitle">Sales Report</h3>
+                    <span id="reportMeta">Loading...</span>
+                </div>
+
+                <div class="table-wrap">
+                    <table>
+                        <thead id="reportTableHead"></thead>
+                        <tbody id="reportTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script src="reports.js"></script>
+</body>
+
+</html>
+

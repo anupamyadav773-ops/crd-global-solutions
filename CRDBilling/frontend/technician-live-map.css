@@ -1,0 +1,573 @@
+/* ==============================================================================
+   TECHNICIAN LIVE MAP TRACKING STYLES
+   ============================================================================== */
+
+/* Overall layout */
+.topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.live-indicator-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #dcfce7;
+    color: #15803d;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    border: 1px solid #bbf7d0;
+}
+
+.pulse-dot {
+    width: 8px;
+    height: 8px;
+    background: #22c55e;
+    border-radius: 50%;
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+    animation: pulseGlow 1.8s infinite;
+}
+
+@keyframes pulseGlow {
+    0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+    }
+    70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 8px rgba(34, 197, 94, 0);
+    }
+    100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+    }
+}
+
+/* KPI Metrics Strip */
+.map-stats-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin: 14px 20px;
+}
+
+.stat-pill {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+}
+
+.stat-pill:hover,
+.stat-pill.active {
+    border-color: #f97316;
+    background: #fff7ed;
+    transform: translateY(-1px);
+}
+
+.stat-pill-icon {
+    font-size: 1.5rem;
+    background: #f1f5f9;
+    padding: 6px 8px;
+    border-radius: 8px;
+}
+
+.stat-pill-count {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1.1;
+}
+
+.stat-pill-label {
+    font-size: 0.76rem;
+    color: #64748b;
+    font-weight: 600;
+}
+
+/* Map Workspace Layout */
+.map-workspace-layout {
+    display: flex;
+    margin: 0 20px 20px 20px;
+    height: calc(100vh - 230px);
+    min-height: 520px;
+    background: #ffffff;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+}
+
+/* Left Drawer */
+.tech-drawer {
+    width: 360px;
+    min-width: 330px;
+    background: #f8fafc;
+    border-right: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+}
+
+.drawer-header {
+    padding: 14px 16px;
+    background: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.drawer-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    color: #0f172a;
+    font-weight: 700;
+}
+
+.badge-counter {
+    background: #e2e8f0;
+    color: #475569;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 12px;
+}
+
+.drawer-search-box {
+    padding: 10px 14px;
+    background: #ffffff;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.drawer-search-box input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    box-sizing: border-box;
+    outline: none;
+    transition: border 0.2s;
+}
+
+.drawer-search-box input:focus {
+    border-color: #f97316;
+    box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.15);
+}
+
+.drawer-tabs {
+    display: flex;
+    padding: 8px 12px;
+    background: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+    gap: 6px;
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 6px 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    background: #f1f5f9;
+    color: #64748b;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.tab-btn:hover {
+    background: #e2e8f0;
+    color: #1e293b;
+}
+
+.tab-btn.active {
+    background: #0f172a;
+    color: #ffffff;
+}
+
+/* Cards List */
+.tech-cards-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.tech-drawer-loading,
+.tech-drawer-empty {
+    padding: 30px 16px;
+    text-align: center;
+    color: #64748b;
+    font-size: 0.88rem;
+}
+
+.spinner {
+    width: 28px;
+    height: 28px;
+    border: 3px solid #e2e8f0;
+    border-top-color: #f97316;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 10px auto;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Individual Tech Card */
+.tech-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+}
+
+.tech-card:hover {
+    border-color: #f97316;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(249, 115, 22, 0.08);
+}
+
+.tech-card.selected {
+    border-color: #f97316;
+    background: #fff7ed;
+    border-left: 4px solid #f97316;
+}
+
+.tech-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 6px;
+}
+
+.tech-card-name {
+    font-weight: 700;
+    color: #0f172a;
+    font-size: 0.92rem;
+}
+
+.tech-card-code {
+    font-size: 0.72rem;
+    color: #64748b;
+    margin-left: 4px;
+}
+
+.tech-status-badge {
+    font-size: 0.68rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 12px;
+    letter-spacing: 0.3px;
+}
+
+.badge-success { background: #dcfce7; color: #15803d; }
+.badge-warning { background: #fef3c7; color: #b45309; }
+.badge-info    { background: #e0f2fe; color: #0369a1; }
+.badge-secondary { background: #f1f5f9; color: #475569; }
+.badge-dark    { background: #334155; color: #f8fafc; }
+
+/* Job Chip */
+.tech-job-chip {
+    background: #f8fafc;
+    border: 1px dashed #cbd5e1;
+    border-radius: 6px;
+    padding: 6px 8px;
+    margin: 6px 0;
+    font-size: 0.78rem;
+    color: #1e293b;
+}
+
+.tech-job-chip strong {
+    color: #0284c7;
+}
+
+/* Card Telemetry Row */
+.tech-telemetry-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.72rem;
+    color: #64748b;
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid #f1f5f9;
+}
+
+.telemetry-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+}
+
+/* Map Viewport Area */
+.map-viewport-wrapper {
+    flex: 1;
+    position: relative;
+    background: #e2e8f0;
+}
+
+#liveMap {
+    width: 100%;
+    height: 100%;
+}
+
+/* Floating Controls */
+.floating-map-controls {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    z-index: 1000;
+    display: flex;
+    gap: 6px;
+}
+
+.float-btn {
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 7px 12px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #0f172a;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    transition: all 0.2s ease;
+}
+
+.float-btn:hover {
+    background: #f8fafc;
+    border-color: #f97316;
+    color: #ea580c;
+}
+
+/* Floating Legend */
+.map-floating-legend {
+    position: absolute;
+    bottom: 18px;
+    left: 18px;
+    z-index: 1000;
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(4px);
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 8px 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    font-size: 0.74rem;
+}
+
+.legend-title {
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    font-size: 0.68rem;
+    letter-spacing: 0.4px;
+}
+
+.legend-items {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: #334155;
+    font-weight: 600;
+}
+
+.legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.dot-green  { background: #16a34a; }
+.dot-yellow { background: #eab308; }
+.dot-blue   { background: #0284c7; }
+.dot-gray   { background: #94a3b8; }
+.dot-red    { background: #ef4444; border: 2px solid #b91c1c; }
+
+/* Custom Leaflet Marker Pins */
+.custom-tech-marker {
+    background: transparent;
+    border: none;
+}
+
+.tech-marker-pin {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-size: 1.1rem;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+    border: 2px solid #ffffff;
+    position: relative;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.tech-marker-pin:hover {
+    transform: scale(1.15);
+}
+
+.pin-green { background: #16a34a; }
+.pin-yellow { background: #d97706; }
+.pin-blue { background: #0284c7; }
+.pin-gray { background: #64748b; }
+
+.tech-marker-label {
+    position: absolute;
+    bottom: -18px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(15, 23, 42, 0.88);
+    color: #ffffff;
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+/* Office Marker Pin */
+.office-marker-pin {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: #dc2626;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    border: 3px solid #ffffff;
+    box-shadow: 0 4px 14px rgba(220, 38, 38, 0.5);
+    animation: officePulse 2.5s infinite;
+}
+
+@keyframes officePulse {
+    0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.6); }
+    70% { box-shadow: 0 0 0 16px rgba(220, 38, 38, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+}
+
+/* Leaflet Popup Styling */
+.leaflet-popup-content-wrapper {
+    border-radius: 10px;
+    padding: 0;
+    overflow: hidden;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.18);
+}
+
+.leaflet-popup-content {
+    margin: 0;
+    width: 270px !important;
+    font-family: inherit;
+}
+
+.tech-popup-card {
+    padding: 0;
+}
+
+.popup-header {
+    background: #0f172a;
+    color: #ffffff;
+    padding: 10px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.popup-header h4 {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+
+.popup-body {
+    padding: 12px 14px;
+    background: #ffffff;
+}
+
+.popup-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    color: #334155;
+    margin-bottom: 6px;
+}
+
+.popup-job-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-left: 3px solid #0284c7;
+    border-radius: 6px;
+    padding: 6px 8px;
+    margin: 8px 0;
+    font-size: 0.78rem;
+}
+
+.popup-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 10px;
+}
+
+.popup-btn {
+    flex: 1;
+    text-align: center;
+    padding: 6px 8px;
+    border-radius: 6px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    display: inline-block;
+}
+
+.popup-btn-call {
+    background: #22c55e;
+    color: #ffffff;
+}
+
+.popup-btn-call:hover {
+    background: #16a34a;
+}
+
+.popup-btn-schedule {
+    background: #f1f5f9;
+    color: #0f172a;
+    border: 1px solid #cbd5e1;
+}
+
+.popup-btn-schedule:hover {
+    background: #e2e8f0;
+}

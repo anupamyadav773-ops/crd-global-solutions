@@ -1,0 +1,234 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>CRD Global Solutions - Customers</title>
+
+    <link rel="stylesheet" href="customer-list.css">
+
+</head>
+
+<body>
+
+    <div class="page-container">
+
+        <!-- Header -->
+
+        <div class="page-header">
+
+            <div>
+                <h1>Customers</h1>
+                <p>Manage all your customers</p>
+            </div>
+
+            <div class="header-buttons">
+
+                <a href="dashboard.html">
+                    ← Dashboard
+                </a>
+
+                <a href="customer.html" class="add-button">
+                    + Add Customer
+                </a>
+
+            </div>
+
+        </div>
+
+
+        <!-- Search -->
+
+        <div class="search-box">
+
+            <input
+                type="text"
+                id="searchCustomer"
+                placeholder="Search customer by name or mobile..."
+            >
+
+        </div>
+
+
+        <!-- Customer Table -->
+
+        <div class="table-container">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>ID</th>
+
+                        <th>Customer Name</th>
+
+                        <th>Mobile</th>
+
+                        <th>Email</th>
+
+                        <th>GSTIN</th>
+
+                        <th>Opening Bal</th>
+
+                        <th>Due Balance (बकाया)</th>
+
+                        <th>Status</th>
+
+                        <th>Action</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody id="customerTableBody">
+
+                    <tr>
+
+                        <td colspan="9">
+                            Loading customers...
+                        </td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+
+    
+    <!-- ==========================================
+         CUSTOMER LEDGER & DUE SETTLEMENT MODAL
+    =========================================== -->
+    <div id="ledgerModal" class="modal hidden" aria-modal="true" role="dialog" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9999; justify-content:center; align-items:center;">
+        <div style="background:#fff; border-radius:10px; max-width:850px; width:92%; max-height:92vh; overflow-y:auto; padding:24px; box-shadow:0 10px 30px rgba(0,0,0,0.3);">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:12px; margin-bottom:16px;">
+                <div>
+                    <h3 style="margin:0; font-size:20px; color:#17202a;">💰 Customer Ledger &amp; Due Settlement</h3>
+                    <div id="ledgerCustomerInfo" style="font-size:13px; color:#555; margin-top:3px;">-</div>
+                </div>
+                <button type="button" onclick="closeLedgerModal()" style="border:none; background:none; font-size:24px; cursor:pointer;">×</button>
+            </div>
+
+            <!-- SUMMARY STATS -->
+            <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; margin-bottom:18px;">
+                <div style="background:#f8f9fa; padding:12px 16px; border-radius:8px; border:1px solid #e9ecef;">
+                    <div style="font-size:11px; color:#777; text-transform:uppercase;">Total Invoiced</div>
+                    <div id="ledgerTotalInvoiced" style="font-size:18px; font-weight:bold; color:#2c3e50; margin-top:4px;">₹ 0.00</div>
+                </div>
+                <div style="background:#eafaf1; padding:12px 16px; border-radius:8px; border:1px solid #a9dfbf;">
+                    <div style="font-size:11px; color:#1e8449; text-transform:uppercase;">Total Paid</div>
+                    <div id="ledgerTotalPaid" style="font-size:18px; font-weight:bold; color:#27ae60; margin-top:4px;">₹ 0.00</div>
+                </div>
+                <div style="background:#fdecea; padding:12px 16px; border-radius:8px; border:1px solid #f5b7b1;">
+                    <div style="font-size:11px; color:#c0392b; text-transform:uppercase;">Current Outstanding Balance</div>
+                    <div id="ledgerTotalDue" style="font-size:18px; font-weight:bold; color:#c0392b; margin-top:4px;">₹ 0.00</div>
+                </div>
+            </div>
+
+            <!-- PAYMENT COLLECTION FORM -->
+            <div style="background:#fbfcfe; border:1.5px solid #2e86de; border-radius:8px; padding:16px; margin-bottom:20px;">
+                <div style="font-weight:bold; font-size:15px; color:#17202a; margin-bottom:10px;">➕ Record Payment / Collect Due (किस्त / बकाया जमा करें)</div>
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:12px;">
+                    <div>
+                        <label style="font-size:12px; font-weight:bold; display:block; margin-bottom:3px;">Amount (₹) *</label>
+                        <input type="number" id="payAmount" min="0.01" step="0.01" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;" placeholder="Amount">
+                    </div>
+                    <div>
+                        <label style="font-size:12px; font-weight:bold; display:block; margin-bottom:3px;">Payment Date</label>
+                        <input type="date" id="payDate" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">
+                    </div>
+                    <div>
+                        <label style="font-size:12px; font-weight:bold; display:block; margin-bottom:3px;">Payment Mode</label>
+                        <select id="payMethod" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">
+                            <option value="Cash">Cash (नकद)</option>
+                            <option value="UPI">UPI (GPay/PhonePe/Paytm)</option>
+                            <option value="Bank">Bank Transfer (IMPS/NEFT)</option>
+                            <option value="Cheque">Cheque</option>
+                            <option value="Card">Card</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size:12px; font-weight:bold; display:block; margin-bottom:3px;">Link to Invoice</label>
+                        <select id="payInvoiceId" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">
+                            <option value="">General / On-Account Due</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size:12px; font-weight:bold; display:block; margin-bottom:3px;">Ref / Txn No.</label>
+                        <input type="text" id="payRefNo" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;" placeholder="UPI / Cheque No">
+                    </div>
+                </div>
+                <div style="display:flex; justify-content:flex-end; margin-top:12px;">
+                    <button type="button" onclick="submitCustomerPayment()" style="background:#27ae60; color:#fff; border:none; padding:9px 20px; border-radius:6px; font-weight:bold; cursor:pointer;">
+                        💵 Record Payment &amp; Issue Receipt
+                    </button>
+                </div>
+            </div>
+
+            <!-- TABS FOR INVOICES AND PAYMENTS -->
+            <div style="margin-bottom:15px;">
+                <div style="display:flex; gap:10px; border-bottom:1px solid #ddd; padding-bottom:8px; margin-bottom:12px;">
+                    <button type="button" id="tabInvoicesBtn" onclick="switchLedgerTab('invoices')" style="padding:6px 14px; border:none; background:#17202a; color:#fff; border-radius:4px; cursor:pointer; font-weight:bold;">🧾 Invoices &amp; Bills</button>
+                    <button type="button" id="tabPaymentsBtn" onclick="switchLedgerTab('payments')" style="padding:6px 14px; border:1px solid #ccc; background:#fff; color:#333; border-radius:4px; cursor:pointer; font-weight:bold;">📄 Payment Receipts</button>
+                </div>
+
+                <div id="ledgerInvoicesSection">
+                    <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                        <thead>
+                            <tr style="background:#f8f9fa; text-align:left;">
+                                <th style="padding:8px; border:1px solid #eee;">Invoice No</th>
+                                <th style="padding:8px; border:1px solid #eee;">Date</th>
+                                <th style="padding:8px; border:1px solid #eee;">Total</th>
+                                <th style="padding:8px; border:1px solid #eee;">Paid</th>
+                                <th style="padding:8px; border:1px solid #eee;">Balance Due</th>
+                                <th style="padding:8px; border:1px solid #eee;">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ledgerInvoicesTableBody">
+                            <tr><td colspan="6" style="text-align:center; padding:15px; color:#888;">No invoices found.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div id="ledgerPaymentsSection" style="display:none;">
+                    <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                        <thead>
+                            <tr style="background:#f8f9fa; text-align:left;">
+                                <th style="padding:8px; border:1px solid #eee;">Receipt No</th>
+                                <th style="padding:8px; border:1px solid #eee;">Date</th>
+                                <th style="padding:8px; border:1px solid #eee;">Amount</th>
+                                <th style="padding:8px; border:1px solid #eee;">Method</th>
+                                <th style="padding:8px; border:1px solid #eee;">Ref / Note</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ledgerPaymentsTableBody">
+                            <tr><td colspan="5" style="text-align:center; padding:15px; color:#888;">No payment receipts found.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:10px; border-top:1px solid #eee; padding-top:12px;">
+                <button type="button" onclick="closeLedgerModal()" style="padding:8px 16px; border:1px solid #ccc; background:#fff; border-radius:5px; cursor:pointer;">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script src="customer-list.js"></script>
+
+</body>
+
+</html>
+

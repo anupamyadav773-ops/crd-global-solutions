@@ -1,0 +1,220 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRD Global Solutions - Field Service Entry</title>
+    <link rel="stylesheet" href="service-entry.css?v=2.2">
+    <link rel="stylesheet" href="field-service-entry.css?v=2.2">
+</head>
+<body>
+
+<div class="service-container">
+
+    <!-- PAGE HEADER -->
+    <div class="page-header">
+        <div>
+            <h1>🛵 Field Service Entry</h1>
+            <p>Register on-site customer complaint & schedule field visit (फील्ड सर्विस एंट्री)</p>
+        </div>
+        <div class="header-actions" style="display:flex; gap:10px;">
+            <a href="field-service-list.html" style="background:#10b981; color:#fff;">📋 Field Service List</a>
+            <a href="technician-schedule.html" style="background:#0284c7; color:#fff;">📅 Tech Schedule</a>
+            <a href="dashboard.html">← Dashboard</a>
+        </div>
+    </div>
+
+    <form id="fieldServiceForm">
+
+        <!-- 1. COMPLAINT & SCHEDULE INFORMATION -->
+        <div class="card">
+            <h2>📅 Complaint & Appointment Schedule</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="service_number">Job / Complaint No. <span class="req">*</span></label>
+                    <input type="text" id="service_number" readonly required>
+                </div>
+
+                <div class="form-group">
+                    <label for="service_date">Complaint Date <span class="req">*</span></label>
+                    <input type="date" id="service_date" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="appointment_date">Estimated Reach Date / कब पहुँचेगा (तारीख) <span class="req">*</span></label>
+                    <input type="date" id="appointment_date" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="appointment_start_time">Estimated Reach Time / लगभग कब पहुँचेगा (समय) <span class="req">*</span></label>
+                    <input type="time" id="appointment_start_time" value="10:00" required>
+                    <small style="color: #0284c7; font-size: 11px;">⚡ Auto-fills based on technician availability</small>
+                </div>
+
+                <div id="reachNoticeBox" style="grid-column: 1 / -1; display: none; background: #f0fdf4; border: 1px solid #bbf7d0; padding: 10px 14px; border-radius: 8px; font-size: 13px; color: #166534; font-weight: 500;">
+                    <!-- Auto-filled arrival notification -->
+                </div>
+
+                <div class="form-group">
+                    <label for="priority">Priority Level</label>
+                    <select id="priority">
+                        <option value="Normal" selected>Normal</option>
+                        <option value="Low">Low</option>
+                        <option value="High">High</option>
+                        <option value="Urgent">Urgent (Immediate Attention)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="complaint_type">Complaint Type</label>
+                    <select id="complaint_type">
+                        <option value="Hardware Repair" selected>Hardware Repair</option>
+                        <option value="Installation & Setup">Installation & Setup</option>
+                        <option value="Networking / Wi-Fi">Networking / Wi-Fi</option>
+                        <option value="CCTV & Security">CCTV & Security</option>
+                        <option value="OS / Software / Antivirus">OS / Software / Antivirus</option>
+                        <option value="Printer & Peripherals">Printer & Peripherals</option>
+                        <option value="Annual Maintenance (AMC)">Annual Maintenance (AMC)</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. CUSTOMER & ON-SITE LOCATION -->
+        <div class="card">
+            <h2>👤 Customer & Site Location Information</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="customer_mobile">Mobile Number <span class="req">*</span></label>
+                    <input type="tel" id="customer_mobile" placeholder="Search or enter 10-digit mobile" required autocomplete="off">
+                    <small id="custSearchStatus" style="color:#0284c7; font-size:12px; display:none;">Searching customer...</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="customer_name">Customer / Contact Name <span class="req">*</span></label>
+                    <input type="text" id="customer_name" placeholder="Customer full name" required>
+                    <input type="hidden" id="customer_id" value="">
+                </div>
+
+                <div class="form-group full-width">
+                    <label for="customer_address">Visit Site / Home / Office Address <span class="req">*</span></label>
+                    <textarea id="customer_address" rows="2" placeholder="Complete street address, building/flat no., floor, landmark, etc." required></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. PRODUCT & HARDWARE DETAILS -->
+        <div class="card">
+            <h2>🖥️ Product & Equipment Details</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="external_product_name">Product / Machine Name <span class="req">*</span></label>
+                    <input type="text" id="external_product_name" placeholder="e.g. Dell Desktop, HP Laptop, DVR" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="external_brand">Brand / Make</label>
+                    <input type="text" id="external_brand" placeholder="e.g. Dell, HP, Canon, CP Plus">
+                </div>
+
+                <div class="form-group">
+                    <label for="serial_number">Serial No. / Tag (Optional)</label>
+                    <input type="text" id="serial_number" placeholder="Device Serial or Asset Tag">
+                </div>
+
+                <div class="form-group">
+                    <label for="warranty_status">Warranty Status</label>
+                    <select id="warranty_status">
+                        <option value="Unknown">Unknown</option>
+                        <option value="In Warranty">In Warranty</option>
+                        <option value="Out of Warranty" selected>Out of Warranty</option>
+                        <option value="Under AMC">Under AMC</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="estimated_duration_minutes">Estimated Duration</label>
+                    <select id="estimated_duration_minutes" onchange="onDurationPresetChanged(this.value)">
+                        <option value="30">30 Minutes</option>
+                        <option value="45">45 Minutes</option>
+                        <option value="60" selected>1 Hour (60 mins)</option>
+                        <option value="90">1.5 Hours (90 mins)</option>
+                        <option value="120">2 Hours (120 mins)</option>
+                        <option value="180">3 Hours (180 mins)</option>
+                        <option value="custom">✏️ Custom Duration (अपने हिसाब से डालें)...</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="custom_duration_group" style="display: none;">
+                    <label for="custom_duration_input">Custom Duration / समय डालें <span class="req">*</span></label>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="number" id="custom_duration_input" placeholder="e.g. 40, 75, 150" min="5" max="1440" style="flex: 1;">
+                        <select id="custom_duration_unit" style="width: 100px;">
+                            <option value="minutes" selected>Mins</option>
+                            <option value="hours">Hours</option>
+                        </select>
+                    </div>
+                    <small style="color: #64748b; font-size: 11px;">Custom time in minutes or hours</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. PROBLEM DESCRIPTION & TECHNICIAN ASSIGNMENT -->
+        <div class="card">
+            <h2>🔧 Problem Description & Field Technician</h2>
+            <div class="form-grid">
+                <div class="form-group full-width">
+                    <label for="complaint">Problem Description / Fault Reported <span class="req">*</span></label>
+                    <textarea id="complaint" rows="3" placeholder="Describe the customer issue in detail (e.g. System not powering on, Wi-Fi connectivity dropping, Blue Screen error)" required></textarea>
+                </div>
+
+                <div class="form-group full-width">
+                    <label for="assigned_technician_id">Assign Field Technician (Real-time Status)</label>
+                    <select id="assigned_technician_id" onchange="onTechnicianSelected(this.value)">
+                        <option value="">-- Assign Later (Unassigned) --</option>
+                    </select>
+                    <div id="techLiveStatusBadge" style="display: none; margin-top: 8px; padding: 10px 14px; border-radius: 8px; font-size: 13px; font-weight: 500;"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="service_status">Initial Status</label>
+                    <select id="service_status">
+                        <option value="Pending" selected>Pending</option>
+                        <option value="Assigned">Assigned</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="estimated_charges">Estimated Visit / Service Charges (₹)</label>
+                    <input type="number" id="estimated_charges" value="0" min="0" step="any">
+                </div>
+
+                <div class="form-group">
+                    <label for="advance_paid">Advance Received (₹)</label>
+                    <input type="number" id="advance_paid" value="0" min="0" step="any">
+                </div>
+
+                <div class="form-group full-width">
+                    <label for="notes">Special Instructions for Technician / Notes</label>
+                    <textarea id="notes" rows="2" placeholder="e.g. Call customer 15 mins before arrival; key available with security guard"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- FORM BUTTONS -->
+        <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:20px; margin-bottom:40px;">
+            <button type="reset" class="btn-cancel">Reset</button>
+            <button type="submit" id="saveFieldServiceBtn" class="btn-save">💾 Register Field Complaint</button>
+        </div>
+
+    </form>
+
+</div>
+
+<script src="config.js?v=2.2"></script>
+<script src="auth.js?v=2.2"></script>
+<script src="field-service-entry.js?v=2.2"></script>
+</body>
+</html>
+

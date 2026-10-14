@@ -1,0 +1,97 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRD Global Solutions - Service Jobs</title>
+    <link rel="stylesheet" href="service-list.css?v=2.2">
+</head>
+
+<body>
+
+<div class="service-container">
+
+    <div class="page-header">
+        <div>
+            <h1>🏪 Shop Services</h1>
+            <p>Customer repairs & in-store service jobs (दुकान पर आने वाली सर्विस)</p>
+        </div>
+
+        <div class="header-actions">
+            <a href="service-entry.html">➕ New Shop Service</a>
+            <a href="field-service-list.html" style="background:#10b981; color:#fff;">🛵 Field Services</a>
+            <a href="dashboard.html">← Dashboard</a>
+        </div>
+    </div>
+
+    <div class="toolbar">
+        <input
+            type="text"
+            id="searchInput"
+            placeholder="Search service no, customer, serial..."
+        >
+
+        <select id="statusFilter">
+            <option value="">All Status</option>
+            <option value="Received">Received</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Ready">Ready</option>
+            <option value="Delivered">Delivered</option>
+            <option value="Cancelled">Cancelled</option>
+        </select>
+
+        <button id="refreshButton">Refresh</button>
+    </div>
+
+    <div class="table-card">
+        <table>
+            <thead>
+                <tr>
+                    <th>Service No.</th>
+                    <th>Date</th>
+                    <th>Expected Delivery</th>
+                    <th>Customer</th>
+                    <th>Product</th>
+                    <th>Serial No.</th>
+                    <th>Complaint</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="serviceTableBody">
+                <tr>
+                    <td colspan="9" class="loading">Loading services...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+<!-- ==========================================
+     JOB SHEET / GATE PASS PRINT MODAL
+=========================================== -->
+<div id="jobSheetModal" class="modal hidden" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9999; justify-content:center; align-items:center;">
+    <div style="background:#fff; border-radius:8px; max-width:700px; width:90%; max-height:90vh; overflow-y:auto; padding:24px; box-shadow:0 10px 30px rgba(0,0,0,0.3);">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:12px; margin-bottom:15px;">
+            <h3 style="margin:0; font-size:20px; color:#17202a;">🖨️ Customer Job Sheet / Gate Pass Slip</h3>
+            <button type="button" onclick="closeJobSheetModal()" style="border:none; background:none; font-size:24px; cursor:pointer;">×</button>
+        </div>
+        <div id="jobSheetPrintArea">
+            <!-- Dynamic Job Sheet Content -->
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:20px; border-top:1px solid #eee; padding-top:15px;">
+            <button type="button" onclick="closeJobSheetModal()" style="padding:8px 16px; border:1px solid #ccc; background:#fff; border-radius:5px; cursor:pointer;">Close</button>
+            <button type="button" onclick="printJobSheetDirect()" style="padding:8px 20px; background:#ff6600; color:#fff; border:none; border-radius:5px; font-weight:bold; cursor:pointer;">🖨️ Print Slip</button>
+        </div>
+    </div>
+</div>
+
+<script src="config.js?v=2.2"></script>
+<script src="auth.js?v=2.2"></script>
+<script src="service-list.js?v=2.2"></script>
+
+</body>
+</html>
+

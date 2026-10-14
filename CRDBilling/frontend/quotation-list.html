@@ -1,0 +1,136 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRD Global Solutions - Quotations / Estimates</title>
+    <link rel="stylesheet" href="sales-list.css">
+    <link rel="stylesheet" href="invoice-templates.css">
+    <style>
+        .badge-quotation {
+            background: #f4ecf7;
+            color: #8e44ad;
+            border: 1px solid #d2b4de;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        .convert-btn {
+            background: #ff6600 !important;
+            color: #fff !important;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .convert-btn:hover {
+            background: #e65c00 !important;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="page-container">
+
+        <div class="page-header">
+            <div>
+                <h1>📄 Quotations &amp; Estimates (कोटेशन सूची)</h1>
+                <p>Manage customer price estimates and convert them into official Tax Invoices</p>
+            </div>
+
+            <div class="header-buttons">
+                <a href="dashboard.html">← Dashboard</a>
+                <a href="sales-list.html" style="background: #2e86de;">🧾 Sales Invoices</a>
+                <a href="sales-invoice.html?type=quotation" class="add-button" style="background:#ff6600;">+ New Quotation</a>
+            </div>
+        </div>
+
+        <div class="search-box">
+            <form id="quotationFilterForm" class="filter-grid">
+                <div class="field-group">
+                    <label for="searchQuotationNumber">Quotation No.</label>
+                    <input type="text" id="searchQuotationNumber" placeholder="Search QTN Number">
+                </div>
+
+                <div class="field-group">
+                    <label for="searchCustomer">Customer</label>
+                    <input type="text" id="searchCustomer" placeholder="Search Customer">
+                </div>
+
+                <div class="field-group">
+                    <label for="fromDate">From Date</label>
+                    <input type="date" id="fromDate">
+                </div>
+
+                <div class="field-group">
+                    <label for="toDate">To Date</label>
+                    <input type="date" id="toDate">
+                </div>
+
+                <div class="filter-actions">
+                    <button type="submit" class="primary-btn">Search / Apply</button>
+                    <button type="button" id="resetFilters" class="secondary-btn">Reset</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Quotation No.</th>
+                        <th>Date</th>
+                        <th>Customer</th>
+                        <th>Subtotal</th>
+                        <th>Discount</th>
+                        <th>Tax</th>
+                        <th>Grand Total</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="quotationTableBody">
+                    <tr>
+                        <td colspan="9" class="empty-message">Loading quotations...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- PREVIEW MODAL -->
+    <div id="previewModal" class="modal hidden" aria-modal="true" role="dialog">
+        <div class="modal-content preview-modal-content">
+            <div class="modal-header">
+                <h3>Quotation Preview</h3>
+                <button type="button" class="close-modal" id="closePreviewModal">×</button>
+            </div>
+            <div class="template-switch-bar no-print">
+                <label for="invoiceTemplateSelect" style="font-size:13px;font-weight:600;color:#555;">Template:</label>
+                <select id="invoiceTemplateSelect" style="font-size:13px;padding:4px 10px;border-radius:6px;border:1px solid #ccc;background:#fff;">
+                    <option value="modern">Modern</option>
+                    <option value="classic">Classic</option>
+                    <option value="minimal">Minimal</option>
+                    <option value="thermal">Thermal (80mm)</option>
+                </select>
+            </div>
+            <div id="previewContent" class="preview-content"></div>
+            <div class="modal-actions">
+                <button type="button" class="secondary-button" id="closePreviewButton">Close</button>
+                <button type="button" class="primary-button" id="printPreviewButton">Print Quotation</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js?v=2.2"></script>
+    <script src="auth.js?v=2.2"></script>
+    <script src="invoice-templates.js?v=2.2"></script>
+    <script src="quotation-list.js?v=2.2"></script>
+</body>
+
+</html>
+

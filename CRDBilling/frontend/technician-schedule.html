@@ -1,0 +1,265 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Technician Scheduling & Availability - CRD Global Solutions</title>
+    <link rel="stylesheet" href="employees.css?v=1.0">
+    <style>
+        .calendar-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #fff;
+            padding: 12px 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: var(--card-shadow);
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .date-nav-btn {
+            background: #f1f5f9;
+            border: 1px solid var(--border);
+            padding: 8px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .date-nav-btn:hover { background: #e2e8f0; }
+
+        .tech-schedule-card {
+            background: #fff;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: var(--card-shadow);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .tech-card-header {
+            background: #f8fafc;
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .tech-job-list {
+            padding: 16px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .job-item-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-left: 5px solid var(--primary);
+            border-radius: 8px;
+            padding: 12px 16px;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .job-item-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+        }
+        .job-item-card.priority-Urgent { border-left-color: #dc2626; }
+        .job-item-card.priority-High { border-left-color: #ea580c; }
+        .job-item-card.priority-Normal { border-left-color: #2563eb; }
+
+        .time-badge {
+            background: #eff6ff;
+            color: #1d4ed8;
+            font-weight: 700;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.88rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .availability-pill {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.82rem;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+        <div class="logo">CRD Global Solutions</div>
+        <div class="menu">
+            <a href="dashboard.html">🏠 Dashboard</a>
+            <a href="customer-list.html">👥 Customers</a>
+            <a href="product-list.html">📦 Products</a>
+            <a href="sales-list.html">🧾 Billing</a>
+            <a href="quotation-list.html">📄 Quotations</a>
+            <a href="purchase-list.html">🛒 Purchases</a>
+                        <div class="menu-dropdown service-menu-dropdown">
+                <a href="javascript:void(0)" class="menu-dropdown-toggle" onclick="toggleServiceMenu(event)">
+                    <span class="dropdown-label">🔧 Services</span>
+                    <span class="dropdown-chevron">▾</span>
+                </a>
+                <div class="menu-dropdown-content">
+                    <a href="service-list.html">🏪 Shop Service List</a>
+                    <a href="service-entry.html">➕ Shop Service Entry</a>
+                    <a href="field-service-list.html">🛵 Field Service List</a>
+                    <a href="field-service-entry.html">➕ Field Service Entry</a>
+                </div>
+            </div>
+
+            <div class="menu-dropdown field-tech-menu-dropdown">
+                <a href="javascript:void(0)" class="menu-dropdown-toggle" onclick="toggleFieldTechMenu(event)">
+                    <span class="dropdown-label">🛠️ Field Technician</span>
+                    <span class="dropdown-chevron">▾</span>
+                </a>
+                <div class="menu-dropdown-content">
+                    <a href="field-service-list.html">🛵 Field Complaints</a>
+                    <a href="technician-schedule.html">📅 Tech Schedule</a>
+                    <a href="technician-live-map.html">🗺️ Live Map Tracking</a>
+                    <a href="technician-gps-history.html">📍 GPS Location History</a>
+                    <a href="technician-activity-log.html">📜 Activity Log</a>
+                    <a href="employees.html">👷 Employees</a>
+                    <a href="attendance.html">📍 Attendance & GPS</a>
+                    <a href="employee-attendance-reports.html">📊 Attendance Reports</a>
+                    <a href="technician-performance.html">🎯 Technician Performance</a>
+                    <a href="technician-tools.html">🧰 Tech Tools</a>
+                    <a href="technician-inventory.html">📦 Tech Inventory</a>
+                    <a href="device-management.html" data-role="admin">🔒 Device Security</a>
+                </div>
+            </div>
+            <a href="supplier.html">🚚 Suppliers</a>
+            <a href="expense-list.html">💰 Expenses</a>
+            <a href="reports.html">📈 Reports</a>
+            <a href="scrap.html">♻️ Scrap</a>
+            <a href="user-list.html" data-role="admin">👤 Users</a>
+            <a href="settings.html" data-role="admin">⚙️ Settings</a>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <header class="topbar">
+            <div>
+                <h2>Technician Schedule & Availability</h2>
+                <p style="color: #64748b; font-size: 0.9rem;">Real-time job scheduling, conflict check, and estimated duration allocation</p>
+            </div>
+            <div>
+                <button class="btn btn-primary" onclick="openAssignModal()">+ Assign Service Job</button>
+            </div>
+        </header>
+
+        <div class="container">
+            <!-- Date Navigator -->
+            <div class="calendar-controls">
+                <button class="date-nav-btn" onclick="navigateDate(-1)">◀ Previous Day</button>
+                <button class="date-nav-btn" onclick="navigateDate(0)">Today</button>
+                <button class="date-nav-btn" onclick="navigateDate(1)">Next Day ▶</button>
+                <div style="display: flex; align-items: center; gap: 8px; margin-left: 10px;">
+                    <label for="scheduleDateInput" style="font-weight: 600; font-size: 0.9rem;">Select Date:</label>
+                    <input type="date" id="scheduleDateInput" class="input-search" style="min-width: 160px;" onchange="onDateChanged()">
+                </div>
+                <div style="margin-left: auto; font-size: 1.1rem; font-weight: 700; color: #0f172a;" id="displayDateLabel">
+                    Today
+                </div>
+            </div>
+
+            <!-- Real-time Live Availability Strip -->
+            <div style="background: #fff; padding: 18px 20px; border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--card-shadow); margin-bottom: 24px;">
+                <h4 style="margin-bottom: 12px; font-size: 0.95rem; text-transform: uppercase; color: #475569;">
+                    🟢 Live Technician Availability for Selected Date
+                </h4>
+                <div id="availabilityBadgesContainer" style="display: flex; flex-wrap: wrap; gap: 10px;">
+                    <span style="color: #64748b;">Checking availability...</span>
+                </div>
+            </div>
+
+            <!-- Technicians Timelines / Cards -->
+            <div id="scheduleTimelineContainer">
+                <div style="text-align: center; color: #64748b; padding: 40px;">Loading schedule...</div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Assign Job Modal -->
+    <div id="assignModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Assign Service Job to Technician</h3>
+                <button class="close-btn" onclick="closeAssignModal()">&times;</button>
+            </div>
+            <form id="assignForm" onsubmit="saveAssignment(event)">
+                <div class="form-grid">
+                    <div class="form-group full-width">
+                        <label for="assignServiceJob">Select Service Job Sheet *</label>
+                        <select id="assignServiceJob" required onchange="onJobSheetSelected()">
+                            <option value="">-- Choose Job Sheet --</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="assignDate">Appointment Date *</label>
+                        <input type="date" id="assignDate" required onchange="onAppointmentDetailsChanged()">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="assignTime">Appointment Start Time *</label>
+                        <input type="time" id="assignTime" value="10:00" required onchange="onAppointmentDetailsChanged()">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="assignDuration">Estimated Duration *</label>
+                        <select id="assignDuration" required onchange="onAppointmentDetailsChanged()">
+                            <option value="30">30 Minutes (Quick Check)</option>
+                            <option value="45">45 Minutes</option>
+                            <option value="60" selected>1 Hour (Standard Repair)</option>
+                            <option value="90">1.5 Hours (OS / Chip level)</option>
+                            <option value="120">2 Hours (Deep Hardware)</option>
+                            <option value="180">3 Hours (On-site Network/CCTV)</option>
+                            <option value="240">4 Hours (Full Setup)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="assignPriority">Priority</label>
+                        <select id="assignPriority">
+                            <option value="Normal">Normal</option>
+                            <option value="High">High</option>
+                            <option value="Urgent">Urgent 🔥</option>
+                            <option value="Low">Low</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label for="assignTechSelect">Technician (Shows Live Real-Time Availability) *</label>
+                        <select id="assignTechSelect" required>
+                            <option value="">-- Select Technician --</option>
+                        </select>
+                        <small id="techAvailabilityNote" style="margin-top: 4px; font-weight: 600;"></small>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeAssignModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="saveAssignBtn">Confirm Assignment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script src="technician-schedule.js?v=1.0"></script>
+</body>
+</html>
+

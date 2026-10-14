@@ -1,0 +1,197 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>CRD Global Solutions - Customer</title>
+
+    <link rel="stylesheet" href="customer.css">
+
+</head>
+
+<body>
+
+    <div class="customer-container">
+
+        <div class="page-header">
+
+            <div>
+                <h1 id="pageTitle">Add Customer</h1>
+                <p id="pageSubtitle">
+                    Enter customer details below
+                </p>
+            </div>
+
+            <a href="customer-list.html" class="back-button">
+                ← Customer List
+            </a>
+
+        </div>
+
+
+        <form id="customerForm">
+
+            <div class="form-grid">
+
+
+                <div class="form-group">
+
+                    <label for="customer_name">
+                        Customer Name *
+                    </label>
+
+                    <input
+                        type="text"
+                        id="customer_name"
+                        placeholder="Enter customer name"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="mobile">
+                        Mobile Number
+                    </label>
+
+                    <input
+                        type="tel"
+                        id="mobile"
+                        placeholder="Enter mobile number"
+                    >
+                    <div id="mobileErrorMsg" style="display:none; color: #dc2626; font-size: 12px; margin-top: 5px; font-weight: 500; background-color: #fef2f2; border: 1px solid #fecaca; padding: 4px 8px; border-radius: 4px;"></div>
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="email">
+                        Email
+                    </label>
+
+                    <input
+                        type="email"
+                        id="email"
+                        placeholder="Enter email address"
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="gstin">
+                        GSTIN
+                    </label>
+
+                    <input
+                        type="text"
+                        id="gstin"
+                        placeholder="Enter GSTIN"
+                    >
+
+                </div>
+
+
+                <div class="form-group full-width">
+
+                    <label for="address">
+                        Address
+                    </label>
+
+                    <textarea
+                        id="address"
+                        placeholder="Enter customer address"
+                        rows="4"
+                    ></textarea>
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="opening_balance">
+                        Opening Balance
+                    </label>
+
+                    <input
+                        type="number"
+                        id="opening_balance"
+                        value="0"
+                        step="0.01"
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="customer_type">
+                        Customer Type
+                    </label>
+
+                    <select id="customer_type">
+
+                        <option value="Regular">
+                            Regular
+                        </option>
+
+                        <option value="Business">
+                            Business
+                        </option>
+
+                        <option value="Dealer">
+                            Dealer
+                        </option>
+
+                        <option value="Wholesale">
+                            Wholesale
+                        </option>
+
+                    </select>
+
+                </div>
+
+            </div>
+
+
+            <div class="form-buttons">
+
+                <button
+                    type="button"
+                    class="clear-button"
+                    onclick="window.location.href='customer-list.html'"
+                >
+                    Cancel
+                </button>
+
+                <button
+                    type="submit"
+                    class="save-button"
+                    id="saveButton"
+                >
+                    Save Customer
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script src="customer.js"></script>
+
+</body>
+
+</html>
+

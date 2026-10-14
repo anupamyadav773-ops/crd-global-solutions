@@ -1,0 +1,910 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>CRD Global Solutions - Technician Mobile App</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="assets/pari_logo.png">
+    <link rel="stylesheet" href="tech.css?v=1.5">
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('sw.js').then((reg) => {
+            console.log('ServiceWorker registered:', reg.scope);
+          }).catch((err) => {
+            console.log('ServiceWorker registration failed:', err);
+          });
+        });
+      }
+    </script>
+</head>
+<body>
+
+    <div class="mobile-app-shell">
+
+        <!-- ==========================================
+             LOGIN VIEW (When not authenticated)
+        =========================================== -->
+        <div id="loginView" class="login-view-container" style="display: none;">
+
+            <!-- Top Branding Header -->
+            <div class="login-top-bar" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: #ffffff; border-bottom: 1px solid #e2e8f0;">
+                <div class="login-brand-left" style="display: flex; align-items: center; gap: 10px;">
+                    <img src="assets/pari_logo.png" alt="CRD Global Solutions" class="login-logo-img" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; box-shadow: 0 2px 8px rgba(0,0,0,0.12);">
+                    <div>
+                        <div style="font-weight: 800; font-size: 16px; color: #0f172a; line-height: 1.2;">CRD Global Solutions</div>
+                        <div style="font-size: 11px; color: #0284c7; font-weight: 600;">Since 2013 &bull; IT Solutions</div>
+                    </div>
+                </div>
+                <div class="login-brand-right" style="text-align: right;">
+                    <div class="tech-app-title" style="font-size: 15px; font-weight: 800; color: #1e3a8a;">Technician App</div>
+                    <div class="tech-app-subtitle" style="font-size: 11px; color: #64748b; font-weight: 600;">Field Management</div>
+                </div>
+            </div>
+
+            <!-- Hero Banner with Technician & Badges -->
+            <div class="login-hero-section">
+                <div class="hero-bg-wrapper">
+                    <img src="assets/hero_technician.png" alt="CRD Technician" class="hero-bg-img">
+                    <div class="hero-tint-overlay"></div>
+                </div>
+
+                <div class="hero-content">
+                    <div class="hero-headings">
+                        <h2 class="hero-hindi-title">आपकी<br>सेवा में<br>हमेशा साथ</h2>
+                        <p class="hero-subtitle">Login to access your jobs,<br>schedule and updates.</p>
+                    </div>
+
+                    <!-- Right Vertical Badges -->
+                    <div class="hero-service-badges">
+                        <div class="service-badge-pill">
+                            <span class="badge-icon">🔧</span>
+                            <span class="badge-label">INSTALL</span>
+                        </div>
+                        <div class="service-badge-pill">
+                            <span class="badge-icon">⚙️</span>
+                            <span class="badge-label">REPAIR</span>
+                        </div>
+                        <div class="service-badge-pill">
+                            <span class="badge-icon">🛡️</span>
+                            <span class="badge-label">SUPPORT</span>
+                        </div>
+                        <div class="service-badge-pill">
+                            <span class="badge-icon">📊</span>
+                            <span class="badge-label">MAINTAIN</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Floating White Login Card -->
+            <div class="login-card-floating">
+                <div class="login-card-header">
+                    <h3>Technician Login</h3>
+                    <p>Use your assigned login credentials</p>
+                </div>
+
+                <div id="loginAlertBox" class="login-alert-box" style="display: none;"></div>
+
+                <form id="techLoginForm" onsubmit="handleTechLogin(event)">
+                    <!-- Username Input -->
+                    <div class="input-wrapper">
+                        <span class="input-icon">👤</span>
+                        <input type="text" id="techUsername" required placeholder="Technician ID / Username" autocomplete="username">
+                    </div>
+
+                    <!-- Password Input with Toggle -->
+                    <div class="input-wrapper">
+                        <span class="input-icon">🔒</span>
+                        <input type="password" id="techPassword" required placeholder="Password" autocomplete="current-password">
+                        <button type="button" class="pwd-toggle-btn" onclick="togglePasswordVisibility()" title="Show/Hide password">
+                            <span id="pwdEyeIcon">👁️</span>
+                        </button>
+                    </div>
+
+                    <!-- Options Row -->
+                    <div class="login-options-row">
+                        <label class="remember-me-label">
+                            <input type="checkbox" id="rememberMeCheckbox" checked>
+                            <span>Remember Me</span>
+                        </label>
+                        <a href="javascript:void(0)" onclick="onForgotPassword()" class="forgot-pwd-link">Forgot Password?</a>
+                    </div>
+
+                    <!-- Submit Pill Button -->
+                    <button type="submit" id="loginSubmitBtn" class="login-pill-btn">
+                        <span>Login</span>
+                        <span class="btn-arrow">➔</span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Feature Highlight Icons Row -->
+            <div class="login-feature-strip">
+                <div class="feature-item">
+                    <div class="feature-icon-box bg-green">
+                        <span>📅</span>
+                    </div>
+                    <div class="feature-name">My Jobs</div>
+                    <div class="feature-hindi">मेरे कार्य</div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon-box bg-orange">
+                        <span>📍</span>
+                    </div>
+                    <div class="feature-name">Attendance</div>
+                    <div class="feature-hindi">उपस्थिति</div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon-box bg-purple">
+                        <span>📊</span>
+                    </div>
+                    <div class="feature-name">Track Progress</div>
+                    <div class="feature-hindi">प्रगति देखें</div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon-box bg-blue">
+                        <span>🛠️</span>
+                    </div>
+                    <div class="feature-name">Serve Better</div>
+                    <div class="feature-hindi">बेहतर सेवा</div>
+                </div>
+            </div>
+
+            <!-- Bottom Navy Curved Footer -->
+            <div class="login-curved-footer">
+                <h4>CRD Global Solutions</h4>
+                <p class="footer-tagline">People &nbsp;|&nbsp; Service &nbsp;|&nbsp; Trust</p>
+                <p class="footer-slogan">Technology for a Better Tomorrow</p>
+                <div class="footer-version">v1.0.0</div>
+            </div>
+        </div>
+
+        <!-- ==========================================
+             MAIN APP VIEW (When authenticated)
+        =========================================== -->
+        <div id="mainAppView" style="display: flex; flex-direction: column; flex: 1;">
+            
+            <!-- Sticky Top Header matching Mockup -->
+            <header class="dash-top-nav-bar">
+                <div class="dash-header-left" style="display: flex; align-items: center; gap: 10px;">
+                    <img src="assets/pari_logo.png" alt="CRD Global Solutions" class="dash-logo-img" style="width: 42px; height: 42px; border-radius: 50%; object-fit: cover; box-shadow: 0 2px 6px rgba(0,0,0,0.25);">
+                    <div>
+                        <div style="font-weight: 800; font-size: 15px; color: #ffffff; line-height: 1.2;">CRD Global Solutions</div>
+                        <div style="font-size: 10px; color: #38bdf8; font-weight: 600;">Since 2013 &bull; Tech Portal</div>
+                    </div>
+                </div>
+
+                <div class="dash-header-right">
+                    <!-- Notification Bell with Red Badge -->
+                    <button type="button" class="dash-bell-btn" onclick="toggleNotificationPopup()" title="Notifications">
+                        <span class="bell-icon">🔔</span>
+                        <span class="bell-badge" id="dashBellBadge">3</span>
+                    </button>
+
+                    <!-- Technician Profile Widget Pill -->
+                    <div class="dash-user-pill" onclick="toggleProfileDropdown()" title="Account & Profile">
+                        <div class="user-avatar-wrap">
+                            <img src="assets/tech_avatar.png" alt="Profile" class="user-avatar-img" onerror="this.src='https://ui-avatars.com/api/?name=Technician&background=0284c7&color=fff'">
+                            <span class="online-indicator-dot"></span>
+                        </div>
+                        <div class="user-text-info">
+                            <div class="user-name" id="dashTechName">Technician</div>
+                            <div class="user-role-id">
+                                <span>Technician</span>
+                                <span class="id-tag" id="dashTechCode">ID: TECH001</span>
+                            </div>
+                        </div>
+                        <span class="dropdown-chevron">▼</span>
+                    </div>
+                </div>
+
+                <!-- Profile Dropdown Floating Menu -->
+                <div id="profileDropdownMenu" class="profile-dropdown-menu" style="display: none;">
+                    <div class="dropdown-header">
+                        <strong id="dropMenuName">Technician</strong>
+                        <small id="dropMenuPhone">CRD Global Solutions Service</small>
+                    </div>
+                    <div class="dropdown-duty-status" id="dropdownDutyStatus">
+                        Status: <span id="dropDutyText">⚪ Off Duty</span>
+                    </div>
+                    <a href="javascript:void(0)" onclick="switchNavTab('attendance', document.getElementById('navAttendanceBtn')); toggleProfileDropdown(false);" class="drop-item">
+                        <span>🕒</span> <strong>Duty & Attendance</strong>
+                    </a>
+                    <a href="javascript:void(0)" onclick="switchNavTab('more', document.getElementById('navMoreBtn')); toggleProfileDropdown(false);" class="drop-item">
+                        <span>👤</span> <strong>My Profile & Device Lock</strong>
+                    </a>
+                    <div class="drop-divider"></div>
+                    <a href="javascript:void(0)" onclick="techLogout()" class="drop-item drop-item-danger">
+                        <span>🚪</span> <strong>Log Out</strong>
+                    </a>
+                </div>
+
+                <!-- Notifications Popup -->
+                <div id="notificationPopup" class="notification-popup-card" style="display: none;">
+                    <div class="notif-header">
+                        <strong>🔔 Notifications & Updates</strong>
+                        <button type="button" onclick="toggleNotificationPopup(false)" class="notif-close-btn">&times;</button>
+                    </div>
+                    <div class="notif-list" id="notifListContainer">
+                        <div class="notif-item unread">
+                            <div class="notif-dot"></div>
+                            <div>
+                                <div class="notif-title">New Service Job Assigned</div>
+                                <div class="notif-desc">Check your job list for updated visit schedule.</div>
+                                <div class="notif-time">Just now</div>
+                            </div>
+                        </div>
+                        <div class="notif-item unread">
+                            <div class="notif-dot"></div>
+                            <div>
+                                <div class="notif-title">Duty Punch Reminder</div>
+                                <div class="notif-desc">Punch in on the app to mark your daily attendance with GPS.</div>
+                                <div class="notif-time">Morning shift</div>
+                            </div>
+                        </div>
+                        <div class="notif-item">
+                            <div class="notif-dot"></div>
+                            <div>
+                                <div class="notif-title">Technician Mobile App v1.0</div>
+                                <div class="notif-desc">GPS check-in, digital sign & camera work proof active.</div>
+                                <div class="notif-time">System</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- ==========================================
+                 TAB 1: HOME DASHBOARD (Exact Match to Mockup)
+            =========================================== -->
+            <div id="tabHomeContent" class="tab-page-content" style="display: block;">
+                <div class="dash-scroll-body">
+
+                    <!-- Welcome / Greeting Hero Banner -->
+                    <div class="dash-hero-banner">
+                        <div class="banner-left-content">
+                            <h2 class="greeting-heading" id="dashGreeting">Hello, Ravi!</h2>
+                            <div class="hindi-tagline">आज भी बेहतर सेवा के लिए तैयार!</div>
+                            <p class="banner-subtext">Your work makes our customers safer and happier.</p>
+                        </div>
+                        <div class="banner-right-graphic">
+                            <img src="assets/dash_hero_graphic.png" alt="Service Today A Better Tomorrow" class="hero-graphic-img">
+                        </div>
+                    </div>
+
+                    <!-- 4 Status Stat Cards Grid -->
+                    <div class="dash-stats-grid">
+                        <!-- Card 1: Today's Jobs -->
+                        <div class="stat-card stat-card-blue" onclick="switchNavTab('jobs', document.getElementById('navJobsBtn')); setJobFilter('today');">
+                            <div class="stat-icon-wrap">
+                                <span class="stat-icon">📋</span>
+                            </div>
+                            <div class="stat-number" id="statTodayJobs">0</div>
+                            <div class="stat-title">Today's Jobs</div>
+                            <div class="stat-hindi">आज के कार्य</div>
+                        </div>
+
+                        <!-- Card 2: Completed -->
+                        <div class="stat-card stat-card-green" onclick="switchNavTab('jobs', document.getElementById('navJobsBtn')); setJobFilter('completed');">
+                            <div class="stat-icon-wrap">
+                                <span class="stat-icon">✅</span>
+                            </div>
+                            <div class="stat-number" id="statCompletedJobs">0</div>
+                            <div class="stat-title">Completed</div>
+                            <div class="stat-hindi">पूर्ण हुए</div>
+                        </div>
+
+                        <!-- Card 3: Pending -->
+                        <div class="stat-card stat-card-orange" onclick="switchNavTab('jobs', document.getElementById('navJobsBtn')); setJobFilter('pending');">
+                            <div class="stat-icon-wrap">
+                                <span class="stat-icon">🕒</span>
+                            </div>
+                            <div class="stat-number" id="statPendingJobs">0</div>
+                            <div class="stat-title">Pending</div>
+                            <div class="stat-hindi">बकाया</div>
+                        </div>
+
+                        <!-- Card 4: Upcoming -->
+                        <div class="stat-card stat-card-red" onclick="switchNavTab('schedule', document.getElementById('navScheduleBtn'));">
+                            <div class="stat-icon-wrap">
+                                <span class="stat-icon">📅</span>
+                            </div>
+                            <div class="stat-number" id="statUpcomingJobs">0</div>
+                            <div class="stat-title">Upcoming</div>
+                            <div class="stat-hindi">आगामी</div>
+                        </div>
+                    </div>
+
+                    <!-- Today's Jobs Section -->
+                    <div class="dash-section-wrap">
+                        <div class="dash-section-header">
+                            <div class="section-title-wrap">
+                                <span class="section-icon">📅</span>
+                                <span class="section-main-title">Today's Jobs</span>
+                                <span class="section-hindi-title">आज के कार्य</span>
+                            </div>
+                            <a href="javascript:void(0)" onclick="switchNavTab('jobs', document.getElementById('navJobsBtn'))" class="view-all-link">View All</a>
+                        </div>
+
+                        <div class="dash-jobs-list" id="dashTodayJobsList">
+                            <div class="dash-loading-spinner">Loading jobs...</div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions Section -->
+                    <div class="dash-section-wrap">
+                        <div class="dash-section-header">
+                            <div class="section-title-wrap">
+                                <span class="section-icon">⚡</span>
+                                <span class="section-main-title">Quick Actions</span>
+                                <span class="section-hindi-title">त्वरित कार्य</span>
+                            </div>
+                        </div>
+
+                        <!-- Active Job Banner (Shows live active job state) -->
+                        <div id="qaActiveJobBanner" class="qa-active-banner" style="display: none;"></div>
+
+                        <div class="quick-actions-scroll-strip">
+                            <!-- Action 1: On the Way -->
+                            <div class="quick-action-tile" id="qaTileTravel" onclick="triggerQuickAction('travel')" title="Step 1: Select job & start travel">
+                                <span class="qa-step-num">1</span>
+                                <div class="qa-icon-box qa-red">
+                                    <span>🚗</span>
+                                </div>
+                                <div class="qa-title">On the Way</div>
+                                <div class="qa-hindi">रास्ते में हूँ</div>
+                            </div>
+
+                            <!-- Action 2: Reached -->
+                            <div class="quick-action-tile" id="qaTileReached" onclick="triggerQuickAction('reached')" title="Step 2: Mark arrival at site with GPS">
+                                <span class="qa-step-num">2</span>
+                                <div class="qa-icon-box qa-blue">
+                                    <span>📍</span>
+                                </div>
+                                <div class="qa-title">Reached</div>
+                                <div class="qa-hindi">पहुँच गया</div>
+                            </div>
+
+                            <!-- Action 3: Start Job -->
+                            <div class="quick-action-tile" id="qaTileStart" onclick="triggerQuickAction('start')" title="Step 3: Start service work">
+                                <span class="qa-step-num">3</span>
+                                <div class="qa-icon-box qa-green">
+                                    <span>▶️</span>
+                                </div>
+                                <div class="qa-title">Start Job</div>
+                                <div class="qa-hindi">काम शुरू करें</div>
+                            </div>
+
+                            <!-- Action 4: Add Photos -->
+                            <div class="quick-action-tile" id="qaTilePhotos" onclick="triggerQuickAction('photos')" title="Step 4: Upload work proof photo">
+                                <span class="qa-step-num">4</span>
+                                <div class="qa-icon-box qa-coral">
+                                    <span>📷</span>
+                                </div>
+                                <div class="qa-title">Photo Proof</div>
+                                <div class="qa-hindi">फोटो प्रमाण</div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- ==========================================
+                 TAB 2: MY JOBS (Full Listing & Management)
+            =========================================== -->
+            <div id="tabJobsContent" class="tab-page-content" style="display: none;">
+                <!-- Filter Pills -->
+                <div class="filter-pills">
+                    <button class="pill-btn active" onclick="setJobFilter('today')">Today</button>
+                    <button class="pill-btn" onclick="setJobFilter('pending')">Pending</button>
+                    <button class="pill-btn" onclick="setJobFilter('hold')">⏸️ On Hold</button>
+                    <button class="pill-btn" onclick="setJobFilter('completed')">Completed</button>
+                    <button class="pill-btn" onclick="setJobFilter('all')">All</button>
+                </div>
+
+                <div class="app-body" id="jobsListContainer">
+                    <div style="text-align: center; color: #64748b; padding: 40px;">Loading your jobs...</div>
+                </div>
+            </div>
+
+            <!-- ==========================================
+                 TAB 3: SCHEDULE (Appointments & Timeline)
+            =========================================== -->
+            <div id="tabScheduleContent" class="tab-page-content" style="display: none;">
+                <div class="app-body">
+                    <div class="tab-title-header">
+                        <h3>📅 My Daily Schedule</h3>
+                        <p>Customer appointment visits ordered by time</p>
+                    </div>
+                    <div id="scheduleTimelineContainer">
+                        <div style="text-align: center; color: #64748b; padding: 40px;">Loading schedule...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==========================================
+                 TAB 4: ATTENDANCE (Duty Punch & GPS)
+            =========================================== -->
+            <div id="tabAttendanceContent" class="tab-page-content" style="display: none;">
+                <div class="app-body">
+                    <!-- Duty Punch Card -->
+                    <div class="attendance-hero-card">
+                        <div class="attendance-top-row">
+                            <div>
+                                <span class="att-status-badge" id="attDutyBadge">⚪ Off Duty</span>
+                                <h3 id="attDutyDateText" style="margin-top: 6px; font-size: 1.15rem; color: #0f172a;">Today's Shift</h3>
+                            </div>
+                            <button class="duty-toggle-btn btn-punch-in" id="dutyToggleBtn" onclick="toggleDutyAttendance()">
+                                📍 Punch In
+                            </button>
+                        </div>
+                        <div id="attGeofenceNotice" style="display: none; margin-top: 10px; font-size: 0.76rem; background: #f0fdf4; color: #166534; padding: 6px 10px; border-radius: 8px; border: 1px solid #bbf7d0;">
+                            📍 Office Geofence Active (Attendance valid only inside office premises)
+                        </div>
+
+                        <div class="att-detail-grid">
+                            <div class="att-metric-box">
+                                <span class="att-label">Punch In Time</span>
+                                <strong id="attCheckInVal">--:--</strong>
+                            </div>
+                            <div class="att-metric-box">
+                                <span class="att-label">Punch Out Time</span>
+                                <strong id="attCheckOutVal">--:--</strong>
+                            </div>
+                            <div class="att-metric-box">
+                                <span class="att-label">Total Duration</span>
+                                <strong id="attWorkingMinsVal">0 mins</strong>
+                            </div>
+                            <div class="att-metric-box">
+                                <span class="att-label">GPS Location</span>
+                                <strong id="attGpsVal" style="font-size: 0.8rem; word-break: break-all;">Auto-captured</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Leave Application & Status Action Card -->
+                    <div class="att-leave-action-card">
+                        <div class="leave-card-content">
+                            <div class="leave-card-icon">🏖️</div>
+                            <div>
+                                <h4 class="leave-card-title">Leave & Absence / छुट्टी का आवेदन</h4>
+                                <p class="leave-card-sub">Need off next week or month? Apply in advance so no jobs get scheduled.</p>
+                            </div>
+                        </div>
+                        <div class="leave-btn-group">
+                            <button type="button" class="btn-leave-apply" onclick="openLeaveApplyModal()">
+                                <span>➕ Apply for Leave (छुट्टी मांगें)</span>
+                            </button>
+                            <button type="button" class="btn-leave-history" onclick="openMyLeavesModal()">
+                                <span>📑 My Requests (आवेदन देखें)</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="att-history-section">
+                        <!-- Month Navigation Bar -->
+                        <div class="att-month-bar">
+                            <button type="button" class="month-nav-btn" onclick="changeAttHistoryMonth(-1)">‹</button>
+                            <div class="current-month-display">
+                                <span class="month-cal-icon">📅</span>
+                                <strong id="attHistoryMonthLabel">This Month</strong>
+                            </div>
+                            <button type="button" class="month-nav-btn" onclick="changeAttHistoryMonth(1)">›</button>
+                        </div>
+
+                        <!-- Monthly Summary Metric Cards -->
+                        <div class="att-summary-strip">
+                            <div class="att-sum-card card-present">
+                                <div class="sum-icon">🟢</div>
+                                <div class="sum-count" id="sumPresentDays">0</div>
+                                <div class="sum-label">Present</div>
+                            </div>
+                            <div class="att-sum-card card-leave">
+                                <div class="sum-icon">🏖️</div>
+                                <div class="sum-count" id="sumLeaveDays">0</div>
+                                <div class="sum-label">On Leave</div>
+                            </div>
+                            <div class="att-sum-card card-half">
+                                <div class="sum-icon">🟡</div>
+                                <div class="sum-count" id="sumHalfDays">0</div>
+                                <div class="sum-label">Half Day</div>
+                            </div>
+                            <div class="att-sum-card card-absent">
+                                <div class="sum-icon">🔴</div>
+                                <div class="sum-count" id="sumAbsentDays">0</div>
+                                <div class="sum-label">Absent</div>
+                            </div>
+                            <div class="att-sum-card card-hours">
+                                <div class="sum-icon">⏱️</div>
+                                <div class="sum-count" id="sumTotalHours">0h</div>
+                                <div class="sum-label">Hours</div>
+                            </div>
+                        </div>
+
+                        <!-- Day by Day Log List -->
+                        <div class="att-history-container">
+                            <div class="att-history-header">
+                                <div style="font-weight: 700; color: #0f172a; font-size: 0.92rem;">📋 Attendance Log (दैनिक उपस्थिति)</div>
+                                <span class="history-sub-tag">Day by Day</span>
+                            </div>
+                            <div id="attHistoryList" class="att-history-list">
+                                <div style="text-align: center; color: #64748b; padding: 24px;">Loading attendance history...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="background: #fff; border-radius: 14px; border: 1px solid #e2e8f0; padding: 14px; margin-top: 14px;">
+                        <h4 style="font-size: 0.9rem; color: #0f172a; margin-bottom: 6px;">📍 GPS Attendance Guidelines</h4>
+                        <ul style="font-size: 0.8rem; color: #64748b; padding-left: 18px; line-height: 1.5;">
+                            <li>Punch In upon starting your shift to become <strong>Available</strong> for assignments.</li>
+                            <li>Ensure phone Location (GPS) is turned ON.</li>
+                            <li>Punch Out at end of duty day to log accurate working hours for salary calculation.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==========================================
+                 TAB 5: MORE (Stock, Tools, Profile, Logout)
+            =========================================== -->
+            <div id="tabMoreContent" class="tab-page-content" style="display: none;">
+                <div class="app-body">
+                    <!-- Profile Card -->
+                    <div style="background: #fff; border-radius: 14px; border: 1px solid #e2e8f0; padding: 20px; text-align: center; margin-bottom: 14px;">
+                        <div class="more-avatar-wrap">
+                            <img src="assets/tech_avatar.png" alt="Profile" style="width: 70px; height: 70px; border-radius: 50%; border: 3px solid #0284c7;">
+                        </div>
+                        <h2 id="profileName" style="font-size: 1.25rem; color: #0f172a; margin-top: 8px;">Technician</h2>
+                        <p id="profileCode" style="color: #64748b; font-size: 0.9rem;">ID: TECH001</p>
+                        <p id="profilePhone" style="color: #0284c7; font-weight: 600; margin-top: 4px;">--</p>
+                    </div>
+
+                    <!-- Spares in Custody Collapsible / Card -->
+                    <div style="background: #fff; border-radius: 14px; border: 1px solid #e2e8f0; padding: 16px; margin-bottom: 14px;">
+                        <h4 style="font-size: 1rem; color: #0f172a; margin-bottom: 10px;">📦 Spare Parts in My Custody</h4>
+                        <div id="myStockListContainer">Loading stock...</div>
+                    </div>
+
+                    <!-- Tools Issued Card -->
+                    <div style="background: #fff; border-radius: 14px; border: 1px solid #e2e8f0; padding: 16px; margin-bottom: 14px;">
+                        <h4 style="font-size: 1rem; color: #0f172a; margin-bottom: 10px;">🧰 Tools Issued to Me</h4>
+                        <div id="myToolsListContainer">Loading tools...</div>
+                    </div>
+
+                    <!-- Device Lock Card -->
+                    <div style="background: #fff; border-radius: 14px; border: 1px solid #e2e8f0; padding: 16px; margin-bottom: 14px;">
+                        <h4 style="margin-bottom: 8px; color: #334155; font-size: 0.95rem;">🔒 Device Lock Information</h4>
+                        <div style="font-size: 0.8rem; color: #64748b;">
+                            Device UUID: <code id="profileDeviceId" style="word-break: break-all; background: #f1f5f9; padding: 3px 6px; border-radius: 4px; display: block; margin-top: 4px;">--</code>
+                        </div>
+                    </div>
+
+                    <button class="btn-full" style="background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; font-weight: 700; margin-bottom: 30px;" onclick="techLogout()">
+                        🚪 Log Out
+                    </button>
+                </div>
+            </div>
+
+            <!-- Bottom Navigation Bar (Matching Mockup with English & Hindi) -->
+            <nav class="bottom-nav">
+                <button class="nav-item active" id="navHomeBtn" onclick="switchNavTab('home', this)">
+                    <span class="nav-icon">🏠</span>
+                    <span class="nav-txt-en">Home</span>
+                    <span class="nav-txt-hi">होम</span>
+                </button>
+                <button class="nav-item" id="navJobsBtn" onclick="switchNavTab('jobs', this)">
+                    <span class="nav-icon">📋</span>
+                    <span class="nav-txt-en">My Jobs</span>
+                    <span class="nav-txt-hi">मेरे कार्य</span>
+                </button>
+                <button class="nav-item" id="navScheduleBtn" onclick="switchNavTab('schedule', this)">
+                    <span class="nav-icon">📅</span>
+                    <span class="nav-txt-en">Schedule</span>
+                    <span class="nav-txt-hi">शेड्यूल</span>
+                </button>
+                <button class="nav-item" id="navAttendanceBtn" onclick="switchNavTab('attendance', this)">
+                    <span class="nav-icon">🕒</span>
+                    <span class="nav-txt-en">Attendance</span>
+                    <span class="nav-txt-hi">उपस्थिति</span>
+                </button>
+                <button class="nav-item" id="navMoreBtn" onclick="switchNavTab('more', this)">
+                    <span class="nav-icon">⋯</span>
+                    <span class="nav-txt-en">More</span>
+                    <span class="nav-txt-hi">अधिक</span>
+                </button>
+            </nav>
+
+        </div>
+
+    </div>
+
+    <!-- ==========================================
+         JOB DETAIL MODAL SHEET
+    =========================================== -->
+    <div id="jobDetailModal" class="modal-overlay" style="display: none; z-index: 99995;">
+        <div class="modal-sheet">
+            <div class="sheet-drag-handle"></div>
+            <div class="sheet-header">
+                <div>
+                    <h3 id="modalJobNumber" style="font-size: 1.15rem; color: #0f172a;">Service Job</h3>
+                    <span id="modalJobStatusBadge" class="status-pill status-pending" style="display: inline-block; margin-top: 4px;">Pending</span>
+                </div>
+                <button type="button" class="sheet-close-btn" onclick="closeJobDetailModal()">&times;</button>
+            </div>
+
+            <div id="modalJobBody" class="modal-job-content">
+                <!-- Loaded dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         WORK PROOF & SIGNATURE MODAL
+    =========================================== -->
+    <div id="workProofModal" class="modal-overlay" style="display: none;">
+        <div class="modal-sheet">
+            <div class="sheet-drag-handle"></div>
+            <div class="sheet-header">
+                <h3>Submit Work Proof & Signature</h3>
+                <button class="sheet-close-btn" onclick="closeWorkProofModal()">&times;</button>
+            </div>
+
+            <input type="hidden" id="wpJobId">
+
+            <div class="photo-cards-grid">
+                <!-- Before Photo Card -->
+                <div class="proof-photo-card" id="beforeCard">
+                    <div class="proof-photo-header">
+                        <strong>📸 Before Photo</strong>
+                        <small style="color: #64748b; font-size: 0.72rem;">मरम्मत से पहले</small>
+                    </div>
+                    <div class="proof-photo-preview-box" id="beforePreviewBox">
+                        <img id="beforePhotoPreview" class="photo-preview-img" style="display:none;" alt="Before Work">
+                        <div id="beforeEmptyPrompt" class="photo-empty-prompt">
+                            <span style="font-size: 1.8rem;">📷</span>
+                            <span style="font-size: 0.75rem; color: #64748b; margin-top: 3px;">No Photo Selected</span>
+                        </div>
+                    </div>
+                    <div class="photo-actions-btn-row">
+                        <button type="button" class="btn-photo-action btn-camera" onclick="openLiveCamera('before')">
+                            <span>📸</span> Camera
+                        </button>
+                        <button type="button" class="btn-photo-action btn-gallery" onclick="document.getElementById('beforePhotoGalleryInput').click()">
+                            <span>📁</span> Gallery
+                        </button>
+                    </div>
+                    <input type="file" id="beforePhotoCameraInput" accept="image/*" capture="environment" style="display:none;" onchange="handlePhotoSelect(event, 'before')">
+                    <input type="file" id="beforePhotoGalleryInput" accept="image/*" style="display:none;" onchange="handlePhotoSelect(event, 'before')">
+                </div>
+
+                <!-- After Photo Card -->
+                <div class="proof-photo-card" id="afterCard">
+                    <div class="proof-photo-header">
+                        <strong>📸 After Photo</strong>
+                        <small style="color: #64748b; font-size: 0.72rem;">मरम्मत के बाद</small>
+                    </div>
+                    <div class="proof-photo-preview-box" id="afterPreviewBox">
+                        <img id="afterPhotoPreview" class="photo-preview-img" style="display:none;" alt="After Work">
+                        <div id="afterEmptyPrompt" class="photo-empty-prompt">
+                            <span style="font-size: 1.8rem;">📷</span>
+                            <span style="font-size: 0.75rem; color: #64748b; margin-top: 3px;">No Photo Selected</span>
+                        </div>
+                    </div>
+                    <div class="photo-actions-btn-row">
+                        <button type="button" class="btn-photo-action btn-camera" onclick="openLiveCamera('after')">
+                            <span>📸</span> Camera
+                        </button>
+                        <button type="button" class="btn-photo-action btn-gallery" onclick="document.getElementById('afterPhotoGalleryInput').click()">
+                            <span>📁</span> Gallery
+                        </button>
+                    </div>
+                    <input type="file" id="afterPhotoCameraInput" accept="image/*" capture="environment" style="display:none;" onchange="handlePhotoSelect(event, 'after')">
+                    <input type="file" id="afterPhotoGalleryInput" accept="image/*" style="display:none;" onchange="handlePhotoSelect(event, 'after')">
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 18px;">
+                <button class="btn-full" style="background: #e2e8f0; color: #334155;" onclick="closeWorkProofModal()">Cancel</button>
+                <button class="btn-full btn-action-complete" id="submitProofBtn" onclick="submitFinalWorkProof()">
+                    ✅ Complete & Submit Proof
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         SELECT JOB FOR TRAVEL MODAL (On the Way)
+    =========================================== -->
+    <div id="selectJobModal" class="modal-overlay" style="display: none; z-index: 99990;">
+        <div class="modal-sheet">
+            <div class="sheet-drag-handle"></div>
+            <div class="sheet-header">
+                <div>
+                    <h3 style="font-size: 1.15rem; color: #0f172a; margin-bottom: 2px;">🚗 Select Job / कार्य चुनें</h3>
+                    <small style="color: #64748b; font-size: 0.78rem;">Where are you heading? (किस जॉब पर जा रहे हैं?)</small>
+                </div>
+                <button class="sheet-close-btn" onclick="closeSelectJobModal()">&times;</button>
+            </div>
+
+            <div id="selectJobListContainer" style="display: flex; flex-direction: column; gap: 10px; max-height: 60vh; overflow-y: auto; padding: 4px 0 10px 0;">
+                <div style="text-align: center; color: #64748b; padding: 24px;">Loading jobs...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         HOLD JOB MODAL (Complaint Hold with Remark)
+    =========================================== -->
+    <div id="holdJobModal" class="modal-overlay" style="display: none; z-index: 99992;">
+        <div class="modal-sheet">
+            <div class="sheet-drag-handle"></div>
+            <div class="sheet-header">
+                <div>
+                    <h3 style="font-size: 1.15rem; color: #b45309; margin-bottom: 2px;">⏸️ Put on Hold / कार्य होल्ड करें</h3>
+                    <small style="color: #64748b; font-size: 0.78rem;">Mark reason and remark for hold</small>
+                </div>
+                <button class="sheet-close-btn" onclick="closeHoldJobModal()">&times;</button>
+            </div>
+
+            <input type="hidden" id="holdJobId">
+
+            <div id="holdJobInfoBox" style="background: #fefce8; border: 1px solid #fef08a; border-radius: 10px; padding: 10px 12px; margin-bottom: 12px;">
+                <strong id="holdJobTitle" style="color: #854d0e; font-size: 0.95rem;">Job #--</strong>
+                <div id="holdJobCust" style="font-size: 0.8rem; color: #713f12; margin-top: 2px;">--</div>
+            </div>
+
+            <div style="margin-bottom: 12px;">
+                <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 6px;">Quick Reason / सामान्य कारण चुनें:</label>
+                <div class="hold-chips-grid">
+                    <button type="button" class="hold-chip-btn" onclick="setHoldReason('Waiting for Spare Parts (स्पेयर पार्ट्स का इंतज़ार)')">⏳ Spare Parts</button>
+                    <button type="button" class="hold-chip-btn" onclick="setHoldReason('Customer Not Available / Door Locked (कस्टमर उपलब्ध नहीं)')">👤 Customer Unavailable</button>
+                    <button type="button" class="hold-chip-btn" onclick="setHoldReason('Customer Rescheduled Visit (कस्टमर ने समय बदला)')">🕒 Rescheduled</button>
+                    <button type="button" class="hold-chip-btn" onclick="setHoldReason('Power / Site Issue (साइट तैयार नहीं / लाइट नहीं)')">⚡ Site Issue</button>
+                    <button type="button" class="hold-chip-btn" onclick="setHoldReason('Requires Senior / Workshop Inspection (वर्कशॉप सहायता)')">🔍 Workshop Help</button>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 14px;">
+                <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 4px;">Hold Remark (कारण / टिप्पणी) <span style="color:#dc2626;">*</span></label>
+                <textarea id="holdRemarkInput" rows="3" style="width: 100%; padding: 10px; border: 1.5px solid #cbd5e1; border-radius: 10px; font-size: 0.88rem; box-sizing: border-box;" placeholder="Enter specific reason why this job is on hold..."></textarea>
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <button type="button" class="btn-full" style="background: #e2e8f0; color: #334155;" onclick="closeHoldJobModal()">Cancel</button>
+                <button type="button" class="btn-full" style="background: #f59e0b; color: #fff; font-weight: 700;" id="confirmHoldBtn" onclick="confirmSubmitHoldJob()">
+                    ⏸️ Confirm Hold & Free Up
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         LIVE CAMERA MODAL (Full Viewfinder)
+    =========================================== -->
+    <div id="liveCameraModal" class="modal-overlay" style="display: none; z-index: 99999;">
+        <div class="camera-modal-content">
+            <div class="camera-modal-header">
+                <div class="camera-title" id="liveCameraTitle">📸 Take Work Photo</div>
+                <button type="button" class="camera-close-btn" onclick="closeLiveCamera()">&times;</button>
+            </div>
+            
+            <div class="camera-viewfinder-wrap">
+                <video id="liveCameraVideo" autoplay playsinline muted></video>
+                <div class="camera-focus-bracket"></div>
+            </div>
+
+            <div class="camera-bottom-controls">
+                <button type="button" class="cam-aux-btn" onclick="toggleCameraFacing()" title="Flip Camera">
+                    <span style="font-size: 1.2rem;">🔄</span>
+                    <span class="aux-txt">Flip</span>
+                </button>
+
+                <button type="button" class="cam-shutter-btn" onclick="captureLiveSnapshot()" title="Capture Photo">
+                    <div class="cam-shutter-inner"></div>
+                </button>
+
+                <button type="button" class="cam-aux-btn" onclick="fallbackToFileInput()" title="Choose File / Gallery">
+                    <span style="font-size: 1.2rem;">📁</span>
+                    <span class="aux-txt">Gallery</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         LEAVE APPLY MODAL (Technician Leave Request)
+    =========================================== -->
+    <div id="leaveApplyModal" class="modal-overlay" style="display: none; z-index: 99994;">
+        <div class="modal-sheet">
+            <div class="sheet-drag-handle"></div>
+            <div class="sheet-header">
+                <div>
+                    <h3 style="font-size: 1.15rem; color: #0f172a; margin-bottom: 2px;">🏖️ Apply for Leave / छुट्टी का आवेदन</h3>
+                    <small style="color: #64748b; font-size: 0.78rem;">Submit advance leave request for Admin approval</small>
+                </div>
+                <button type="button" class="sheet-close-btn" onclick="closeLeaveApplyModal()">&times;</button>
+            </div>
+
+            <form id="leaveApplyForm" onsubmit="submitLeaveApplication(event)" style="display: flex; flex-direction: column; flex: 1;">
+                <div style="margin-bottom: 12px;">
+                    <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 4px;">Leave Type / प्रकार:</label>
+                    <select id="leaveTypeSelect" style="width: 100%; padding: 10px; border: 1.5px solid #cbd5e1; border-radius: 10px; font-size: 0.88rem; background: #fff;">
+                        <option value="Casual Leave">Casual Leave (आकस्मिक अवकाश)</option>
+                        <option value="Sick Leave">Sick Leave / Medical (बीमारी अवकाश)</option>
+                        <option value="Family / Personal">Family / Urgent Personal (घरेलू कार्य)</option>
+                        <option value="Planned Vacation">Planned Vacation / Tour (योजनाबद्ध अवकाश)</option>
+                    </select>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                    <div>
+                        <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 4px;">From Date (शुरू) *</label>
+                        <input type="date" id="leaveStartDate" required style="width: 100%; padding: 10px; border: 1.5px solid #cbd5e1; border-radius: 10px; font-size: 0.88rem; box-sizing: border-box;" onchange="onLeaveDatesChanged()">
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 4px;">To Date (समाप्त) *</label>
+                        <input type="date" id="leaveEndDate" required style="width: 100%; padding: 10px; border: 1.5px solid #cbd5e1; border-radius: 10px; font-size: 0.88rem; box-sizing: border-box;" onchange="onLeaveDatesChanged()">
+                    </div>
+                </div>
+
+                <!-- Dynamic Day Count Pill -->
+                <div id="leaveDayCountBox" style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 8px 12px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between;">
+                    <span style="font-size: 0.82rem; color: #1e40af; font-weight: 700;">Duration / अवधि:</span>
+                    <span id="leaveDayCountBadge" style="background: #2563eb; color: #fff; font-size: 0.78rem; font-weight: 700; padding: 2px 10px; border-radius: 12px;">1 Day</span>
+                </div>
+
+                <div style="margin-bottom: 14px;">
+                    <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 4px;">Reason for Leave (कारण) *</label>
+                    <textarea id="leaveReasonInput" rows="3" required style="width: 100%; padding: 10px; border: 1.5px solid #cbd5e1; border-radius: 10px; font-size: 0.88rem; box-sizing: border-box;" placeholder="Please specify why you need leave (उदा. जरूरी काम से बाहर जाना है)..."></textarea>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: auto; padding-top: 8px;">
+                    <button type="button" class="btn-full" style="background: #e2e8f0; color: #334155;" onclick="closeLeaveApplyModal()">Cancel</button>
+                    <button type="submit" class="btn-full btn-action-primary" id="btnSubmitLeave">
+                        📤 Submit Application
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         MY LEAVES MODAL (Technician History)
+    =========================================== -->
+    <div id="myLeavesModal" class="modal-overlay" style="display: none; z-index: 99994;">
+        <div class="modal-sheet">
+            <div class="sheet-drag-handle"></div>
+            <div class="sheet-header">
+                <div>
+                    <h3 style="font-size: 1.15rem; color: #0f172a; margin-bottom: 2px;">📑 My Leave Requests / मेरे आवेदन</h3>
+                    <small style="color: #64748b; font-size: 0.78rem;">Status of applied leaves (स्वीकृत व लंबित छुट्टियां)</small>
+                </div>
+                <button type="button" class="sheet-close-btn" onclick="closeMyLeavesModal()">&times;</button>
+            </div>
+
+            <div id="myLeavesListContainer" class="modal-sheet-scrollable-list">
+                <div style="text-align: center; color: #64748b; padding: 24px;">Loading requests...</div>
+            </div>
+
+            <div class="modal-sheet-bottom-bar">
+                <button type="button" class="btn-full btn-action-primary" onclick="closeMyLeavesModal(); openLeaveApplyModal();" style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <span>➕</span> Apply for New Leave (नई छुट्टी मांगें)
+                </button>
+                <button type="button" class="btn-full" style="background: #f1f5f9; color: #475569; font-weight: 600; border: 1px solid #e2e8f0;" onclick="closeMyLeavesModal()">
+                    ✕ Close (बंद करें)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../config.js"></script>
+    <script src="tech.js?v=1.4"></script>
+</body>
+</html>
+

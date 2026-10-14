@@ -1,0 +1,211 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Technician Live Map Tracking | CRD Global Solutions</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Project Stylesheets -->
+    <link rel="stylesheet" href="dashboard.css">
+    <link rel="stylesheet" href="technician-live-map.css">
+</head>
+<body>
+
+    <!-- =========================
+         Sidebar Navigation
+    ========================== -->
+    <aside class="sidebar">
+        <div class="logo">
+            CRD Global Solutions
+        </div>
+
+        <div class="menu">
+            <a href="dashboard.html">🏠 Dashboard</a>
+            <a href="customer-list.html">👥 Customers</a>
+            <a href="product-list.html">📦 Products</a>
+            <a href="sales-list.html">🧾 Billing</a>
+            <a href="quotation-list.html">📄 Quotations</a>
+            <a href="purchase-list.html">🛒 Purchases</a>
+
+            <div class="menu-dropdown service-menu-dropdown">
+                <a href="javascript:void(0)" class="menu-dropdown-toggle" onclick="toggleServiceMenu(event)">
+                    <span class="dropdown-label">🔧 Services</span>
+                    <span class="dropdown-chevron">▾</span>
+                </a>
+                <div class="menu-dropdown-content">
+                    <a href="service-list.html">🏪 Shop Service List</a>
+                    <a href="service-entry.html">➕ Shop Service Entry</a>
+                    <a href="field-service-list.html">🛵 Field Service List</a>
+                    <a href="field-service-entry.html">➕ Field Service Entry</a>
+                </div>
+            </div>
+
+            <div class="menu-dropdown field-tech-menu-dropdown">
+                <a href="javascript:void(0)" class="menu-dropdown-toggle" onclick="toggleFieldTechMenu(event)">
+                    <span class="dropdown-label">🛠️ Field Technician</span>
+                    <span class="dropdown-chevron">▾</span>
+                </a>
+                <div class="menu-dropdown-content">
+                    <a href="field-service-list.html">🛵 Field Complaints</a>
+                    <a href="technician-schedule.html">📅 Tech Schedule</a>
+                    <a href="technician-live-map.html" class="active">🗺️ Live Map Tracking</a>
+                    <a href="technician-gps-history.html">📍 GPS Location History</a>
+                    <a href="technician-activity-log.html">📜 Activity Log</a>
+                    <a href="employees.html">👷 Employees</a>
+                    <a href="attendance.html">📍 Attendance & GPS</a>
+                    <a href="employee-attendance-reports.html">📊 Attendance Reports</a>
+                    <a href="technician-performance.html">🎯 Technician Performance</a>
+                    <a href="technician-tools.html">🧰 Tech Tools</a>
+                    <a href="technician-inventory.html">📦 Tech Inventory</a>
+                    <a href="device-management.html" data-role="admin">🔒 Device Security</a>
+                </div>
+            </div>
+
+            <a href="supplier.html">🚚 Suppliers</a>
+            <a href="expense-list.html">💰 Expenses</a>
+            <a href="reports.html">📈 Reports</a>
+            <a href="scrap.html">♻️ Scrap</a>
+            <a href="user-list.html" data-role="admin">👤 Users</a>
+            <a href="settings.html" data-role="admin">⚙️ Settings</a>
+        </div>
+    </aside>
+
+    <!-- =========================
+         Main Content Area
+    ========================== -->
+    <main class="main-content">
+
+        <!-- Topbar -->
+        <header class="topbar">
+            <div>
+                <h2>🗺️ Technician Live Map Tracking</h2>
+                <p>Real-time location, active customer jobs, and GPS telemetry of all field technicians</p>
+            </div>
+
+            <div class="topbar-actions">
+                <div class="live-indicator-badge">
+                    <span class="pulse-dot"></span>
+                    <span id="liveStatusText">Live Monitoring</span>
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm" id="autoRefreshBtn" onclick="toggleAutoRefresh()">
+                    ⏱️ Auto-Refresh: <strong id="autoRefreshLabel">20s</strong>
+                </button>
+                <button type="button" class="btn btn-primary btn-sm" onclick="loadLiveLocations(true)">
+                    🔄 Refresh Now
+                </button>
+                <div class="user-area">
+                    <span>Admin</span>
+                    <button type="button" onclick="logout()">Logout</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- KPI Metrics Strip -->
+        <div class="map-stats-strip">
+            <div class="stat-pill" onclick="filterByStatus('all')" id="pillAll">
+                <span class="stat-pill-icon">👥</span>
+                <div class="stat-pill-info">
+                    <div class="stat-pill-count" id="statTotalTechs">0</div>
+                    <div class="stat-pill-label">Total Field Staff</div>
+                </div>
+            </div>
+            <div class="stat-pill" onclick="filterByStatus('active')" id="pillActive">
+                <span class="stat-pill-icon">🛵</span>
+                <div class="stat-pill-info">
+                    <div class="stat-pill-count" id="statActiveJobs">0</div>
+                    <div class="stat-pill-label">Active on Job / Travel</div>
+                </div>
+            </div>
+            <div class="stat-pill" onclick="filterByStatus('onduty')" id="pillOnDuty">
+                <span class="stat-pill-icon">🟢</span>
+                <div class="stat-pill-info">
+                    <div class="stat-pill-count" id="statOnDuty">0</div>
+                    <div class="stat-pill-label">Available on Duty</div>
+                </div>
+            </div>
+            <div class="stat-pill" onclick="filterByStatus('offline')" id="pillOffline">
+                <span class="stat-pill-icon">⚪</span>
+                <div class="stat-pill-info">
+                    <div class="stat-pill-count" id="statOffline">0</div>
+                    <div class="stat-pill-label">Offline / No GPS</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Map & Drawer Container -->
+        <div class="map-workspace-layout">
+
+            <!-- Left Drawer: Technician Cards -->
+            <div class="tech-drawer">
+                <div class="drawer-header">
+                    <h3>Field Technicians</h3>
+                    <span class="badge-counter" id="visibleTechCount">0 Showing</span>
+                </div>
+
+                <!-- Search & Filters -->
+                <div class="drawer-search-box">
+                    <input type="text" id="techSearchInput" placeholder="🔍 Search technician by name / phone..." oninput="onSearchChanged()">
+                </div>
+
+                <!-- Tabs -->
+                <div class="drawer-tabs">
+                    <button class="tab-btn active" data-filter="all" onclick="filterByStatus('all')">All</button>
+                    <button class="tab-btn" data-filter="active" onclick="filterByStatus('active')">On Job</button>
+                    <button class="tab-btn" data-filter="onduty" onclick="filterByStatus('onduty')">On Duty</button>
+                    <button class="tab-btn" data-filter="offline" onclick="filterByStatus('offline')">Offline</button>
+                </div>
+
+                <!-- Cards List -->
+                <div class="tech-cards-list" id="techCardsList">
+                    <div class="tech-drawer-loading">
+                        <div class="spinner"></div>
+                        <p>Loading technician GPS telemetry...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Interactive Leaflet Map -->
+            <div class="map-viewport-wrapper">
+                <!-- Floating Map Controls -->
+                <div class="floating-map-controls">
+                    <button type="button" class="float-btn" onclick="focusOnOffice()" title="Center on Office / Workshop">
+                        🏬 Office
+                    </button>
+                    <button type="button" class="float-btn" onclick="fitAllMarkers()" title="Zoom to Fit All Technicians">
+                        🧭 Fit All
+                    </button>
+                    <button type="button" class="float-btn" onclick="toggleFullscreenMap()" title="Toggle Fullscreen">
+                        ⛶ Fullscreen
+                    </button>
+                </div>
+
+                <!-- Leaflet Map Container -->
+                <div id="liveMap"></div>
+
+                <!-- Floating Legend -->
+                <div class="map-floating-legend">
+                    <div class="legend-title">Live Tracking Legend</div>
+                    <div class="legend-items">
+                        <span class="legend-item"><span class="legend-dot dot-green"></span> In Progress</span>
+                        <span class="legend-item"><span class="legend-dot dot-yellow"></span> Traveling</span>
+                        <span class="legend-item"><span class="legend-dot dot-blue"></span> On Duty (Idle)</span>
+                        <span class="legend-item"><span class="legend-dot dot-gray"></span> Offline / Last Check-in</span>
+                        <span class="legend-item"><span class="legend-dot dot-red"></span> Office / Geofence</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Project Scripts -->
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script src="technician-live-map.js"></script>
+</body>
+</html>
+

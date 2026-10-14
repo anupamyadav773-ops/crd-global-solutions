@@ -1,0 +1,160 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRD Global Solutions - Expenses</title>
+    <link rel="stylesheet" href="expense-list.css">
+</head>
+
+<body>
+    <div class="page-container">
+
+        <div class="page-header">
+            <div>
+                <h1>Expenses</h1>
+                <p>Track all business expenses and vendor payments</p>
+            </div>
+
+            <div class="header-buttons">
+                <a href="dashboard.html">← Dashboard</a>
+                <a href="expense.html" class="add-button">+ Add Expense</a>
+            </div>
+        </div>
+
+        <section class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon total">₹</div>
+                <div>
+                    <p>Total Expenses</p>
+                    <h2 id="totalExpenses">₹ 0.00</h2>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon today">📅</div>
+                <div>
+                    <p>Today's Expenses</p>
+                    <h2 id="todayExpenses">₹ 0.00</h2>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon month">📊</div>
+                <div>
+                    <p>This Month</p>
+                    <h2 id="monthExpenses">₹ 0.00</h2>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon year">📈</div>
+                <div>
+                    <p>This Year</p>
+                    <h2 id="yearExpenses">₹ 0.00</h2>
+                </div>
+            </div>
+        </section>
+
+        <div class="filter-box">
+            <div class="filter-grid">
+                <div class="form-group wide">
+                    <label for="searchInput">Search</label>
+                    <input type="text" id="searchInput" placeholder="Expense No, description, vendor, reference...">
+                </div>
+
+                <div class="form-group">
+                    <label for="fromDate">From Date</label>
+                    <input type="date" id="fromDate">
+                </div>
+
+                <div class="form-group">
+                    <label for="toDate">To Date</label>
+                    <input type="date" id="toDate">
+                </div>
+
+                <div class="form-group">
+                    <label for="categoryFilter">Category</label>
+                    <select id="categoryFilter">
+                        <option value="">All Categories</option>
+                        <option value="Electricity">Electricity</option>
+                        <option value="Internet">Internet</option>
+                        <option value="Telephone">Telephone</option>
+                        <option value="Rent">Rent</option>
+                        <option value="Salary">Salary</option>
+                        <option value="Transport">Transport</option>
+                        <option value="Repair & Maintenance">Repair & Maintenance</option>
+                        <option value="Office Supplies">Office Supplies</option>
+                        <option value="Advertising">Advertising</option>
+                        <option value="Software">Software</option>
+                        <option value="Bank Charges">Bank Charges</option>
+                        <option value="Taxes">Taxes</option>
+                        <option value="Courier">Courier</option>
+                        <option value="Travel">Travel</option>
+                        <option value="Miscellaneous">Miscellaneous</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="paymentMethodFilter">Payment Method</label>
+                    <select id="paymentMethodFilter">
+                        <option value="">All Methods</option>
+                        <option value="Cash">Cash</option>
+                        <option value="UPI">UPI</option>
+                        <option value="Bank Transfer">Bank Transfer</option>
+                        <option value="Card">Card</option>
+                        <option value="Cheque">Cheque</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="filter-actions">
+                <label class="checkbox-inline">
+                    <input type="checkbox" id="showDeletedExpenses">
+                    Show deleted expenses
+                </label>
+                <button id="applyFilters" class="primary-btn">Apply Filter</button>
+                <button id="resetFilters" class="secondary-btn" type="button">Reset</button>
+            </div>
+        </div>
+
+        <div class="summary-row">
+            <h3>Filtered Total Expenses</h3>
+            <div class="filtered-total" id="filteredTotal">₹ 0.00</div>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Expense No.</th>
+                        <th>Date</th>
+                        <th>Category</th>
+                        <th>Description</th>
+                        <th>Paid To</th>
+                        <th>Payment</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+
+                <tbody id="expenseTableBody">
+                    <tr>
+                        <td colspan="9" class="empty-message">Loading expenses...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script src="expense-list.js"></script>
+</body>
+
+</html>
+

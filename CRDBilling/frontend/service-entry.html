@@ -1,0 +1,725 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>CRD Global Solutions - Service Entry</title>
+
+    <link
+        rel="stylesheet"
+        href="service-entry.css?v=2.2"
+    >
+
+</head>
+
+
+<body>
+
+<div class="service-container">
+
+
+    <!-- ==========================================
+         HEADER
+    =========================================== -->
+
+    <div class="page-header">
+
+        <div>
+
+            <h1>Service Entry</h1>
+
+            <p>
+                Register product complaint and service job
+            </p>
+
+        </div>
+
+
+        <a href="dashboard.html">
+            ← Dashboard
+        </a>
+
+    </div>
+
+
+
+    <!-- ==========================================
+         BASIC INFORMATION
+    =========================================== -->
+
+    <div class="card">
+
+        <h2>
+            Service Information
+        </h2>
+
+
+        <div class="form-grid">
+
+
+            <!-- SERVICE NUMBER -->
+
+            <div class="form-group">
+
+                <label>
+                    Service Number
+                </label>
+
+                <input
+                    type="text"
+                    id="service_number"
+                    readonly
+                >
+
+            </div>
+
+
+
+            <!-- SERVICE DATE -->
+
+            <div class="form-group">
+
+                <label>
+                    Service Date
+                </label>
+
+                <input
+                    type="date"
+                    id="service_date"
+                >
+
+            </div>
+
+
+
+            <!-- EXPECTED DELIVERY DATE -->
+
+            <div class="form-group">
+
+                <label>
+                    Expected Delivery / Completion Date
+                </label>
+
+                <input
+                    type="date"
+                    id="expected_delivery_date"
+                >
+
+                <small>
+                    Service complete होने की expected date
+                </small>
+
+            </div>
+
+
+
+            <!-- PRODUCT SOURCE -->
+
+            <div class="form-group">
+
+                <label>
+                    Product Source
+                </label>
+
+                <select id="product_source">
+
+                    <option value="Purchased From Us">
+                        Purchased From Us
+                    </option>
+
+                    <option value="External Product">
+                        External Product
+                    </option>
+
+                </select>
+
+            </div>
+
+
+
+            <!-- SERIAL NUMBER -->
+
+            <div class="form-group">
+
+                <label>
+                    Serial Number
+                </label>
+
+                <input
+                    type="text"
+                    id="serial_number"
+                    placeholder="Enter Serial Number"
+                >
+
+            </div>
+
+
+        </div>
+
+    </div>
+
+
+
+    <!-- ==========================================
+         OUR PRODUCT
+    =========================================== -->
+
+    <div
+        class="card"
+        id="ourProductSection"
+    >
+
+        <h2>
+            Our Product Information
+        </h2>
+
+
+        <div class="search-row">
+
+            <input
+                type="text"
+                id="ourSerialSearch"
+                placeholder="Enter Serial Number e.g. SR3"
+            >
+
+
+            <button
+                type="button"
+                id="findSerial"
+            >
+                Find Product
+            </button>
+
+        </div>
+
+
+
+        <div
+            id="ourProductInfo"
+            class="product-info"
+            style="display:none;"
+        >
+
+            <div>
+
+                <span>
+                    Product
+                </span>
+
+                <strong id="foundProduct">
+                    -
+                </strong>
+
+            </div>
+
+
+            <div>
+
+                <span>
+                    Brand
+                </span>
+
+                <strong id="foundBrand">
+                    -
+                </strong>
+
+            </div>
+
+
+            <div>
+
+                <span>
+                    Customer
+                </span>
+
+                <strong id="foundCustomer">
+                    -
+                </strong>
+
+            </div>
+
+
+            <div>
+
+                <span>
+                    Mobile
+                </span>
+
+                <strong id="foundMobile">
+                    -
+                </strong>
+
+            </div>
+
+
+            <div>
+
+                <span>
+                    Warranty
+                </span>
+
+                <strong id="foundWarranty">
+                    -
+                </strong>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- ==========================================
+         EXTERNAL PRODUCT
+    =========================================== -->
+
+    <div
+        class="card"
+        id="externalProductSection"
+        style="display:none;"
+    >
+
+        <h2>
+            External Product Information
+        </h2>
+
+
+        <div class="form-grid">
+
+
+            <div class="form-group">
+
+                <label>
+                    Product Name
+                </label>
+
+                <input
+                    type="text"
+                    id="external_product_name"
+                    placeholder="Product Name"
+                >
+
+            </div>
+
+
+
+            <div class="form-group">
+
+                <label>
+                    Brand
+                </label>
+
+                <input
+                    type="text"
+                    id="external_brand"
+                    placeholder="Brand"
+                >
+
+            </div>
+
+
+
+            <div class="form-group">
+
+                <label>
+                    Model
+                </label>
+
+                <input
+                    type="text"
+                    id="external_model"
+                    placeholder="Model"
+                >
+
+            </div>
+
+
+
+            <div class="form-group">
+
+                <label>
+                    Serial Number
+                </label>
+
+                <input
+                    type="text"
+                    id="external_serial"
+                    placeholder="Serial Number"
+                >
+
+            </div>
+
+
+        </div>
+
+    </div>
+
+
+
+    <!-- ==========================================
+         CUSTOMER
+    =========================================== -->
+
+    <div class="card">
+
+        <h2>
+            👤 Customer Information
+        </h2>
+
+
+        <div class="form-grid">
+
+
+            <div class="form-group">
+
+                <label for="customer_mobile">
+                    Mobile Number <span class="req" style="color: #ef4444;">*</span>
+                </label>
+
+                <input
+                    type="tel"
+                    id="customer_mobile"
+                    placeholder="Enter 10-digit Mobile Number"
+                    autocomplete="off"
+                >
+                <div id="custSearchStatusShop" style="display: none; font-size: 12px; margin-top: 4px;"></div>
+
+            </div>
+
+
+
+            <div class="form-group">
+
+                <label for="customer_name">
+                    Customer Name <span class="req" style="color: #ef4444;">*</span>
+                </label>
+
+                <input
+                    type="text"
+                    id="customer_name"
+                    placeholder="Customer Full Name"
+                >
+
+            </div>
+
+
+
+            <div class="form-group">
+
+                <label for="customer_id">
+                    Or Select Existing Customer
+                </label>
+
+                <select id="customer_id">
+
+                    <option value="">
+                        -- Select Customer / Or Enter Mobile --
+                    </option>
+
+                </select>
+
+            </div>
+
+
+
+            <div class="form-group" style="grid-column: 1 / -1;">
+
+                <label for="customer_address">
+                    Customer Address
+                </label>
+
+                <textarea
+                    id="customer_address"
+                    rows="2"
+                    placeholder="Complete Street, House/Shop No., Area, City, Landmark"
+                    style="width: 100%; border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px; font-family: inherit; font-size: 14px; box-sizing: border-box;"
+                ></textarea>
+
+            </div>
+
+
+        </div>
+
+    </div>
+
+
+
+    <!-- ==========================================
+         COMPLAINT
+    =========================================== -->
+
+    <div class="card">
+
+        <h2>
+            Complaint Details
+        </h2>
+
+
+        <div class="form-grid">
+
+
+            <div class="form-group full-width">
+
+                <label>
+                    Complaint / Problem
+                </label>
+
+                <textarea
+                    id="complaint"
+                    rows="5"
+                    placeholder="Describe customer complaint..."
+                ></textarea>
+
+            </div>
+
+
+
+            <div class="form-group full-width">
+
+                <label>
+                    Accessories Received
+                </label>
+
+                <textarea
+                    id="accessories"
+                    rows="3"
+                    placeholder="Charger, bag, cable, adapter etc."
+                ></textarea>
+
+            </div>
+
+
+        </div>
+
+    </div>
+
+
+
+    <!-- ==========================================
+         SERVICE DETAILS
+    =========================================== -->
+
+    <div class="card">
+
+        <h2>
+            Service Details
+        </h2>
+
+        <div class="form-grid">
+
+            <!-- COMPLAINT TYPE -->
+            <div class="form-group">
+                <label>Complaint Type / कार्य प्रकार</label>
+                <select id="complaint_type">
+                    <option value="Hardware Repair">Hardware Repair (हार्डवेयर रिपेयर)</option>
+                    <option value="Chip Level Repair">Chip Level Repair (चिप लेवल रिपेयर)</option>
+                    <option value="Software / OS">Software / OS Installation</option>
+                    <option value="On-Site / Field Visit">On-Site / Field Visit (साइट विजिट)</option>
+                    <option value="Networking / CCTV">Networking / CCTV</option>
+                    <option value="General Service">General Service / Cleaning</option>
+                </select>
+            </div>
+
+            <!-- PRIORITY -->
+            <div class="form-group">
+                <label>Priority (प्राथमिकता)</label>
+                <select id="priority">
+                    <option value="Normal">Normal (सामान्य)</option>
+                    <option value="Low">Low</option>
+                    <option value="High">High (उच्च)</option>
+                    <option value="Critical">Critical / Urgent (तत्काल)</option>
+                </select>
+            </div>
+
+            <!-- WARRANTY STATUS -->
+            <div class="form-group">
+                <label>Warranty Status</label>
+                <select id="warranty_status">
+                    <option value="Unknown">Unknown</option>
+                    <option value="In Warranty">In Warranty</option>
+                    <option value="Out of Warranty">Out of Warranty</option>
+                    <option value="Customer Warranty">Customer Warranty</option>
+                </select>
+            </div>
+
+            <!-- SERVICE STATUS -->
+            <div class="form-group">
+                <label>Service Status</label>
+                <select id="service_status">
+                    <option value="Received">Received</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Ready">Ready</option>
+                    <option value="Delivered">Delivered</option>
+                    <option value="Cancelled">Cancelled</option>
+                </select>
+            </div>
+
+            <!-- APPOINTMENT DATE -->
+            <div class="form-group">
+                <label>Appointment / Visit Date (अपॉइंटमेंट तिथि)</label>
+                <input type="date" id="appointment_date">
+            </div>
+
+            <!-- APPOINTMENT TIME -->
+            <div class="form-group">
+                <label>Appointment Time (समय)</label>
+                <input type="time" id="appointment_start_time" value="10:00">
+            </div>
+
+            <!-- ESTIMATED DURATION -->
+            <div class="form-group">
+                <label>Estimated Duration (अनुमानित समय)</label>
+                <select id="estimated_duration_minutes">
+                    <option value="30">30 Minutes (Quick Check)</option>
+                    <option value="45">45 Minutes</option>
+                    <option value="60" selected>1 Hour (Standard)</option>
+                    <option value="90">1.5 Hours</option>
+                    <option value="120">2 Hours (Deep Diagnosis)</option>
+                    <option value="180">3 Hours (Chip Level)</option>
+                    <option value="240">4 Hours</option>
+                    <option value="480">Full Day</option>
+                </select>
+            </div>
+
+            <!-- ASSIGNED TECHNICIAN WITH LIVE AVAILABILITY -->
+            <div class="form-group">
+                <label>
+                    Technician (तकनीशियन)
+                    <span id="techLiveHint" style="font-size:11px; font-weight:normal; margin-left:6px; padding:2px 6px; border-radius:4px; display:none;"></span>
+                </label>
+                <select id="technician">
+                    <option value="">-- Select Technician --</option>
+                </select>
+                <small style="color:#64748b; font-size:11px; display:block; margin-top:3px;">Appointment समय बदलने पर उपलब्धता स्वतः अपडेट होगी</small>
+            </div>
+
+            <!-- ESTIMATED CHARGES -->
+            <div class="form-group">
+                <label>Estimated Charges (अनुमानित शुल्क)</label>
+                <input type="number" id="estimated_charges" value="0" min="0" step="0.01">
+            </div>
+
+            <!-- ADVANCE PAID -->
+            <div class="form-group">
+                <label>Advance Paid (जमा की गई अग्रिम राशि)</label>
+                <input type="number" id="advance_paid" value="0" min="0" step="0.01">
+            </div>
+
+            <!-- FINAL CHARGES -->
+            <div class="form-group">
+                <label>Final Charges</label>
+                <input type="number" id="final_charges" value="0" min="0" step="0.01">
+            </div>
+
+            <!-- PHYSICAL CONDITION -->
+            <div class="form-group full-width">
+                <label>Physical Condition / स्क्रैच एवं बॉडी स्थिति</label>
+                <input type="text" id="physical_condition" placeholder="e.g. Minor scratches, screen ok, without bag">
+            </div>
+
+            <!-- NOTES -->
+            <div class="form-group full-width">
+                <label>Notes</label>
+                <textarea id="notes" rows="4" placeholder="Additional notes..."></textarea>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- ==========================================
+         BRAND RMA / WARRANTY CLAIM
+    =========================================== -->
+
+    <div class="card">
+
+        <h2>
+            🏢 Brand RMA / Warranty Claim (ब्रांड वारंटी क्लेम ट्रैकिंग)
+        </h2>
+
+        <div class="form-grid">
+
+            <div class="form-group">
+                <label>RMA / Claim Status</label>
+                <select id="rma_status">
+                    <option value="None">None (In-House Repair)</option>
+                    <option value="Claim Initiated">Claim Initiated</option>
+                    <option value="Sent to Brand Center">Sent to Brand Center</option>
+                    <option value="Received from Brand">Received from Brand</option>
+                    <option value="Replaced">Replaced by Brand</option>
+                    <option value="Rejected">Claim Rejected</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Brand Service Center Name</label>
+                <input type="text" id="rma_center_name" placeholder="e.g. Dell Authorized Service, Indore">
+            </div>
+
+            <div class="form-group">
+                <label>Courier / Docket / Tracking No.</label>
+                <input type="text" id="rma_docket_no" placeholder="Courier docket or RMA token">
+            </div>
+
+            <div class="form-group">
+                <label>Date Sent to Center</label>
+                <input type="date" id="rma_sent_date">
+            </div>
+
+            <div class="form-group">
+                <label>Date Received from Center</label>
+                <input type="date" id="rma_received_date">
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- ==========================================
+         SAVE
+    =========================================== -->
+
+    <div class="save-area" style="display: flex; gap: 15px; justify-content: flex-end; align-items: center;">
+        <button type="button" id="saveService">
+            Save Service Complaint
+        </button>
+    </div>
+
+</div>
+
+<!-- ==========================================
+     JOB SHEET / GATE PASS PRINT MODAL
+=========================================== -->
+
+<div id="jobSheetModal" class="modal hidden" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9999; justify-content:center; align-items:center;">
+    <div style="background:#fff; border-radius:8px; max-width:700px; width:90%; max-height:90vh; overflow-y:auto; padding:24px; box-shadow:0 10px 30px rgba(0,0,0,0.3);">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:12px; margin-bottom:15px;">
+            <h3 style="margin:0; font-size:20px; color:#17202a;">🖨️ Customer Job Sheet / Gate Pass Slip</h3>
+            <button type="button" onclick="closeJobSheetModal()" style="border:none; background:none; font-size:24px; cursor:pointer;">×</button>
+        </div>
+        <div id="jobSheetPrintArea">
+            <!-- Dynamic Job Sheet Content -->
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:20px; border-top:1px solid #eee; padding-top:15px;">
+            <button type="button" onclick="closeJobSheetModal()" style="padding:8px 16px; border:1px solid #ccc; background:#fff; border-radius:5px; cursor:pointer;">Close & New Entry</button>
+            <button type="button" onclick="sendWhatsAppCurrentEntry()" style="padding:8px 16px; background:#25D366; color:#fff; border:none; border-radius:5px; font-weight:bold; cursor:pointer;">📲 Send WhatsApp</button>
+            <button type="button" onclick="printJobSheetDirect()" style="padding:8px 20px; background:#ff6600; color:#fff; border:none; border-radius:5px; font-weight:bold; cursor:pointer;">🖨️ Print Slip</button>
+        </div>
+    </div>
+</div>
+
+<script src="config.js?v=2.2"></script>
+<script src="auth.js?v=2.2"></script>
+<script src="service-entry.js?v=2.2"></script>
+
+</body>
+</html>
+

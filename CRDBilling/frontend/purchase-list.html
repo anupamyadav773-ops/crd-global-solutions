@@ -1,0 +1,115 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRD Global Solutions - Purchase Invoices</title>
+    <link rel="stylesheet" href="purchase-list.css">
+</head>
+
+<body>
+    <div class="page-container">
+
+        <div class="page-header">
+            <div>
+                <h1>Purchase Invoices</h1>
+                <p>Manage all purchase records</p>
+            </div>
+
+            <div class="header-buttons">
+                <a href="dashboard.html">? Dashboard</a>
+                <a href="purchase.html" class="add-button">+ New Purchase</a>
+            </div>
+        </div>
+
+        <div class="search-box">
+            <form id="purchaseFilterForm" class="filter-grid">
+                <div class="field-group">
+                    <label for="searchPurchaseNumber">Purchase No.</label>
+                    <input type="text" id="searchPurchaseNumber" placeholder="Search Purchase Number">
+                </div>
+
+                <div class="field-group">
+                    <label for="searchSupplier">Supplier</label>
+                    <input type="text" id="searchSupplier" placeholder="Search Supplier">
+                </div>
+
+                <div class="field-group">
+                    <label for="fromDate">From Date</label>
+                    <input type="date" id="fromDate">
+                </div>
+
+                <div class="field-group">
+                    <label for="toDate">To Date</label>
+                    <input type="date" id="toDate">
+                </div>
+
+                <div class="field-group">
+                    <label for="paymentStatusFilter">Payment Status</label>
+                    <select id="paymentStatusFilter">
+                        <option value="">All</option>
+                        <option value="Paid">Paid</option>
+                        <option value="Unpaid">Unpaid</option>
+                        <option value="Partial">Partial</option>
+                        <option value="Pending">Pending</option>
+                    </select>
+                </div>
+
+                <div class="filter-actions">
+                    <button type="submit" class="primary-btn">Search / Apply</button>
+                    <button type="button" id="resetFilters" class="secondary-btn">Reset</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- TOP SCROLLBAR (Syncs with Table on smaller screens) -->
+        <div class="top-scrollbar-wrap" id="topScrollbarWrap">
+            <div class="top-scrollbar-dummy" id="topScrollbarDummy"></div>
+        </div>
+
+        <div class="table-container" id="tableContainer">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 140px;">Purchase No.</th>
+                        <th style="width: 95px; text-align: center;">Date</th>
+                        <th style="min-width: 180px;">Supplier</th>
+                        <th style="width: 95px; text-align: right;">Subtotal</th>
+                        <th style="width: 85px; text-align: right;">Discount</th>
+                        <th style="width: 85px; text-align: right;">Tax</th>
+                        <th style="width: 115px; text-align: right;">Grand Total</th>
+                        <th style="width: 100px; text-align: center;">Payment Method</th>
+                        <th style="width: 105px; text-align: center;">Payment Status</th>
+                        <th style="width: 225px; text-align: center;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="purchaseTableBody">
+                    <tr>
+                        <td colspan="10" class="empty-message">Loading purchase invoices...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="previewModal" class="modal hidden" aria-modal="true" role="dialog">
+        <div class="modal-content preview-modal-content">
+            <div class="modal-header">
+                <h3>Purchase Invoice Preview</h3>
+                <button type="button" class="close-modal" id="closePreviewModal">&times;</button>
+            </div>
+            <div id="previewContent" class="preview-content"></div>
+            <div class="modal-actions">
+                <button type="button" class="secondary-button" id="closePreviewButton">Close</button>
+                <button type="button" class="primary-button" id="printPreviewButton">Print</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script src="purchase-list.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,236 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>CRD Global Solutions - Add Supplier</title>
+
+    <link rel="stylesheet"
+          href="supplier.css">
+
+</head>
+
+<body>
+
+<div class="supplier-container">
+
+
+    <!-- HEADER -->
+
+    <div class="page-header">
+
+        <div>
+
+            <h1 id="pageTitle">Add Supplier</h1>
+
+            <p>
+                Manage supplier details for purchase management
+            </p>
+
+        </div>
+
+
+        <a
+            href="dashboard.html"
+            class="back-button"
+        >
+            ← Dashboard
+        </a>
+
+    </div>
+
+
+    <!-- SUPPLIER FORM -->
+
+    <div class="supplier-card">
+
+        <form id="supplierForm">
+
+
+            <div class="form-grid">
+
+
+                <!-- Supplier Name -->
+
+                <div class="form-group">
+
+                    <label for="supplier_name">
+                        Supplier Name *
+                    </label>
+
+                    <input
+                        type="text"
+                        id="supplier_name"
+                        placeholder="Enter supplier name"
+                        required
+                    >
+
+                </div>
+
+
+                <!-- Mobile -->
+
+                <div class="form-group">
+
+                    <label for="mobile">
+                        Mobile Number
+                    </label>
+
+                    <input
+                        type="text"
+                        id="mobile"
+                        placeholder="Enter mobile number"
+                    >
+
+                </div>
+
+
+                <!-- Email -->
+
+                <div class="form-group">
+
+                    <label for="email">
+                        Email
+                    </label>
+
+                    <input
+                        type="email"
+                        id="email"
+                        placeholder="Enter email address"
+                    >
+
+                </div>
+
+
+                <!-- GSTIN -->
+
+                <div class="form-group">
+
+                    <label for="gstin">
+                        GSTIN
+                    </label>
+
+                    <input
+                        type="text"
+                        id="gstin"
+                        placeholder="Enter GSTIN"
+                    >
+
+                </div>
+
+
+                <!-- Address -->
+
+                <div class="form-group full-width">
+
+                    <label for="address">
+                        Address
+                    </label>
+
+                    <textarea
+                        id="address"
+                        rows="4"
+                        placeholder="Enter supplier address"
+                    ></textarea>
+
+                </div>
+
+
+            </div>
+
+
+            <!-- BUTTONS -->
+
+            <div class="form-buttons">
+
+
+                <button
+                    type="button"
+                    id="cancelEditButton"
+                    class="cancel-button"
+                    style="display:none;"
+                >
+                    Cancel Edit
+                </button>
+
+
+                <button
+                    type="submit"
+                    id="saveSupplierButton"
+                    class="save-button"
+                >
+                    Save Supplier
+                </button>
+
+
+            </div>
+
+
+        </form>
+
+    </div>
+
+
+    <!-- SUPPLIER LIST -->
+
+    <div class="supplier-list-card">
+
+        <div class="list-header">
+
+            <h2>Supplier List</h2>
+
+            <input
+                id="supplierSearch"
+                type="text"
+                placeholder="Search suppliers..."
+            >
+
+        </div>
+
+        <div class="table-wrapper">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+                        <th>ID</th>
+                        <th>Supplier Name</th>
+                        <th>Mobile</th>
+                        <th>Email</th>
+                        <th>GSTIN</th>
+                        <th>Address</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+
+                </thead>
+
+                <tbody id="supplierTableBody">
+                    <tr>
+                        <td colspan="8">Loading suppliers...</td>
+                    </tr>
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script src="config.js"></script>
+<script src="auth.js"></script>
+<script src="supplier.js"></script>
+
+</body>
+
+</html>
+

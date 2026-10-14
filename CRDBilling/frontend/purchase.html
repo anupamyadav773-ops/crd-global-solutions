@@ -1,0 +1,399 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>CRD Global Solutions - Purchase</title>
+
+    <link rel="stylesheet"
+          href="purchase.css">
+
+</head>
+
+<body>
+
+<div class="purchase-container">
+
+
+    <!-- HEADER -->
+
+    <div class="page-header">
+
+        <div>
+
+            <h1 id="pageMainHeading">Create Purchase</h1>
+
+            <p id="pageSubHeading">
+                Supplier purchase and serial number tracking
+            </p>
+
+        </div>
+
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <a href="dashboard.html">
+                ← Dashboard
+            </a>
+            <a href="purchase-list.html" style="background: #2e86de;">
+                📋 Purchases List
+            </a>
+        </div>
+
+    </div>
+
+    <!-- EDIT MODE BANNER -->
+    <div id="editModeBanner" style="display: none; background: #fff7ed; border: 1.5px solid #fed7aa; border-left: 5px solid #ea580c; border-radius: 8px; padding: 12px 18px; margin-bottom: 20px; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 18px;">✏️</span>
+            <div>
+                <strong style="color: #9a3412; font-size: 14.5px;">Edit Mode:</strong>
+                <span style="color: #c2410c; font-weight: 700; margin-left: 4px;" id="editPurchaseBadge"></span>
+            </div>
+        </div>
+        <a href="purchase.html" style="background: #ea580c; color: white; padding: 6px 14px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: bold;">
+            + Cancel / New Purchase
+        </a>
+    </div>
+
+
+    <!-- PURCHASE DETAILS -->
+
+    <div class="purchase-card">
+
+        <div class="form-grid">
+
+
+            <div class="form-group">
+
+                <label>
+                    Purchase Number
+                </label>
+
+                <input
+                    type="text"
+                    id="purchase_number"
+                    readonly
+                >
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label>
+                    Purchase Date
+                </label>
+
+                <input
+                    type="date"
+                    id="purchase_date"
+                >
+
+            </div>
+
+
+            <div class="form-group">
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <label style="margin-bottom: 0;">
+                        Supplier *
+                    </label>
+                    <a href="supplier.html" target="_blank" style="font-size: 13px; color: #ff6600; text-decoration: none; font-weight: bold;">
+                        + Add Supplier
+                    </a>
+                </div>
+
+                <select id="supplier_id">
+
+                    <option value="">
+                        Select Supplier
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label>
+                    Payment Method
+                </label>
+
+                <select id="payment_method">
+
+                    <option value="Cash">
+                        Cash
+                    </option>
+
+                    <option value="UPI">
+                        UPI
+                    </option>
+
+                    <option value="Card">
+                        Card
+                    </option>
+
+                    <option value="Bank">
+                        Bank Transfer
+                    </option>
+
+                    <option value="Credit">
+                        Credit
+                    </option>
+
+                </select>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- PRODUCTS -->
+
+    <div class="purchase-card">
+
+        <div class="section-header">
+
+            <h2>
+                Purchase Products
+            </h2>
+
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <button
+                    type="button"
+                    id="quickAddLocationBtn"
+                    style="background: #059669; color: white; border: none; padding: 9px 14px; border-radius: 6px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; font-size: 13.5px;"
+                >
+                    📍 + New Location (नया स्थान)
+                </button>
+                <button
+                    type="button"
+                    id="addItemButton"
+                >
+                    + Add Product
+                </button>
+            </div>
+
+        </div>
+
+        <!-- QUICK SEARCH / SCAN BAR -->
+        <div class="scanner-bar" style="background: #fff7ed; border: 1.5px solid #ff6600; border-radius: 8px; padding: 10px 15px; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 20px;">⚡</span>
+            <input type="text" id="barcodeScannerInput" placeholder="Quick Search: Product का नाम या Barcode स्कैन / टाइप करके Enter दबाएँ (Auto-adds item)..." style="flex: 1; border: 1px solid #fed7aa; font-size: 14px; padding: 9px 12px; border-radius: 6px; background: #fff; outline: none;">
+            <button type="button" id="scanAddBtn" style="padding: 9px 16px; background: #ff6600; color: #fff; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">Search / Add</button>
+        </div>
+
+        <div class="table-container">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th style="min-width: 280px;">
+                            Product
+                        </th>
+
+                        <th style="min-width: 140px;">
+                            Location (स्थान)
+                        </th>
+
+                        <th>
+                            Serial Number
+                        </th>
+
+                        <th>
+                            Qty
+                        </th>
+
+                        <th style="min-width: 90px;">
+                            Unit
+                        </th>
+
+                        <th>
+                            Purchase Rate
+                        </th>
+
+                        <th>
+                            GST %
+                        </th>
+
+                        <th>
+                            GST Amount
+                        </th>
+
+                        <th>
+                            Total
+                        </th>
+
+                        <th>
+                            Warranty
+                        </th>
+
+                        <th>
+                            Action
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="purchaseItems">
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+
+    <!-- TOTALS -->
+
+    <div class="purchase-card totals-card">
+
+
+        <div class="total-row">
+
+            <span>
+                Subtotal
+            </span>
+
+            <strong id="subtotal">
+                ₹ 0.00
+            </strong>
+
+        </div>
+
+
+        <div class="total-row">
+
+            <span>
+                Discount
+            </span>
+
+            <input
+                type="number"
+                id="discount"
+                value="0"
+                min="0"
+                step="0.01"
+            >
+
+        </div>
+
+
+        <div class="total-row">
+
+            <span>
+                Tax
+            </span>
+
+            <strong id="taxAmount">
+                ₹ 0.00
+            </strong>
+
+        </div>
+
+
+        <div class="grand-total">
+
+            <span>
+                Grand Total
+            </span>
+
+            <strong id="grandTotal">
+                ₹ 0.00
+            </strong>
+
+        </div>
+
+    </div>
+
+
+    <!-- NOTES -->
+
+    <div class="purchase-card">
+
+        <div class="form-group">
+
+            <label>
+                Notes
+            </label>
+
+            <textarea
+                id="notes"
+                rows="3"
+                placeholder="Purchase notes..."
+            ></textarea>
+
+        </div>
+
+    </div>
+
+
+    <!-- SAVE -->
+
+    <div class="save-area">
+
+        <button
+            type="button"
+            id="savePurchase"
+        >
+            Save Purchase
+        </button>
+
+    </div>
+
+
+</div>
+
+
+<!-- Quick Add Location Modal -->
+<div id="quickLocationModal" style="display:none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15,23,42,0.6); backdrop-filter: blur(2px); z-index: 9999; justify-content: center; align-items: center; padding: 20px;">
+    <div style="background: white; width: 100%; max-width: 480px; border-radius: 10px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2); overflow: hidden;">
+        <div style="background: #f8fafc; padding: 15px 20px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="margin: 0; font-size: 17px; color: #1e293b;">📍 Add New Stock Location (नया स्थान जोड़ें)</h3>
+            <button type="button" id="closeQuickLocBtn" style="background: none; border: none; font-size: 22px; cursor: pointer; color: #64748b; line-height: 1;">&times;</button>
+        </div>
+        <form id="quickLocationForm" style="padding: 20px;">
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; font-weight: bold; margin-bottom: 6px; font-size: 13px; color: #334155;">Location Name (स्थान का नाम) *</label>
+                <input type="text" id="quickLocName" placeholder="e.g. Main Counter, Godown, Rack A, Shelf 2" required style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; box-sizing: border-box;" />
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; font-weight: bold; margin-bottom: 6px; font-size: 13px; color: #334155;">Description (विवरण - वैकल्पिक)</label>
+                <input type="text" id="quickLocDesc" placeholder="e.g. Backstore room rack 3" style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; box-sizing: border-box;" />
+            </div>
+            <div style="margin-bottom: 20px;">
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: #334155; cursor: pointer;">
+                    <input type="checkbox" id="quickLocDefault" style="width: 16px; height: 16px;" />
+                    <span>Set as Default Location (डिफ़ॉल्ट स्थान बनाएं)</span>
+                </label>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" id="cancelQuickLocBtn" style="background: #e2e8f0; color: #334155; border: none; padding: 9px 16px; border-radius: 6px; font-weight: bold; cursor: pointer;">रद्द करें</button>
+                <button type="submit" id="saveQuickLocBtn" style="background: #ff6600; color: white; border: none; padding: 9px 18px; border-radius: 6px; font-weight: bold; cursor: pointer;">सुरक्षित करें</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="config.js?v=2.4"></script>
+<script src="auth.js?v=2.4"></script>
+<script src="purchase.js?v=2.4"></script>
+
+</body>
+
+</html>
+

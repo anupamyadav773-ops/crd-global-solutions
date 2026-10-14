@@ -1,0 +1,327 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employees & Technicians - CRD Global Solutions</title>
+    <link rel="stylesheet" href="employees.css?v=1.1">
+</head>
+<body>
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+        <div class="logo">CRD Global Solutions</div>
+        <div class="menu">
+            <a href="dashboard.html">🏠 Dashboard</a>
+            <a href="customer-list.html">👥 Customers</a>
+            <a href="product-list.html">📦 Products</a>
+            <a href="sales-list.html">🧾 Billing</a>
+            <a href="quotation-list.html">📄 Quotations</a>
+            <a href="purchase-list.html">🛒 Purchases</a>
+                        <div class="menu-dropdown service-menu-dropdown">
+                <a href="javascript:void(0)" class="menu-dropdown-toggle" onclick="toggleServiceMenu(event)">
+                    <span class="dropdown-label">🔧 Services</span>
+                    <span class="dropdown-chevron">▾</span>
+                </a>
+                <div class="menu-dropdown-content">
+                    <a href="service-list.html">🏪 Shop Service List</a>
+                    <a href="service-entry.html">➕ Shop Service Entry</a>
+                    <a href="field-service-list.html">🛵 Field Service List</a>
+                    <a href="field-service-entry.html">➕ Field Service Entry</a>
+                </div>
+            </div>
+
+            <div class="menu-dropdown field-tech-menu-dropdown">
+                <a href="javascript:void(0)" class="menu-dropdown-toggle" onclick="toggleFieldTechMenu(event)">
+                    <span class="dropdown-label">🛠️ Field Technician</span>
+                    <span class="dropdown-chevron">▾</span>
+                </a>
+                <div class="menu-dropdown-content">
+                    <a href="field-service-list.html">🛵 Field Complaints</a>
+                    <a href="technician-schedule.html">📅 Tech Schedule</a>
+                    <a href="technician-live-map.html">🗺️ Live Map Tracking</a>
+                    <a href="technician-gps-history.html">📍 GPS Location History</a>
+                    <a href="technician-activity-log.html">📜 Activity Log</a>
+                    <a href="employees.html">👷 Employees</a>
+                    <a href="attendance.html">📍 Attendance & GPS</a>
+                    <a href="employee-attendance-reports.html">📊 Attendance Reports</a>
+                    <a href="technician-performance.html">🎯 Technician Performance</a>
+                    <a href="technician-tools.html">🧰 Tech Tools</a>
+                    <a href="technician-inventory.html">📦 Tech Inventory</a>
+                    <a href="device-management.html" data-role="admin">🔒 Device Security</a>
+                </div>
+            </div>
+            <a href="supplier.html">🚚 Suppliers</a>
+            <a href="expense-list.html">💰 Expenses</a>
+            <a href="reports.html">📈 Reports</a>
+            <a href="scrap.html">♻️ Scrap</a>
+            <a href="user-list.html" data-role="admin">👤 Users</a>
+            <a href="settings.html" data-role="admin">⚙️ Settings</a>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <header class="topbar">
+            <div>
+                <h2>Employees & Technicians</h2>
+                <p style="color: #64748b; font-size: 0.9rem;">Manage technician master directory, app logins, and assignments</p>
+            </div>
+            <div>
+                <a href="tech/index.html" target="_blank" class="btn btn-secondary" style="margin-right: 8px;">📱 Open Tech Mobile App</a>
+                <button class="btn btn-primary" onclick="openAddEmployeeModal()">+ Add Employee</button>
+            </div>
+        </header>
+
+        <div class="container">
+            <!-- Stats -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">👷</div>
+                    <div class="stat-info">
+                        <h3>Total Employees</h3>
+                        <p id="statTotalEmployees">0</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background:#f0fdf4;">🔧</div>
+                    <div class="stat-info">
+                        <h3>Active Technicians</h3>
+                        <p id="statActiveTechs">0</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background:#fef3c7;">📋</div>
+                    <div class="stat-info">
+                        <h3>Active Jobs in Field</h3>
+                        <p id="statActiveJobs">0</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background:#f1f5f9;">📱</div>
+                    <div class="stat-info">
+                        <h3>Authorized Devices</h3>
+                        <p id="statAuthorizedDevices">0</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Toolbar & Search -->
+            <div class="toolbar-card">
+                <div class="filters-group">
+                    <input type="text" id="searchInput" class="input-search" placeholder="Search by name, phone, code..." oninput="filterEmployees()">
+                    <select id="designationFilter" class="select-filter" onchange="loadEmployees()">
+                        <option value="">All Designations</option>
+                        <option value="Technician">Technician</option>
+                        <option value="Senior Engineer">Senior Engineer</option>
+                        <option value="Counter Staff">Counter Staff</option>
+                        <option value="Manager">Manager</option>
+                    </select>
+                    <select id="statusFilter" class="select-filter" onchange="loadEmployees()">
+                        <option value="">All Statuses</option>
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                    </select>
+                </div>
+                <div>
+                    <button class="btn btn-secondary" onclick="loadEmployees()">🔄 Refresh</button>
+                </div>
+            </div>
+
+            <!-- Table Card -->
+            <div class="table-card">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th>Employee Name</th>
+                            <th>Phone</th>
+                            <th>Designation</th>
+                            <th>Active Jobs</th>
+                            <th>Tools Held</th>
+                            <th>Active Device</th>
+                            <th>App Login (User ID)</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="employeeTableBody">
+                        <tr>
+                            <td colspan="10" style="text-align: center; color: #64748b; padding: 30px;">Loading employees...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add / Edit Employee Modal -->
+    <div id="employeeModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Add New Employee</h3>
+                <button class="close-btn" onclick="closeEmployeeModal()">&times;</button>
+            </div>
+            <form id="employeeForm" onsubmit="saveEmployee(event)">
+                <input type="hidden" id="empId">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="empFullName">Full Name *</label>
+                        <input type="text" id="empFullName" required placeholder="e.g. Ramesh Kumar">
+                    </div>
+                    <div class="form-group">
+                        <label for="empPhone">Phone Number *</label>
+                        <input type="tel" id="empPhone" required placeholder="e.g. 9876543210">
+                    </div>
+                    <div class="form-group">
+                        <label for="empCode">Employee Code</label>
+                        <input type="text" id="empCode" placeholder="Leave blank for auto-generate">
+                    </div>
+                    <div class="form-group">
+                        <label for="empEmail">Email Address</label>
+                        <input type="email" id="empEmail" placeholder="employee@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="empDesignation">Designation *</label>
+                        <select id="empDesignation" required>
+                            <option value="Technician">Technician</option>
+                            <option value="Senior Engineer">Senior Engineer</option>
+                            <option value="Counter Staff">Counter Staff</option>
+                            <option value="Manager">Manager</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="empDepartment">Department</label>
+                        <input type="text" id="empDepartment" value="Service">
+                    </div>
+                    <div class="form-group">
+                        <label for="empJoiningDate">Joining Date</label>
+                        <input type="date" id="empJoiningDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="empSalaryType">Salary Type</label>
+                        <select id="empSalaryType">
+                            <option value="Monthly">Monthly</option>
+                            <option value="Daily">Daily</option>
+                            <option value="Per_Job">Per Job</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="empBaseSalary">Base Salary (₹)</label>
+                        <input type="number" id="empBaseSalary" step="0.01" value="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label for="empEmergencyContact">Emergency Contact</label>
+                        <input type="text" id="empEmergencyContact" placeholder="Contact person & phone">
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="empAddress">Residential Address</label>
+                        <textarea id="empAddress" placeholder="Full residential address"></textarea>
+                    </div>
+                    <div class="form-group" id="statusGroup" style="display:none;">
+                        <label for="empStatus">Status</label>
+                        <select id="empStatus">
+                            <option value="Active">Active</option>
+                            <option value="Inactive">Inactive</option>
+                            <option value="Suspended">Suspended</option>
+                        </select>
+                    </div>
+
+                    <!-- Login account creation (Only on Add) -->
+                    <div class="form-group full-width" id="loginCreationSection" style="background:#f8fafc; padding:12px; border-radius:8px; border:1px solid #e2e8f0; margin-top:8px;">
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                            <input type="checkbox" id="createLoginCheckbox" onchange="toggleLoginInputs()">
+                            <span>Create System & Mobile App Login for this Employee</span>
+                        </label>
+                        <div id="loginInputs" style="display:none; grid-template-columns: 1fr 1fr; gap:12px; margin-top:10px;">
+                            <div class="form-group">
+                                <label for="loginUsername">Username *</label>
+                                <input type="text" id="loginUsername" placeholder="e.g. tech_ramesh">
+                            </div>
+                            <div class="form-group">
+                                <label for="loginPassword">Password *</label>
+                                <input type="password" id="loginPassword" placeholder="Minimum 6 characters">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeEmployeeModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="saveEmpBtn">Save Employee</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- View / Set App Login & Password Modal -->
+    <div id="credentialsModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 520px;">
+            <div class="modal-header" style="background: #1e293b; color: #fff; border-radius: 12px 12px 0 0; padding: 16px 20px;">
+                <div>
+                    <h3 style="margin: 0; font-size: 1.15rem; color: #fff;">🔑 Technician App Login & Password</h3>
+                    <p style="margin: 4px 0 0; font-size: 0.8rem; color: #94a3b8;">तकनीशियन का यूजर आईडी एवं पासवर्ड देखें या रीसेट करें</p>
+                </div>
+                <button class="close-btn" style="color: #fff;" onclick="closeCredentialsModal()">&times;</button>
+            </div>
+            
+            <div style="padding: 20px;">
+                <!-- Employee Summary Header -->
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <strong id="credEmpName" style="font-size: 1.05rem; color: #0f172a;">-</strong>
+                            <div style="font-size: 0.85rem; color: #64748b;" id="credEmpMeta">-</div>
+                        </div>
+                        <div id="credLoginStatusBadge"></div>
+                    </div>
+                </div>
+
+                <!-- Form to View / Update Password -->
+                <form id="credentialsForm" onsubmit="saveCredentials(event)">
+                    <input type="hidden" id="credEmpId">
+
+                    <div style="margin-bottom: 14px;">
+                        <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #334155; margin-bottom: 4px;">User ID / Username (लॉगिन यूजरनेम)</label>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="text" id="credUsername" required placeholder="e.g. tech_ramesh" style="flex: 1; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-weight: 600; font-size: 0.95rem; color: #1e293b;">
+                            <button type="button" class="btn btn-secondary" onclick="generateSuggestedUsername()" style="padding: 0 12px; font-size: 0.8rem;" title="Auto generate username">🎲 Suggest</button>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 16px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                            <label style="font-size: 0.85rem; font-weight: 600; color: #334155; margin: 0;">Set / Reset Password (नया पासवर्ड डालें)</label>
+                            <button type="button" onclick="setQuickPassword('123456')" style="background: none; border: none; color: #2563eb; font-size: 0.78rem; cursor: pointer; text-decoration: underline;">Set '123456'</button>
+                        </div>
+                        <div style="position: relative;">
+                            <input type="text" id="credPassword" required placeholder="Enter password (e.g. 123456)" style="width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.95rem; font-family: monospace;">
+                        </div>
+                        <small style="color: #64748b; font-size: 0.78rem; display: block; margin-top: 4px;">पासवर्ड सेव करने के बाद टेक्नीशियन इसी पासवर्ड से मोबाइल ऐप में लॉगिन करेगा।</small>
+                    </div>
+
+                    <!-- Active Device Info -->
+                    <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 10px 14px; margin-bottom: 18px; font-size: 0.82rem; color: #1e40af;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div><strong>📱 Authorized Device:</strong> <span id="credActiveDevice">Checking...</span></div>
+                            <a href="device-management.html" style="color: #2563eb; text-decoration: underline; font-size: 0.8rem;">Manage Device</a>
+                        </div>
+                    </div>
+
+                    <div id="credAlertBox" style="display: none; padding: 10px; border-radius: 6px; margin-bottom: 14px; font-size: 0.85rem;"></div>
+
+                    <div style="display: flex; gap: 10px;">
+                        <button type="submit" class="btn btn-primary" id="saveCredBtn" style="flex: 1; padding: 11px;">💾 Save & Update Password</button>
+                        <button type="button" class="btn btn-secondary" onclick="copyLoginCredentials()" style="padding: 11px 16px; background: #22c55e; color: #fff; border: none;" title="Copy login info for WhatsApp">📲 Copy WhatsApp Info</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script src="employees.js?v=1.1"></script>
+</body>
+</html>
+

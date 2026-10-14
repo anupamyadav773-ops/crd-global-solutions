@@ -1,0 +1,278 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPS Location History & Route Tracking | CRD Global Solutions</title>
+    <!-- Leaflet Map CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Project Styles -->
+    <link rel="stylesheet" href="dashboard.css">
+    <link rel="stylesheet" href="technician-gps-history.css">
+</head>
+<body>
+
+    <!-- =========================
+         Sidebar Navigation
+    ========================== -->
+    <aside class="sidebar">
+        <div class="logo">
+            CRD Global Solutions
+        </div>
+
+        <div class="menu">
+            <a href="dashboard.html">🏠 Dashboard</a>
+            <a href="customer-list.html">👥 Customers</a>
+            <a href="product-list.html">📦 Products</a>
+            <a href="sales-list.html">🧾 Billing</a>
+            <a href="quotation-list.html">📄 Quotations</a>
+            <a href="purchase-list.html">🛒 Purchases</a>
+
+            <div class="menu-dropdown service-menu-dropdown">
+                <a href="javascript:void(0)" class="menu-dropdown-toggle" onclick="toggleServiceMenu(event)">
+                    <span class="dropdown-label">🔧 Services</span>
+                    <span class="dropdown-chevron">▾</span>
+                </a>
+                <div class="menu-dropdown-content">
+                    <a href="service-list.html">🏪 Shop Service List</a>
+                    <a href="service-entry.html">➕ Shop Service Entry</a>
+                    <a href="field-service-list.html">🛵 Field Service List</a>
+                    <a href="field-service-entry.html">➕ Field Service Entry</a>
+                </div>
+            </div>
+
+            <div class="menu-dropdown field-tech-menu-dropdown open active-parent">
+                <a href="javascript:void(0)" class="menu-dropdown-toggle" onclick="toggleFieldTechMenu(event)">
+                    <span class="dropdown-label">🛠️ Field Technician</span>
+                    <span class="dropdown-chevron">▾</span>
+                </a>
+                <div class="menu-dropdown-content">
+                    <a href="field-service-list.html">🛵 Field Complaints</a>
+                    <a href="technician-schedule.html">📅 Tech Schedule</a>
+                    <a href="technician-live-map.html">🗺️ Live Map Tracking</a>
+                    <a href="technician-gps-history.html" class="active">📍 GPS Location History</a>
+                    <a href="technician-activity-log.html">📜 Activity Log</a>
+                    <a href="employees.html">👷 Employees</a>
+                    <a href="attendance.html">📍 Attendance & GPS</a>
+                    <a href="employee-attendance-reports.html">📊 Attendance Reports</a>
+                    <a href="technician-performance.html">🎯 Technician Performance</a>
+                    <a href="technician-tools.html">🧰 Tech Tools</a>
+                    <a href="technician-inventory.html">📦 Tech Inventory</a>
+                    <a href="device-management.html" data-role="admin">🔒 Device Security</a>
+                </div>
+            </div>
+
+            <a href="supplier.html">🚚 Suppliers</a>
+            <a href="expense-list.html">💸 Expenses</a>
+            <a href="reports.html">📈 Reports</a>
+            <a href="scrap.html">♻️ Scrap</a>
+            <a href="user-list.html" data-role="admin">👥 Users</a>
+            <a href="settings.html">⚙️ Settings</a>
+        </div>
+
+        <div class="sidebar-user-footer">
+            <div class="user-avatar" id="navUserAvatar">A</div>
+            <div class="user-meta">
+                <span class="user-name" id="navUserName">Admin</span>
+                <span class="user-role" id="navUserRole">Administrator</span>
+            </div>
+            <button class="btn-logout-icon" onclick="logout()" title="Logout">🚪</button>
+        </div>
+    </aside>
+
+    <!-- =========================
+         Main Content Area
+    ========================== -->
+    <main class="main-content">
+        
+        <!-- Header -->
+        <header class="top-header">
+            <div class="header-left">
+                <h1>📍 GPS Location History & Route Tracking</h1>
+                <p class="subtitle">Detailed breadcrumb trail, milestones, travel route & checkpoint verification</p>
+            </div>
+            <div class="header-right">
+                <div class="date-badge" id="currentDateBadge">Today</div>
+                <div class="user-pill">
+                    <span class="user-dot"></span>
+                    <span id="headerUserName">Admin</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Workspace -->
+        <div class="history-container">
+            
+            <!-- Controls Bar -->
+            <div class="history-controls-bar">
+                <div class="controls-left">
+                    <div class="control-item">
+                        <label for="technicianSelect">Technician:</label>
+                        <select id="technicianSelect" onchange="onTechnicianChanged()">
+                            <option value="">Loading technicians...</option>
+                        </select>
+                    </div>
+
+                    <div class="control-item">
+                        <label for="historyDate">Date:</label>
+                        <input type="date" id="historyDate" onchange="loadHistoryData()">
+                    </div>
+
+                    <div class="control-item">
+                        <label for="jobFilter">Filter Job:</label>
+                        <select id="jobFilter" onchange="onJobFilterChanged()">
+                            <option value="all">All Jobs & Milestones</option>
+                        </select>
+                    </div>
+
+                    <button class="btn-primary-action" onclick="loadHistoryData()">
+                        <span>🔄</span> Refresh Route
+                    </button>
+                </div>
+
+                <div class="controls-right">
+                    <button class="btn-demo-action" onclick="simulateSampleRoute()" title="Generate a realistic test route for demonstration">
+                        <span>⚡</span> Simulate Demo Route
+                    </button>
+                    <button class="btn-secondary-action" onclick="fitMapBounds()" title="Fit all markers and trail in view">
+                        <span>🎯</span> Fit View
+                    </button>
+                </div>
+            </div>
+
+            <!-- KPI Summary Strip -->
+            <div class="kpi-strip">
+                <div class="kpi-card">
+                    <div class="kpi-icon-wrap kpi-icon-blue">🛣️</div>
+                    <div class="kpi-info">
+                        <span class="kpi-label">Route Distance</span>
+                        <span class="kpi-val" id="statDistance">0.0 km</span>
+                    </div>
+                </div>
+
+                <div class="kpi-card">
+                    <div class="kpi-icon-wrap kpi-icon-green">📍</div>
+                    <div class="kpi-info">
+                        <span class="kpi-label">GPS Pings</span>
+                        <span class="kpi-val" id="statPings">0</span>
+                    </div>
+                </div>
+
+                <div class="kpi-card">
+                    <div class="kpi-icon-wrap kpi-icon-orange">🎯</div>
+                    <div class="kpi-info">
+                        <span class="kpi-label">Milestones Reached</span>
+                        <span class="kpi-val" id="statMilestones">0 / 5</span>
+                    </div>
+                </div>
+
+                <div class="kpi-card">
+                    <div class="kpi-icon-wrap kpi-icon-purple">⚡</div>
+                    <div class="kpi-info">
+                        <span class="kpi-label">Max Speed</span>
+                        <span class="kpi-val" id="statSpeed">0 km/h</span>
+                    </div>
+                </div>
+
+                <div class="kpi-card">
+                    <div class="kpi-icon-wrap kpi-icon-teal">⏱️</div>
+                    <div class="kpi-info">
+                        <span class="kpi-label">Active Window</span>
+                        <span class="kpi-val" id="statWindow">-- : --</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Workspace: Drawer + Map -->
+            <div class="history-workspace">
+                
+                <!-- Left: Milestones Timeline Drawer -->
+                <div class="timeline-drawer">
+                    <div class="drawer-header">
+                        <span class="drawer-title">
+                            <span>🚩</span> Journey Milestones
+                        </span>
+                        <span class="milestone-badge-count" id="milestoneCountBadge">0 Recorded</span>
+                    </div>
+
+                    <div class="timeline-scroll" id="timelineContainer">
+                        <!-- Milestones populated dynamically by JS -->
+                        <div class="history-empty-state">
+                            <div class="empty-icon">📍</div>
+                            <div class="empty-title">Loading Route Data...</div>
+                            <div class="empty-desc">Fetching GPS locations and milestones.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Map Workspace -->
+                <div class="map-workspace">
+                    <div id="historyMap"></div>
+
+                    <!-- Floating Legend -->
+                    <div class="map-legend-card">
+                        <div class="legend-title">Milestone Legend</div>
+                        <div class="legend-grid">
+                            <div class="legend-row">
+                                <span class="legend-pin pin-checkin"></span>
+                                <span>Check-in</span>
+                            </div>
+                            <div class="legend-row">
+                                <span class="legend-pin pin-job"></span>
+                                <span>Job Destination</span>
+                            </div>
+                            <div class="legend-row">
+                                <span class="legend-pin pin-otw"></span>
+                                <span>On-the-way</span>
+                            </div>
+                            <div class="legend-row">
+                                <span class="legend-pin pin-reached"></span>
+                                <span>Reached Site</span>
+                            </div>
+                            <div class="legend-row">
+                                <span class="legend-pin pin-comp"></span>
+                                <span>Completion</span>
+                            </div>
+                            <div class="legend-row">
+                                <span class="legend-pin pin-checkout"></span>
+                                <span>Check-out</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Floating Playback Bar -->
+                    <div class="playback-bar" id="playbackBar">
+                        <button class="playback-btn" id="playBtn" onclick="togglePlayback()" title="Play / Pause Route Simulation">
+                            <span id="playIcon">▶</span>
+                        </button>
+                        
+                        <div class="playback-slider-wrap">
+                            <input type="range" class="playback-slider" id="playbackSlider" min="0" max="0" value="0" oninput="onScrubPlayback(this.value)">
+                            <span class="playback-time" id="playbackTimeDisplay">--:--</span>
+                        </div>
+
+                        <div class="speed-selector">
+                            <button class="speed-chip active" onclick="setPlaybackSpeed(1, this)">1x</button>
+                            <button class="speed-chip" onclick="setPlaybackSpeed(2, this)">2x</button>
+                            <button class="speed-chip" onclick="setPlaybackSpeed(5, this)">5x</button>
+                            <button class="speed-chip" onclick="setPlaybackSpeed(10, this)">10x</button>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Project Scripts -->
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script src="technician-gps-history.js"></script>
+</body>
+</html>
+

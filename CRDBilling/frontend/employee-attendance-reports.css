@@ -1,0 +1,393 @@
+/* Employee Attendance Reports Specific Styles */
+
+/* Report Navigation Tabs */
+.report-tabs-bar {
+    display: flex;
+    gap: 8px;
+    background: #fff;
+    padding: 8px 12px;
+    border-radius: 12px;
+    box-shadow: var(--card-shadow);
+    margin-bottom: 20px;
+    overflow-x: auto;
+    border: 1px solid var(--border);
+}
+
+.report-tab-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.report-tab-btn:hover {
+    background: #f1f5f9;
+    color: #1e293b;
+}
+
+.report-tab-btn.active {
+    background: var(--primary);
+    color: #fff;
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.25);
+}
+
+/* Filter Card enhancements */
+.filter-card {
+    background: #fff;
+    padding: 16px 20px;
+    border-radius: 12px;
+    box-shadow: var(--card-shadow);
+    margin-bottom: 20px;
+    border: 1px solid var(--border);
+}
+
+.filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+}
+
+.filter-inputs {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+}
+
+.filter-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.filter-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #475569;
+}
+
+.input-control {
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    color: #1e293b;
+    background: #fff;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.input-control:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+
+/* Dynamic Stats Grid */
+.report-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.report-stat-card {
+    background: #fff;
+    padding: 16px 18px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    box-shadow: var(--card-shadow);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    transition: transform 0.15s ease;
+}
+
+.report-stat-card:hover {
+    transform: translateY(-2px);
+}
+
+.report-stat-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+    flex-shrink: 0;
+}
+
+.report-stat-info h4 {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+.report-stat-info .stat-value {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.2;
+}
+
+.report-stat-info .stat-sub {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    margin-top: 2px;
+}
+
+/* Attendance Status Badges */
+.badge-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.badge-present {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.badge-onduty {
+    background: #e0f2fe;
+    color: #0284c7;
+}
+
+.badge-halfday {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.badge-leave {
+    background: #e0e7ff;
+    color: #4338ca;
+}
+
+.badge-absent {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.badge-weeklyoff {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.badge-late {
+    background: #ffedd5;
+    color: #c2410c;
+    font-size: 0.72rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 4px;
+}
+
+/* Progress bar for attendance & compliance % */
+.pct-bar-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 120px;
+}
+
+.pct-bar-track {
+    flex: 1;
+    height: 8px;
+    background: #e2e8f0;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.pct-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.pct-fill-high { background: #16a34a; }
+.pct-fill-mid { background: #2563eb; }
+.pct-fill-low { background: #ef4444; }
+
+/* Table styling updates */
+.report-table-card {
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    box-shadow: var(--card-shadow);
+    overflow: hidden;
+    margin-bottom: 24px;
+}
+
+.report-table-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    background: #fafafa;
+}
+
+.report-table-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #0f172a;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.report-table-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.report-table-responsive {
+    overflow-x: auto;
+    width: 100%;
+}
+
+.report-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+    text-align: left;
+}
+
+.report-table th {
+    background: #f8fafc;
+    color: #475569;
+    font-weight: 600;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+}
+
+.report-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid #f1f5f9;
+    color: #334155;
+    vertical-align: middle;
+}
+
+.report-table tr:hover td {
+    background: #f8fafc;
+}
+
+.report-table tfoot td {
+    background: #f8fafc;
+    font-weight: 700;
+    color: #0f172a;
+    border-top: 2px solid var(--border);
+    border-bottom: none;
+}
+
+.location-snippet {
+    display: inline-block;
+    max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.8rem;
+    color: #64748b;
+}
+
+/* Quick Employee Pill */
+.emp-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.emp-avatar {
+    width: 28px;
+    height: 28px;
+    background: #e2e8f0;
+    color: #334155;
+    font-weight: 700;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+}
+
+/* Printable styles */
+@media print {
+    body {
+        background: #fff !important;
+        color: #000 !important;
+    }
+
+    .sidebar,
+    .topbar div:last-child,
+    .report-tabs-bar,
+    .filter-card,
+    .report-table-actions,
+    .btn,
+    .menu-dropdown {
+        display: none !important;
+    }
+
+    .main-content {
+        margin-left: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+    }
+
+    .container {
+        padding: 0 !important;
+        max-width: 100% !important;
+    }
+
+    .report-table-card {
+        box-shadow: none !important;
+        border: 1px solid #999 !important;
+    }
+
+    .report-table th, .report-table td {
+        padding: 6px 8px !important;
+        font-size: 11px !important;
+        border: 1px solid #ccc !important;
+    }
+
+    .report-stat-card {
+        border: 1px solid #999 !important;
+        box-shadow: none !important;
+    }
+
+    .print-only-header {
+        display: block !important;
+        margin-bottom: 20px;
+        border-bottom: 2px solid #000;
+        padding-bottom: 10px;
+    }
+}
+
+.print-only-header {
+    display: none;
+}

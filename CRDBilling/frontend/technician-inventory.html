@@ -1,0 +1,265 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Technician Material Stock - CRD Global Solutions</title>
+    <link rel="stylesheet" href="employees.css?v=1.0">
+    <style>
+        .tabs-nav {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 4px;
+        }
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 10px 18px;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #64748b;
+            cursor: pointer;
+            border-radius: 8px 8px 0 0;
+            transition: all 0.2s;
+        }
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom: 3px solid var(--primary);
+            background: #eff6ff;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+        <div class="logo">CRD Global Solutions</div>
+        <div class="menu">
+            <a href="dashboard.html">🏠 Dashboard</a>
+            <a href="customer-list.html">👥 Customers</a>
+            <a href="product-list.html">📦 Products</a>
+            <a href="sales-list.html">🧾 Billing</a>
+            <a href="quotation-list.html">📄 Quotations</a>
+            <a href="purchase-list.html">🛒 Purchases</a>
+                        <div class="menu-dropdown service-menu-dropdown">
+                <a href="javascript:void(0)" class="menu-dropdown-toggle" onclick="toggleServiceMenu(event)">
+                    <span class="dropdown-label">🔧 Services</span>
+                    <span class="dropdown-chevron">▾</span>
+                </a>
+                <div class="menu-dropdown-content">
+                    <a href="service-list.html">🏪 Shop Service List</a>
+                    <a href="service-entry.html">➕ Shop Service Entry</a>
+                    <a href="field-service-list.html">🛵 Field Service List</a>
+                    <a href="field-service-entry.html">➕ Field Service Entry</a>
+                </div>
+            </div>
+
+            <div class="menu-dropdown field-tech-menu-dropdown">
+                <a href="javascript:void(0)" class="menu-dropdown-toggle" onclick="toggleFieldTechMenu(event)">
+                    <span class="dropdown-label">🛠️ Field Technician</span>
+                    <span class="dropdown-chevron">▾</span>
+                </a>
+                <div class="menu-dropdown-content">
+                    <a href="field-service-list.html">🛵 Field Complaints</a>
+                    <a href="technician-schedule.html">📅 Tech Schedule</a>
+                    <a href="technician-live-map.html">🗺️ Live Map Tracking</a>
+                    <a href="technician-gps-history.html">📍 GPS Location History</a>
+                    <a href="technician-activity-log.html">📜 Activity Log</a>
+                    <a href="employees.html">👷 Employees</a>
+                    <a href="attendance.html">📍 Attendance & GPS</a>
+                    <a href="employee-attendance-reports.html">📊 Attendance Reports</a>
+                    <a href="technician-performance.html">🎯 Technician Performance</a>
+                    <a href="technician-tools.html">🧰 Tech Tools</a>
+                    <a href="technician-inventory.html">📦 Tech Inventory</a>
+                    <a href="device-management.html" data-role="admin">🔒 Device Security</a>
+                </div>
+            </div>
+            <a href="supplier.html">🚚 Suppliers</a>
+            <a href="expense-list.html">💰 Expenses</a>
+            <a href="reports.html">📈 Reports</a>
+            <a href="scrap.html">♻️ Scrap</a>
+            <a href="user-list.html" data-role="admin">👤 Users</a>
+            <a href="settings.html" data-role="admin">⚙️ Settings</a>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <header class="topbar">
+            <div>
+                <h2>Technician Material & Spare Inventory</h2>
+                <p style="color: #64748b; font-size: 0.9rem;">Admin-controlled spare parts handover (Zero automatic deduction rule strictly enforced)</p>
+            </div>
+            <div>
+                <button class="btn btn-primary" onclick="openIssueModal()">📤 Issue Spares to Tech</button>
+            </div>
+        </header>
+
+        <div class="container">
+            <!-- Alert Banner: Policy reminder -->
+            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-left: 5px solid #16a34a; border-radius: 8px; padding: 12px 18px; margin-bottom: 20px; font-size: 0.9rem; color: #166534;">
+                <strong>🛡️ Inventory Control Policy:</strong> Material usage on jobs is informational only. Spare parts issued to technicians remain in technician custody until Admin logs an official Store Return or adjustment.
+            </div>
+
+            <!-- Tabs -->
+            <div class="tabs-nav">
+                <button class="tab-btn active" id="tabStockBtn" onclick="switchTab('stock')">📦 Current Technician Stock</button>
+                <button class="tab-btn" id="tabLogsBtn" onclick="switchTab('logs')">📜 Issue & Return Audit Logs</button>
+            </div>
+
+            <!-- Tab 1: Current Stock -->
+            <div id="tabStockSection">
+                <div class="toolbar-card">
+                    <div class="filters-group">
+                        <select id="empFilter" class="select-filter" onchange="loadTechnicianStock()">
+                            <option value="">All Technicians</option>
+                        </select>
+                    </div>
+                    <div>
+                        <button class="btn btn-secondary" onclick="loadTechnicianStock()">🔄 Refresh</button>
+                    </div>
+                </div>
+
+                <div class="table-card">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Technician Name</th>
+                                <th>Spare Part / Product Name</th>
+                                <th>Quantity in Hand</th>
+                                <th>Unit Price</th>
+                                <th>Last Updated</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stockTableBody">
+                            <tr>
+                                <td colspan="6" style="text-align: center; color: #64748b; padding: 25px;">Loading stock records...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Tab 2: Audit Logs -->
+            <div id="tabLogsSection" style="display: none;">
+                <div class="toolbar-card">
+                    <div class="filters-group">
+                        <select id="logEmpFilter" class="select-filter" onchange="loadInventoryLogs()">
+                            <option value="">All Technicians</option>
+                        </select>
+                    </div>
+                    <div>
+                        <button class="btn btn-secondary" onclick="loadInventoryLogs()">🔄 Refresh</button>
+                    </div>
+                </div>
+
+                <div class="table-card">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Technician</th>
+                                <th>Transaction Type</th>
+                                <th>Product Name</th>
+                                <th>Quantity</th>
+                                <th>Authorized By</th>
+                                <th>Remarks</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logsTableBody">
+                            <tr>
+                                <td colspan="7" style="text-align: center; color: #64748b; padding: 25px;">Loading transaction history...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Issue Spares Modal -->
+    <div id="issueModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Issue Spare Parts to Technician</h3>
+                <button class="close-btn" onclick="closeIssueModal()">&times;</button>
+            </div>
+            <form id="issueForm" onsubmit="saveIssue(event)">
+                <div class="form-grid">
+                    <div class="form-group full-width">
+                        <label for="issueEmpSelect">Technician *</label>
+                        <select id="issueEmpSelect" required>
+                            <option value="">-- Select Technician --</option>
+                        </select>
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="issueProductSelect">Spare Part / Product *</label>
+                        <select id="issueProductSelect" required>
+                            <option value="">-- Choose Product --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="issueQty">Quantity to Issue *</label>
+                        <input type="number" id="issueQty" min="1" value="1" required>
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="issueRemarks">Remarks / Job Reference</label>
+                        <textarea id="issueRemarks" placeholder="Optional notes (e.g. For tomorrow's printer repairs)"></textarea>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeIssueModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="saveIssueBtn">Confirm Issue</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Return Spares Modal -->
+    <div id="returnModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Receive Returned Spares back to Store</h3>
+                <button class="close-btn" onclick="closeReturnModal()">&times;</button>
+            </div>
+            <form id="returnForm" onsubmit="saveReturn(event)">
+                <input type="hidden" id="retEmpId">
+                <input type="hidden" id="retProductId">
+                <div class="form-grid">
+                    <div class="form-group full-width">
+                        <label>Technician</label>
+                        <div id="retEmpLabel" style="font-weight: 700; color: #0f172a; padding: 4px 0;"></div>
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Product</label>
+                        <div id="retProductLabel" style="font-weight: 700; color: #0f172a; padding: 4px 0;"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="retQty">Quantity Returned *</label>
+                        <input type="number" id="retQty" min="1" value="1" required>
+                        <small id="retMaxHeldNotice" style="color: #64748b; margin-top: 2px;"></small>
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="retRemarks">Inspection Remarks</label>
+                        <textarea id="retRemarks" placeholder="Check seal, condition, packaging..."></textarea>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeReturnModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="saveRetBtn">Receive Back in Store</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script src="technician-inventory.js?v=1.0"></script>
+</body>
+</html>
+

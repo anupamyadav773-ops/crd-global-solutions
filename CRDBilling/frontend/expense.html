@@ -1,0 +1,120 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRD Global Solutions - Expense</title>
+    <link rel="stylesheet" href="expense.css">
+</head>
+
+<body>
+    <div class="page-container">
+
+        <div class="page-header">
+            <div>
+                <h1 id="pageTitle">Add Expense</h1>
+                <p id="pageSubtitle">Record business expenses and vendor payments</p>
+            </div>
+
+            <a href="expense-list.html" class="back-button">← Back to Expenses</a>
+        </div>
+
+        <div class="form-card">
+            <form id="expenseForm">
+                <div class="form-grid">
+
+                    <div class="form-group">
+                        <label for="expense_number">Expense Number</label>
+                        <input type="text" id="expense_number" value="Auto-generated on save" readonly>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="expense_date">Expense Date *</label>
+                        <input type="date" id="expense_date" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="category">Category *</label>
+                        <select id="category" required>
+                            <option value="">Select Category</option>
+                            <option value="Electricity">Electricity</option>
+                            <option value="Internet">Internet</option>
+                            <option value="Telephone">Telephone</option>
+                            <option value="Rent">Rent</option>
+                            <option value="Salary">Salary</option>
+                            <option value="Transport">Transport</option>
+                            <option value="Repair & Maintenance">Repair & Maintenance</option>
+                            <option value="Office Supplies">Office Supplies</option>
+                            <option value="Advertising">Advertising</option>
+                            <option value="Software">Software</option>
+                            <option value="Bank Charges">Bank Charges</option>
+                            <option value="Taxes">Taxes</option>
+                            <option value="Courier">Courier</option>
+                            <option value="Travel">Travel</option>
+                            <option value="Miscellaneous">Miscellaneous</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="payment_method">Payment Method *</label>
+                        <select id="payment_method" required>
+                            <option value="">Select Payment Method</option>
+                            <option value="Cash">Cash</option>
+                            <option value="UPI">UPI</option>
+                            <option value="Bank Transfer">Bank Transfer</option>
+                            <option value="Card">Card</option>
+                            <option value="Cheque">Cheque</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label for="description">Expense Description *</label>
+                        <textarea id="description" rows="3" required placeholder="Enter expense description"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="amount">Amount *</label>
+                        <input type="number" id="amount" step="0.01" min="0.01" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="paid_to">Paid To / Vendor</label>
+                        <input type="text" id="paid_to" placeholder="Vendor or payee name">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="reference_number">Reference Number</label>
+                        <input type="text" id="reference_number" placeholder="Invoice / cheque / ref no.">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="status">Status</label>
+                        <select id="status">
+                            <option value="Paid">Paid</option>
+                            <option value="Pending">Pending</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label for="notes">Notes</label>
+                        <textarea id="notes" rows="3" placeholder="Additional notes if any"></textarea>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <a href="expense-list.html" class="cancel-button">Cancel</a>
+                    <button type="submit" id="saveButton" class="save-button">Save Expense</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script src="expense.js"></script>
+</body>
+
+</html>
+

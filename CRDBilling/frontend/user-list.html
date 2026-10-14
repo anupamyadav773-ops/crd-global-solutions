@@ -1,0 +1,287 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRD Global Solutions - Users</title>
+    <link rel="stylesheet" href="user-list.css">
+</head>
+
+<body>
+    <aside class="sidebar">
+        <div class="logo">CRD Global Solutions</div>
+
+        <div class="menu">
+            <a href="dashboard.html">🏠 Dashboard</a>
+            <a href="customer-list.html">👥 Customers</a>
+            <a href="product-list.html">📦 Products</a>
+            <a href="sales-list.html">🧾 Billing</a>
+            <a href="quotation-list.html">📄 Quotations</a>
+            <a href="purchase-list.html">🛒 Purchases</a>
+            <div class="menu-dropdown service-menu-dropdown">
+                <a href="javascript:void(0)" class="menu-dropdown-toggle" onclick="toggleServiceMenu(event)">
+                    <span class="dropdown-label">🔧 Services</span>
+                    <span class="dropdown-chevron">▾</span>
+                </a>
+                <div class="menu-dropdown-content">
+                    <a href="service-list.html">🏪 Shop Service List</a>
+                    <a href="service-entry.html">➕ Shop Service Entry</a>
+                    <a href="field-service-list.html">🛵 Field Service List</a>
+                    <a href="field-service-entry.html">➕ Field Service Entry</a>
+                </div>
+            </div>
+
+            <div class="menu-dropdown field-tech-menu-dropdown">
+                <a href="javascript:void(0)" class="menu-dropdown-toggle" onclick="toggleFieldTechMenu(event)">
+                    <span class="dropdown-label">🛠️ Field Technician</span>
+                    <span class="dropdown-chevron">▾</span>
+                </a>
+                <div class="menu-dropdown-content">
+                    <a href="field-service-list.html">🛵 Field Complaints</a>
+                    <a href="technician-schedule.html">📅 Tech Schedule</a>
+                    <a href="technician-live-map.html">🗺️ Live Map Tracking</a>
+                    <a href="technician-gps-history.html">📍 GPS Location History</a>
+                    <a href="technician-activity-log.html">📜 Activity Log</a>
+                    <a href="employees.html">👷 Employees</a>
+                    <a href="attendance.html">📍 Attendance & GPS</a>
+                    <a href="employee-attendance-reports.html">📊 Attendance Reports</a>
+                    <a href="technician-performance.html">🎯 Technician Performance</a>
+                    <a href="technician-tools.html">🧰 Tech Tools</a>
+                    <a href="technician-inventory.html">📦 Tech Inventory</a>
+                    <a href="device-management.html" data-role="admin">🔒 Device Security</a>
+                </div>
+            </div>
+            <a href="supplier.html">🚚 Suppliers</a>
+            <a href="expense-list.html">💰 Expenses</a>
+            <a href="reports.html">📈 Reports</a>
+            <a href="scrap.html">♻️ Scrap</a>
+            <a href="user-list.html" class="active" data-role="admin">👤 Users</a>
+            <a href="settings.html" data-role="admin">⚙️ Settings</a>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="topbar">
+            <div>
+                <h2>Users</h2>
+                <p>Manage user access and permissions</p>
+            </div>
+
+            <div class="user-area">
+                <span>Admin</span>
+                <button type="button" id="manageRolesBtn" class="secondary-btn role-manage-btn">🛡️ Manage Roles</button>
+                <button type="button" onclick="window.location.href='user.html'" class="add-button">+ Add User</button>
+            </div>
+        </header>
+
+        <!-- NAVIGATION TABS -->
+        <div class="user-page-tabs" style="display: flex; gap: 8px; margin: 15px 0 20px; border-bottom: 2px solid #e2e8f0;">
+            <button type="button" id="tabUsersBtn" class="tab-btn active" style="padding: 11px 22px; font-weight: 700; font-size: 14px; border: none; background: none; border-bottom: 3px solid #ff6600; color: #ff6600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                👥 Users List (उपयोगकर्ता सूची)
+            </button>
+            <button type="button" id="tabRolesBtn" class="tab-btn" style="padding: 11px 22px; font-weight: 600; font-size: 14px; border: none; background: none; border-bottom: 3px solid transparent; color: #64748b; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                🛡️ Roles & Permissions (रोल एडिट करें व नए बनाएं)
+            </button>
+        </div>
+
+        <!-- USERS SECTION -->
+        <div id="usersSection">
+            <section class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon total">👥</div>
+                    <div>
+                        <p>Total Users</p>
+                        <h2 id="totalUsers">0</h2>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon active">✅</div>
+                    <div>
+                        <p>Active Users</p>
+                        <h2 id="activeUsers">0</h2>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon inactive">⏳</div>
+                    <div>
+                        <p>Inactive Users</p>
+                        <h2 id="inactiveUsers">0</h2>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon admin">🛡️</div>
+                    <div>
+                        <p>Admins</p>
+                        <h2 id="adminUsers">0</h2>
+                    </div>
+                </div>
+            </section>
+
+            <section class="filter-box">
+                <div class="filter-grid">
+                    <div class="form-group wide">
+                        <label for="searchInput">Search</label>
+                        <input type="text" id="searchInput" placeholder="Username, name, mobile, email...">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="roleFilter">Role</label>
+                        <select id="roleFilter">
+                            <option value="">All Roles</option>
+                            <option value="Admin">Admin</option>
+                            <option value="Manager">Manager</option>
+                            <option value="Staff">Staff</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="statusFilter">Status</label>
+                        <select id="statusFilter">
+                            <option value="">All Status</option>
+                            <option value="Active">Active</option>
+                            <option value="Inactive">Inactive</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="filter-actions">
+                    <button id="applyFilters" class="primary-btn" type="button">Apply</button>
+                    <button id="resetFilters" class="secondary-btn" type="button">Reset</button>
+                </div>
+            </section>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Username</th>
+                            <th>Full Name</th>
+                            <th>Mobile</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="userTableBody">
+                        <tr>
+                            <td colspan="9" class="empty-message">Loading users...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ROLES & PERMISSIONS SECTION -->
+        <div id="rolesSection" style="display: none;">
+            <!-- Role Creation / Edit Form Panel -->
+            <div id="roleFormContainer" class="role-form-panel hidden" style="background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 10px; padding: 20px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.06);">
+                <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 15px;">
+                    <h3 id="roleFormTitle" style="margin: 0; font-size: 17px; color: #1e293b;">Create New Role</h3>
+                    <button type="button" id="cancelRoleForm" class="link-btn" style="background: none; border: none; color: #64748b; font-size: 14px; cursor: pointer;">✕ Close Form</button>
+                </div>
+                <form id="roleForm">
+                    <input type="hidden" id="editRoleId" value="">
+                    
+                    <div class="role-input-grid">
+                        <div class="form-group">
+                            <label for="roleNameInput">Role Name / रोल का नाम *</label>
+                            <input type="text" id="roleNameInput" placeholder="e.g. Biller, Technician, Accountant" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="roleDescInput">Description / विवरण</label>
+                            <input type="text" id="roleDescInput" placeholder="Short description of role duties">
+                        </div>
+                    </div>
+
+                    <div class="permissions-section" style="margin-top: 15px;">
+                        <div class="perm-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <label style="font-weight: 600; font-size: 14px; color: #1e293b;">Assign Module Permissions / मॉड्यूल अनुमतियां चुनें</label>
+                            <div class="perm-quick-actions" style="display: flex; gap: 8px; font-size: 13px;">
+                                <button type="button" id="selectAllPerms" class="small-link-btn" style="background:none; border:none; color:#2563eb; cursor:pointer; font-weight:600;">Select All</button>
+                                <span class="sep" style="color:#cbd5e1;">|</span>
+                                <button type="button" id="clearAllPerms" class="small-link-btn" style="background:none; border:none; color:#64748b; cursor:pointer; font-weight:600;">Clear All</button>
+                            </div>
+                        </div>
+                        <div id="permissionsGrid" class="permissions-grid">
+                            <!-- Injected dynamically -->
+                        </div>
+                    </div>
+
+                    <div class="modal-actions" style="margin-top:20px; display: flex; gap: 10px; justify-content: flex-end;">
+                        <button type="button" class="secondary-btn" id="cancelRoleFormBtn">Cancel</button>
+                        <button type="submit" class="primary-btn" id="saveRoleBtn">💾 Save Role (रोल सहेजें)</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Existing Roles Header -->
+            <div class="roles-list-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <div>
+                    <h3 style="margin: 0; font-size: 18px; color: #0f172a;">🛡️ All Roles & Permissions (सभी रोल्स)</h3>
+                    <p class="subtext" style="margin: 4px 0 0; color: #64748b; font-size: 13px;">रोल एडिट करने के लिए सामने दिए गए <strong>"✏️ Edit Role"</strong> बटन पर क्लिक करें।</p>
+                </div>
+                <button type="button" id="showCreateRoleBtn" class="primary-btn" style="padding: 9px 18px; font-size: 13px;">+ Create New Role</button>
+            </div>
+
+            <div class="table-container role-table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Role Name</th>
+                            <th>Type</th>
+                            <th>Description</th>
+                            <th>Users</th>
+                            <th>Allowed Permissions</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rolesTableBody">
+                        <tr>
+                            <td colspan="6" class="empty-message">Loading roles...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <div id="passwordModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Reset Password</h3>
+                <button type="button" class="close-modal" id="closePasswordModal">×</button>
+            </div>
+
+            <form id="resetPasswordForm">
+                <div class="form-group full-width">
+                    <label for="newPassword">New Password</label>
+                    <input type="password" id="newPassword" placeholder="Enter new password" required>
+                </div>
+
+                <div class="form-group full-width">
+                    <label for="confirmPassword">Confirm Password</label>
+                    <input type="password" id="confirmPassword" placeholder="Confirm new password" required>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="secondary-btn" id="cancelPasswordReset">Cancel</button>
+                    <button type="submit" class="primary-btn">Update Password</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script src="user-list.js"></script>
+</body>
+
+</html>
+

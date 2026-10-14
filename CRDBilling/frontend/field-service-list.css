@@ -1,0 +1,149 @@
+/* Field Service List Specific Styles */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.stat-card {
+    background: #fff;
+    padding: 16px 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-left: 4px solid #10b981;
+}
+
+.stat-card.blue { border-left-color: #0284c7; }
+.stat-card.orange { border-left-color: #f59e0b; }
+.stat-card.purple { border-left-color: #8b5cf6; }
+
+.stat-info h3 {
+    font-size: 24px;
+    margin-bottom: 4px;
+    color: #111827;
+}
+
+.stat-info p {
+    font-size: 13px;
+    color: #6b7280;
+}
+
+.stat-icon {
+    font-size: 28px;
+}
+
+.badge-priority {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.prio-Urgent { background: #fee2e2; color: #b91c1c; }
+.prio-High { background: #ffedd5; color: #c2410c; }
+.prio-Normal { background: #e0f2fe; color: #0369a1; }
+.prio-Low { background: #f3f4f6; color: #4b5563; }
+
+.badge-status {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.status-Pending { background: #fef3c7; color: #92400e; }
+.status-Assigned { background: #dbeafe; color: #1e40af; }
+.status-On-The-Way, .status-On_The_Way { background: #fef08a; color: #854d0e; }
+.status-Reached { background: #e0e7ff; color: #3730a3; }
+.status-In-Progress, .status-Work-Started { background: #fed7aa; color: #9a3412; }
+.status-Hold, .status-Held { background: #fecdd3; color: #9f1239; }
+.status-Completed, .status-Ready { background: #d1fae5; color: #065f46; }
+.status-Delivered { background: #ecfdf5; color: #047857; }
+.status-Cancelled { background: #f3f4f6; color: #6b7280; }
+
+.action-btn {
+    border: none;
+    background: none;
+    cursor: pointer;
+    padding: 5px 8px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 500;
+    transition: background 0.15s;
+}
+
+.action-btn.print {
+    background: #f3f4f6;
+    color: #1f2937;
+}
+
+.action-btn.print:hover {
+    background: #e5e7eb;
+}
+
+.action-btn.assign {
+    background: #0284c7;
+    color: #fff;
+}
+
+.action-btn.assign:hover {
+    background: #0369a1;
+}
+
+.action-btn.edit {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.action-btn.edit:hover {
+    background: #fde68a;
+}
+
+/* Modal and Slip Print Layout Fixes */
+#jobSheetModal {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+}
+
+#jobSheetPrintArea {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+}
+
+.gate-pass-slip,
+.gate-pass-slip * {
+    box-sizing: border-box !important;
+}
+
+.gate-pass-slip {
+    width: 100% !important;
+    max-width: 720px !important;
+    margin: 0 auto !important;
+    overflow: hidden !important;
+    word-break: break-word !important;
+}
+
+.gate-pass-slip table {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    table-layout: fixed !important;
+    border-collapse: collapse !important;
+}
+
+.gate-pass-slip td,
+.gate-pass-slip th {
+    min-width: 0 !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+}
+

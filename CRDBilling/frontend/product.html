@@ -1,0 +1,367 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>CRD Global Solutions - Product</title>
+
+    <link rel="stylesheet" href="product.css">
+
+</head>
+
+<body>
+
+    <div class="product-container">
+
+        <div class="page-header">
+
+            <div>
+
+                <h1 id="pageTitle">Add Product</h1>
+
+                <p id="pageSubtitle">
+                    Enter product details below
+                </p>
+
+            </div>
+
+            <a
+                href="product-list.html"
+                class="back-button"
+            >
+                ← Product List
+            </a>
+
+        </div>
+
+
+        <form id="productForm">
+
+            <div class="form-grid">
+
+
+                <div class="form-group">
+
+                    <label for="product_name">
+                        Product Name *
+                    </label>
+
+                    <input
+                        type="text"
+                        id="product_name"
+                        placeholder="Enter product name"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="category">
+                        Category
+                    </label>
+
+                    <input
+                        type="text"
+                        id="category"
+                        placeholder="e.g. Laptop, Printer, Cable"
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="brand">
+                        Brand
+                    </label>
+
+                    <input
+                        type="text"
+                        id="brand"
+                        placeholder="Enter brand name"
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="item_type">
+                        Item Type
+                    </label>
+
+                    <select id="item_type">
+
+                        <option value="Product">Product</option>
+                        <option value="Service">Service</option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="unit">
+                        Primary Unit (मुख्य इकाई) <span style="color:red">*</span>
+                    </label>
+
+                    <select id="unit">
+
+                        <option value="Piece">Piece (पीस)</option>
+                        <option value="Box">Box (बॉक्स)</option>
+                        <option value="Pkt">Packet / Pkt (पैकेट)</option>
+                        <option value="Kg">Kg (किलोग्राम)</option>
+                        <option value="Gm">Gm (ग्राम)</option>
+                        <option value="Meter">Meter (मीटर)</option>
+                        <option value="Set">Set (सेट)</option>
+                        <option value="Dozen">Dozen (दर्जन)</option>
+                        <option value="Litre">Litre (लीटर)</option>
+                        <option value="Nos">Nos (नग)</option>
+                        <option value="Roll">Roll (रोल)</option>
+                        <option value="Bottle">Bottle (बोतल)</option>
+                        <option value="Can">Can (कैन)</option>
+                        <option value="Pair">Pair (जोड़ी)</option>
+                        <option value="Service">Service (सेवा)</option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="form-group product-only-field">
+
+                    <label for="secondary_unit">
+                        Secondary Unit (वैकल्पिक)
+                    </label>
+
+                    <select id="secondary_unit">
+
+                        <option value="">-- None (सिर्फ 1 Unit) --</option>
+                        <option value="Piece">Piece (पीस)</option>
+                        <option value="Pkt">Packet / Pkt (पैकेट)</option>
+                        <option value="Gm">Gm (ग्राम)</option>
+                        <option value="Meter">Meter (मीटर)</option>
+                        <option value="Nos">Nos (नग)</option>
+                        <option value="Box">Box (बॉक्स)</option>
+                        <option value="Kg">Kg (किलोग्राम)</option>
+                        <option value="Litre">Litre (लीटर)</option>
+                        <option value="Set">Set (सेट)</option>
+
+                    </select>
+
+                </div>
+
+
+                <div id="conversion_section" class="form-group full-width product-only-field" style="display: none; background: #eff6ff; border: 1.5px dashed #3b82f6; border-radius: 8px; padding: 16px; margin: 8px 0;">
+
+                    <div style="font-weight: 600; color: #1d4ed8; margin-bottom: 10px; font-size: 0.95rem;">
+                        <i class="fas fa-balance-scale"></i> Unit Conversion Equation (रूपांतरण सूत्र)
+                    </div>
+
+                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;">
+                        <span style="font-weight: 700; font-size: 1.05rem; color: #1e3a8a;">1 <span id="primary_unit_label">Box</span> =</span>
+                        <input type="number" id="conversion_rate" min="0.0001" step="any" value="1" style="width: 120px; font-weight: bold; text-align: center; border: 2px solid #3b82f6; border-radius: 6px; padding: 6px 8px;" placeholder="उदा. 20">
+                        <span id="secondary_unit_label" style="font-weight: 700; font-size: 1.05rem; color: #1e3a8a;">Piece</span>
+                        <span style="font-size: 0.85rem; color: #64748b;">(जैसे: 1 Box = 20 Piece)</span>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; background: #ffffff; padding: 12px; border-radius: 6px; border: 1px solid #bfdbfe;">
+                        <div>
+                            <label style="font-size: 0.85rem; font-weight: 600; color: #334155; margin-bottom: 4px; display: block;">
+                                Secondary Purchase Price (प्रति <span class="sec-unit-text">Piece</span> खरीद)
+                            </label>
+                            <input type="number" id="secondary_purchase_price" value="0" min="0" step="0.01" placeholder="Auto / Custom Rate">
+                        </div>
+                        <div>
+                            <label style="font-size: 0.85rem; font-weight: 600; color: #334155; margin-bottom: 4px; display: block;">
+                                Secondary Sale Price (प्रति <span class="sec-unit-text">Piece</span> बिक्री)
+                            </label>
+                            <input type="number" id="secondary_sale_price" value="0" min="0" step="0.01" placeholder="Auto / Custom Rate">
+                        </div>
+                    </div>
+
+                    <div style="font-size: 0.8rem; color: #475569; margin-top: 8px;">
+                        <i class="fas fa-info-circle" style="color: #2563eb;"></i> <strong>ध्यान दें:</strong> Purchase या Billing में आप Primary या Secondary दोनों Units चुन सकते हैं। Stock हमेशा base unit (<span class="sec-unit-text">Piece</span>) में सुरक्षित रहेगा।
+                    </div>
+
+                </div>
+
+
+                <div class="form-group full-width">
+
+                    <label for="description">
+                        Description
+                    </label>
+
+                    <textarea
+                        id="description"
+                        rows="3"
+                        placeholder="Optional description for the item"
+                    ></textarea>
+
+                </div>
+
+
+                <div class="form-group product-only-field">
+
+                    <label for="purchase_price">
+                        Purchase Price
+                    </label>
+
+                    <input
+                        type="number"
+                        id="purchase_price"
+                        value="0"
+                        min="0"
+                        step="0.01"
+                    >
+
+                </div>
+
+
+                <div class="form-group product-only-field">
+
+                    <label for="sale_price">
+                        Sale Price
+                    </label>
+
+                    <input
+                        type="number"
+                        id="sale_price"
+                        value="0"
+                        min="0"
+                        step="0.01"
+                    >
+
+                </div>
+
+
+                <div class="form-group product-only-field">
+
+                    <label for="stock">
+                        Stock
+                    </label>
+
+                    <input
+                        type="number"
+                        id="stock"
+                        value="0"
+                        min="0"
+                        step="0.01"
+                    >
+
+                </div>
+
+
+                <div class="form-group product-only-field">
+
+                    <label for="min_stock">
+                        Minimum Stock
+                    </label>
+
+                    <input
+                        type="number"
+                        id="min_stock"
+                        value="0"
+                        min="0"
+                        step="0.01"
+                    >
+
+                </div>
+
+
+                <div class="form-group product-only-field">
+
+                    <label for="track_serial">
+                        Track Serial
+                    </label>
+
+                    <select id="track_serial">
+
+                        <option value="No">No</option>
+                        <option value="Yes">Yes</option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="form-group product-only-field">
+
+                    <label for="gst_rate">
+                        GST Rate (%)
+                    </label>
+
+                    <select id="gst_rate">
+
+                        <option value="0">0%</option>
+                        <option value="5">5%</option>
+                        <option value="12">12%</option>
+                        <option value="18">18%</option>
+                        <option value="28">28%</option>
+
+                    </select>
+
+                </div>
+
+                <div class="form-group product-only-field">
+
+                    <label for="warranty_months">
+                        Warranty / वारंटी (महीने)
+                    </label>
+
+                    <input
+                        type="number"
+                        id="warranty_months"
+                        value="0"
+                        min="0"
+                        step="1"
+                        placeholder="उदा. 12 (महीने)"
+                    >
+
+                </div>
+
+            </div>
+
+
+            <div class="form-buttons">
+
+                <button
+                    type="button"
+                    class="clear-button"
+                    onclick="window.location.href='product-list.html'"
+                >
+                    Cancel
+                </button>
+
+                <button
+                    type="submit"
+                    class="save-button"
+                    id="saveButton"
+                >
+                    Save Product
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+
+    <script src="config.js?v=2.3"></script>
+    <script src="auth.js?v=2.3"></script>
+    <script src="product.js?v=2.3"></script>
+
+</body>
+
+</html>
+

@@ -1,0 +1,245 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Technician Activity Log | CRD Global Solutions</title>
+    <link rel="stylesheet" href="dashboard.css">
+    <link rel="stylesheet" href="technician-activity-log.css">
+</head>
+<body>
+
+    <!-- =========================
+         Sidebar Navigation
+    ========================== -->
+    <aside class="sidebar">
+        <div class="logo">
+            CRD Global Solutions
+        </div>
+
+        <div class="menu">
+            <a href="dashboard.html">🏠 Dashboard</a>
+            <a href="customer-list.html">👥 Customers</a>
+            <a href="product-list.html">📦 Products</a>
+            <a href="sales-list.html">🧾 Billing</a>
+            <a href="quotation-list.html">📄 Quotations</a>
+            <a href="purchase-list.html">🛒 Purchases</a>
+
+            <div class="menu-dropdown service-menu-dropdown">
+                <a href="javascript:void(0)" class="menu-dropdown-toggle" onclick="toggleServiceMenu(event)">
+                    <span class="dropdown-label">🔧 Services</span>
+                    <span class="dropdown-chevron">▾</span>
+                </a>
+                <div class="menu-dropdown-content">
+                    <a href="service-list.html">🏪 Shop Service List</a>
+                    <a href="service-entry.html">➕ Shop Service Entry</a>
+                    <a href="field-service-list.html">🛵 Field Service List</a>
+                    <a href="field-service-entry.html">➕ Field Service Entry</a>
+                </div>
+            </div>
+
+            <div class="menu-dropdown field-tech-menu-dropdown">
+                <a href="javascript:void(0)" class="menu-dropdown-toggle" onclick="toggleFieldTechMenu(event)">
+                    <span class="dropdown-label">🛠️ Field Technician</span>
+                    <span class="dropdown-chevron">▾</span>
+                </a>
+                <div class="menu-dropdown-content">
+                    <a href="field-service-list.html">🛵 Field Complaints</a>
+                    <a href="technician-schedule.html">📅 Tech Schedule</a>
+                    <a href="technician-live-map.html">🗺️ Live Map Tracking</a>
+                    <a href="technician-gps-history.html">📍 GPS Location History</a>
+                    <a href="technician-activity-log.html" class="active">📜 Activity Log</a>
+                    <a href="employees.html">👷 Employees</a>
+                    <a href="attendance.html">📍 Attendance & GPS</a>
+                    <a href="employee-attendance-reports.html">📊 Attendance Reports</a>
+                    <a href="technician-performance.html">🎯 Technician Performance</a>
+                    <a href="technician-tools.html">🧰 Tech Tools</a>
+                    <a href="technician-inventory.html">📦 Tech Inventory</a>
+                    <a href="device-management.html" data-role="admin">🔒 Device Security</a>
+                </div>
+            </div>
+
+            <a href="supplier.html">🚚 Suppliers</a>
+            <a href="expense-list.html">💰 Expenses</a>
+            <a href="reports.html">📈 Reports</a>
+            <a href="scrap.html">♻️ Scrap</a>
+            <a href="user-list.html" data-role="admin">👤 Users</a>
+            <a href="settings.html" data-role="admin">⚙️ Settings</a>
+        </div>
+    </aside>
+
+    <!-- =========================
+         Main Content Area
+    ========================== -->
+    <main class="main-content">
+
+        <!-- Topbar -->
+        <header class="topbar">
+            <div>
+                <h2>📜 Technician Activity Log &amp; Audit Trail</h2>
+                <p>Complete chronological audit of technician attendance, customer visits, job progression, and security events</p>
+            </div>
+
+            <div class="topbar-actions">
+                <button type="button" class="btn btn-secondary btn-sm" id="autoRefreshBtn" onclick="toggleAutoRefresh()">
+                    ⏱️ Auto-Refresh: <strong id="autoRefreshLabel">20s</strong>
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="exportLogsCSV()">
+                    📥 Export CSV
+                </button>
+                <button type="button" class="btn btn-primary btn-sm" onclick="loadActivityLogs(true)">
+                    🔄 Refresh
+                </button>
+                <div class="user-area">
+                    <span>Admin</span>
+                    <button type="button" onclick="logout()">Logout</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- KPI Metrics Summary Cards -->
+        <div class="activity-stats-strip">
+            <div class="stat-card">
+                <div class="stat-icon icon-blue">📋</div>
+                <div class="stat-data">
+                    <div class="stat-val" id="statTodayTotal">0</div>
+                    <div class="stat-lbl">Today's Activities</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon icon-green">⏱️</div>
+                <div class="stat-data">
+                    <div class="stat-val" id="statTodayAttendance">0</div>
+                    <div class="stat-lbl">Attendance Punches</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon icon-orange">🛵</div>
+                <div class="stat-data">
+                    <div class="stat-val" id="statTodayJobs">0</div>
+                    <div class="stat-lbl">Job Progression Events</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon icon-red">🛡️</div>
+                <div class="stat-data">
+                    <div class="stat-val" id="statTodayAlerts">0</div>
+                    <div class="stat-lbl">Security &amp; Geofence Alerts</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter & Search Toolbar -->
+        <div class="activity-toolbar-card">
+            <div class="toolbar-row">
+                <!-- Date Filter Presets -->
+                <div class="date-preset-group">
+                    <button class="preset-btn active" data-range="today" onclick="setDatePreset('today')">Today</button>
+                    <button class="preset-btn" data-range="yesterday" onclick="setDatePreset('yesterday')">Yesterday</button>
+                    <button class="preset-btn" data-range="week" onclick="setDatePreset('week')">Last 7 Days</button>
+                    <button class="preset-btn" data-range="all" onclick="setDatePreset('all')">All Time</button>
+                </div>
+
+                <div class="custom-date-box">
+                    <label for="customDateInput">Date:</label>
+                    <input type="date" id="customDateInput" onchange="onCustomDateChanged()">
+                </div>
+
+                <!-- Technician Dropdown -->
+                <div class="filter-select-box">
+                    <label for="techFilterSelect">Technician:</label>
+                    <select id="techFilterSelect" onchange="onFiltersChanged()">
+                        <option value="">All Technicians</option>
+                    </select>
+                </div>
+
+                <!-- Activity Type Filter -->
+                <div class="filter-select-box">
+                    <label for="typeFilterSelect">Type:</label>
+                    <select id="typeFilterSelect" onchange="onFiltersChanged()">
+                        <option value="ALL">All Categories</option>
+                        <option value="ATTENDANCE">⏱️ Attendance (Check-in/out)</option>
+                        <option value="JOB_STATUS">🛵 Job Status &amp; Travel</option>
+                        <option value="WORK_PROOF">📸 Work Proof &amp; Signature</option>
+                        <option value="TOOL_MOVEMENT">🧰 Tools &amp; Assets</option>
+                        <option value="INVENTORY_USAGE">📦 Material Usage</option>
+                        <option value="GEOFENCE_ALERT">📍 Geofence &amp; GPS Alerts</option>
+                        <option value="DEVICE_SECURITY">🔒 Device &amp; Security</option>
+                        <option value="ADMIN_ACTION">⚙️ Admin Corrections</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="toolbar-row toolbar-subrow">
+                <!-- Search input -->
+                <div class="search-input-wrapper">
+                    <input type="text" id="activitySearchInput" placeholder="🔍 Search description, technician, Job #FLD-..., or customer..." oninput="debounceSearch()">
+                </div>
+
+                <!-- View Switcher -->
+                <div class="view-switch-group">
+                    <button class="view-btn active" id="viewBtnTimeline" onclick="switchView('timeline')">
+                        🕒 Timeline
+                    </button>
+                    <button class="view-btn" id="viewBtnTable" onclick="switchView('table')">
+                        📊 Table
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Activity Feed Area -->
+        <div class="activity-content-shell">
+
+            <!-- TIMELINE VIEW -->
+            <div id="timelineContainer" class="timeline-container">
+                <div class="timeline-loading">
+                    <div class="spinner"></div>
+                    <p>Loading activity logs...</p>
+                </div>
+            </div>
+
+            <!-- TABLE VIEW -->
+            <div id="tableContainer" class="table-container" style="display: none;">
+                <div class="table-card">
+                    <table class="activity-table">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Technician</th>
+                                <th>Category</th>
+                                <th>Action</th>
+                                <th>Description / Details</th>
+                                <th>Location &amp; Job</th>
+                            </tr>
+                        </thead>
+                        <tbody id="activityTableBody">
+                            <tr>
+                                <td colspan="6" style="text-align: center; padding: 24px;">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Pagination Bar -->
+            <div class="pagination-bar" id="paginationBar">
+                <div class="pagination-info" id="paginationInfo">Showing 0 of 0 records</div>
+                <div class="pagination-controls">
+                    <button class="btn btn-secondary btn-sm" id="prevPageBtn" onclick="changePage(-1)" disabled>◀ Previous</button>
+                    <span class="page-indicator" id="pageIndicator">Page 1</span>
+                    <button class="btn btn-secondary btn-sm" id="nextPageBtn" onclick="changePage(1)" disabled>Next ▶</button>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Project Scripts -->
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script src="technician-activity-log.js"></script>
+</body>
+</html>
+

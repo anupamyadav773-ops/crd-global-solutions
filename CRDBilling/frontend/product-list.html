@@ -1,0 +1,283 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>CRD Global Solutions - Products</title>
+
+    <link rel="stylesheet" href="product-list.css?v=2.4">
+
+</head>
+
+<body>
+
+    <div class="page-container">
+
+
+        <!-- HEADER -->
+
+        <div class="page-header">
+
+            <div>
+
+                <h1>Products</h1>
+
+                <p>
+                    Manage your products and stock
+                </p>
+
+            </div>
+
+
+            <div class="header-buttons">
+
+                <a href="dashboard.html">
+                    ← Dashboard
+                </a>
+
+                <a
+                    href="product.html"
+                    class="add-button"
+                >
+                    + Add Product
+                </a>
+
+            </div>
+
+        </div>
+
+
+        <!-- SEARCH -->
+
+        <div class="search-box">
+
+            <div class="toolbar-row">
+
+                <input
+                    type="text"
+                    id="searchProduct"
+                    placeholder="Search product by name, category or brand..."
+                >
+
+                <div class="action-bar">
+                    <button type="button" id="openStockTransferBtn" class="toolbar-btn transfer-btn" style="background: #2563eb; color: white; border: none; cursor: pointer; font-weight: bold;" onclick="openStockTransferModal()">
+                        ⇄ Stock Transfer
+                    </button>
+                    <button type="button" id="openTransferHistoryBtn" class="toolbar-btn secondary-btn" style="background: #475569; color: white; border: none; cursor: pointer;" onclick="openTransferHistoryModal()">
+                        📜 History
+                    </button>
+                    <button type="button" id="cleanDuplicatesBtn" class="toolbar-btn danger-btn" style="background: #dc3545; color: white; border: none; cursor: pointer;">
+                        🧹 Clean Duplicates
+                    </button>
+                    <button type="button" id="downloadTemplateBtn" class="toolbar-btn secondary-btn">
+                        Download Template
+                    </button>
+
+                    <label class="toolbar-btn primary-btn import-label">
+                        <input type="file" id="importFileInput" accept=".xlsx,.xls,.csv" hidden>
+                        Import Excel
+                    </label>
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- TOP SCROLLBAR (Syncs with Table on smaller screens) -->
+        <div class="top-scrollbar-wrap" id="topScrollbarWrap">
+            <div class="top-scrollbar-dummy" id="topScrollbarDummy"></div>
+        </div>
+
+        <!-- PRODUCT TABLE -->
+        <div class="table-container" id="tableContainer">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th class="col-id">ID</th>
+
+                        <th class="col-name">Product Name</th>
+
+                        <th class="col-cat">Category</th>
+
+                        <th class="col-brand">Brand</th>
+
+                        <th class="col-type">Type</th>
+
+                        <th class="col-unit">Unit</th>
+
+                        <th class="col-purchase">Purchase</th>
+
+                        <th class="col-sale">Sale Price</th>
+
+                        <th class="col-stock">Stock</th>
+
+                        <th class="col-gst">GST</th>
+
+                        <th class="col-status">Status</th>
+
+                        <th class="col-action">Action</th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="productTableBody">
+
+                    <tr>
+
+                        <td
+                            colspan="12"
+                            class="empty-message"
+                        >
+                            Loading products...
+
+                        </td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+    <!-- STOCK TRANSFER MODAL -->
+    <div id="stockTransferModal" class="modal-backdrop" style="display: none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2>⇄ Stock Transfer (स्टॉक ट्रांसफर)</h2>
+                <button type="button" class="close-modal-btn" onclick="closeStockTransferModal()">&times;</button>
+            </div>
+            <form id="stockTransferForm" onsubmit="submitStockTransfer(event)">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="transferProductSelect">Product चुनें <span class="required-star">*</span></label>
+                        <select id="transferProductSelect" required onchange="onTransferProductChange()">
+                            <option value="">-- Product चुनें --</option>
+                        </select>
+                    </div>
+
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label for="transferSourceLocation">कहाँ से (From Location) <span class="required-star">*</span></label>
+                            <select id="transferSourceLocation" required onchange="onSourceLocationChange()">
+                                <option value="">-- Source Location --</option>
+                            </select>
+                            <div id="sourceStockBadge" class="stock-info-badge" style="display: none;">
+                                उपलब्ध स्टॉक: <strong id="sourceAvailableQty">0</strong>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="transferDestLocation">कहाँ पर (To Location) <span class="required-star">*</span></label>
+                            <select id="transferDestLocation" required>
+                                <option value="">-- Destination Location --</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label for="transferQuantity">Transfer Quantity (मात्रा) <span class="required-star">*</span></label>
+                            <input type="number" id="transferQuantity" min="0.01" step="any" placeholder="Enter Qty" required oninput="onTransferQtyChange()">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="transferDate">Transfer Date</label>
+                            <input type="date" id="transferDate" required>
+                        </div>
+                    </div>
+
+                    <!-- SERIAL NUMBERS SECTION -->
+                    <div id="transferSerialSection" class="serial-section-box" style="display: none;">
+                        <div class="serial-section-header">
+                            <div>
+                                <strong>सीरियल नंबर चयन / स्कैन (Serial Numbers)</strong>
+                                <span class="serial-counter">चयनित: <strong id="selectedSerialCount">0</strong> / <strong id="requiredSerialCount">0</strong></span>
+                            </div>
+                            <div class="serial-actions">
+                                <button type="button" class="mini-btn" onclick="toggleSelectAllSerials(true)">Select All</button>
+                                <button type="button" class="mini-btn" onclick="toggleSelectAllSerials(false)">Clear</button>
+                            </div>
+                        </div>
+                        
+                        <div class="serial-scan-row">
+                            <input type="text" id="serialScanInput" placeholder="Scan or type serial number..." onkeydown="handleSerialScanKeydown(event)">
+                            <button type="button" class="scan-add-btn" onclick="addScannedSerial()">Scan/Check</button>
+                        </div>
+
+                        <div id="serialCheckboxContainer" class="serial-chips-grid">
+                            <!-- Serial checkboxes will be injected here -->
+                        </div>
+                        <small id="serialHelpText" class="serial-help">Source location पर उपलब्ध सभी सीरियल नंबर यहाँ दिखाई दे रहे हैं।</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="transferNotes">टिप्पणी / Notes (Optional)</label>
+                        <textarea id="transferNotes" rows="2" placeholder="कारण या विवरण लिखें (जैसे: Counter restocking)"></textarea>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn-cancel" onclick="closeStockTransferModal()">रद्द करें (Cancel)</button>
+                    <button type="submit" id="confirmTransferBtn" class="btn-confirm">Transfer करें</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- TRANSFER HISTORY MODAL -->
+    <div id="transferHistoryModal" class="modal-backdrop" style="display: none;">
+        <div class="modal-card modal-large">
+            <div class="modal-header">
+                <h2>📜 Stock Transfer History (ट्रांसफर इतिहास)</h2>
+                <button type="button" class="close-modal-btn" onclick="closeTransferHistoryModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="history-table-container">
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th>Transfer No.</th>
+                                <th>Date</th>
+                                <th>Product Name</th>
+                                <th>From Location</th>
+                                <th>To Location</th>
+                                <th>Qty</th>
+                                <th>Serials</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transferHistoryTableBody">
+                            <tr><td colspan="8" style="text-align: center; padding: 20px;">Loading history...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-cancel" onclick="closeTransferHistoryModal()">बंद करें (Close)</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js?v=2.4"></script>
+    <script src="auth.js?v=2.4"></script>
+    <script src="product-list.js?v=2.4"></script>
+
+</body>
+
+</html>
+

@@ -255,31 +255,34 @@ async function loadProduct(id) {
 
 
         document.getElementById(
+            "purchase_price"
+        ).value =
+            product.purchase_price != null ? product.purchase_price : 0;
+
+        document.getElementById(
             "sale_price"
         ).value =
-            product.sale_price || 0;
+            product.sale_price != null ? product.sale_price : 0;
 
 
         document.getElementById(
             "stock"
         ).value =
-            product.stock || 0;
+            product.stock != null ? product.stock : 0;
 
 
         document.getElementById(
             "min_stock"
         ).value =
-            product.min_stock || 0;
+            product.min_stock != null ? product.min_stock : 0;
 
         document.getElementById(
             "track_serial"
         ).value =
             product.track_serial || "No";
 
-        document.getElementById(
-            "gst_rate"
-        ).value =
-            product.gst_rate || 0;
+        const gstVal = parseFloat(product.gst_rate != null ? product.gst_rate : 0);
+        document.getElementById("gst_rate").value = String(gstVal);
 
         if (document.getElementById("warranty_months")) {
             document.getElementById("warranty_months").value = product.warranty_months != null ? product.warranty_months : 0;
@@ -383,29 +386,29 @@ productForm.addEventListener(
                 )?.value || 0) || 0,
 
             purchase_price:
-                document.getElementById(
+                parseFloat(document.getElementById(
                     "purchase_price"
-                ).value || 0,
+                ).value) || 0,
 
             sale_price:
-                document.getElementById(
+                parseFloat(document.getElementById(
                     "sale_price"
-                ).value || 0,
+                ).value) || 0,
 
             stock:
-                document.getElementById(
+                parseFloat(document.getElementById(
                     "stock"
-                ).value || 0,
+                ).value) || 0,
 
             min_stock:
-                document.getElementById(
+                parseFloat(document.getElementById(
                     "min_stock"
-                ).value || 0,
+                ).value) || 0,
 
             gst_rate:
-                document.getElementById(
+                parseFloat(document.getElementById(
                     "gst_rate"
-                ).value || 0,
+                ).value) || 0,
 
             track_serial:
                 document.getElementById(

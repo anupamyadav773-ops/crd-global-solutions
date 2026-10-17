@@ -1,4 +1,4 @@
-﻿import sys
+import sys
 import os
 
 _PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -6106,11 +6106,24 @@ def update_product(product_id):
         secondary_purchase_price = 0.0
 
     description = data.get("description", "")
-    purchase_price = data.get("purchase_price", 0)
-    sale_price = data.get("sale_price", 0)
-    stock = data.get("stock", 0) if item_type == "Product" else 0
-    min_stock = data.get("min_stock", 0) if item_type == "Product" else 0
-    gst_rate = data.get("gst_rate", 0)
+    try:
+        purchase_price = float(data.get("purchase_price", 0) or 0)
+    except (TypeError, ValueError):
+        purchase_price = 0.0
+
+    try:
+        sale_price = float(data.get("sale_price", 0) or 0)
+    except (TypeError, ValueError):
+        sale_price = 0.0
+
+    stock = float(data.get("stock", 0) or 0) if item_type == "Product" else 0.0
+    min_stock = float(data.get("min_stock", 0) or 0) if item_type == "Product" else 0.0
+
+    try:
+        gst_rate = float(data.get("gst_rate", 0) or 0)
+    except (TypeError, ValueError):
+        gst_rate = 0.0
+
     track_serial = data.get("track_serial", "No") if item_type == "Product" else "No"
     try:
         warranty_months = int(data.get("warranty_months", 0) or 0)

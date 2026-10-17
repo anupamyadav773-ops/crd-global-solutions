@@ -125,28 +125,6 @@ document.getElementById("sale_price").addEventListener("input", function() {
 });
 
 
-function toggleItemTypeFields() {
-    const isService =
-        (itemTypeSelect.value || "Product") === "Service";
-
-    document.querySelectorAll(".product-only-field").forEach(function(element) {
-        element.classList.toggle("hidden", isService);
-    });
-
-    if (isService) {
-        document.getElementById("unit").value = "Service";
-        if (secondaryUnitSelect) secondaryUnitSelect.value = "";
-        document.getElementById("stock").value = 0;
-        document.getElementById("min_stock").value = 0;
-        document.getElementById("track_serial").value = "No";
-    }
-
-    updateUnitConversionUI();
-}
-
-itemTypeSelect.addEventListener("change", toggleItemTypeFields);
-
-
 // ==========================================
 // CHECK EDIT MODE
 // ==========================================
@@ -158,6 +136,38 @@ const urlParams =
 
 const productId =
     urlParams.get("id");
+
+
+function toggleItemTypeFields() {
+    const isService =
+        (itemTypeSelect.value || "Product") === "Service";
+
+    document.querySelectorAll(".product-only-field").forEach(function(element) {
+        element.classList.toggle("hidden", isService);
+    });
+
+    const salePriceLabel = document.getElementById("sale_price_label");
+    if (salePriceLabel) {
+        salePriceLabel.textContent = isService
+            ? "Service Charge / Price (सेवा शुल्क)"
+            : "Sale Price (बिक्री दर)";
+    }
+
+    if (isService) {
+        document.getElementById("unit").value = "Service";
+        if (secondaryUnitSelect) secondaryUnitSelect.value = "";
+        document.getElementById("stock").value = 0;
+        document.getElementById("min_stock").value = 0;
+        document.getElementById("track_serial").value = "No";
+        if (!productId && document.getElementById("gst_rate").value === "0") {
+            document.getElementById("gst_rate").value = "18";
+        }
+    }
+
+    updateUnitConversionUI();
+}
+
+itemTypeSelect.addEventListener("change", toggleItemTypeFields);
 
 
 if (productId) {
@@ -289,6 +299,12 @@ async function loadProduct(id) {
         }
 
         toggleItemTypeFields();
+
+        if (product.item_type === "Service") {
+            pageTitle.textContent = "Edit Service";
+            pageSubtitle.textContent = "Update service details";
+            saveButton.textContent = "Update Service";
+        }
 
 
     } catch (error) {

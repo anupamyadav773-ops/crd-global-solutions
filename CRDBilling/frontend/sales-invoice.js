@@ -2030,17 +2030,33 @@ if (editInvoiceId) {
     saveButton.textContent = "Save Quotation";
 }
 
+let isSavingInProgress = false;
+
 document
     .getElementById("saveInvoice")
     .addEventListener(
         "click",
         function() {
+            if (isSavingInProgress) return;
             previewDraftData = buildPreviewDraft();
             const modal = document.getElementById("previewModal");
             if (modal) {
                 // Restore saved template preference
                 const sel = document.getElementById("invoiceTemplateSelect");
                 if (sel) sel.value = localStorage.getItem('pari_preferred_invoice_template') || 'modern';
+
+                const docType = document.getElementById("document_type")?.value || "Invoice";
+                const isQuot = docType === "Quotation";
+                const confirmBtn = document.getElementById("confirmSaveInvoiceButton");
+                const editBtn = document.getElementById("editPreviewButton");
+                if (confirmBtn) {
+                    confirmBtn.disabled = false;
+                    confirmBtn.innerHTML = isQuot ? "✓ Submit &amp; Save Quotation (कोटेशन सुरक्षित करें)" : "✓ Submit &amp; Save Invoice (बिल सुरक्षित करें)";
+                }
+                if (editBtn) {
+                    editBtn.textContent = isQuot ? "Edit Quotation" : "Edit Invoice";
+                }
+
                 document.getElementById("previewContent").innerHTML = buildInvoicePreview(previewDraftData);
                 modal.classList.remove("hidden");
             }
@@ -2053,6 +2069,7 @@ document.getElementById("editPreviewButton").addEventListener("click", function(
 });
 
 document.getElementById("confirmSaveInvoiceButton").addEventListener("click", async function() {
+    if (isSavingInProgress) return;
     if (!previewDraftData) {
         previewDraftData = buildPreviewDraft();
     }
@@ -2161,14 +2178,35 @@ function buildPreviewDraft() {
 
 async function saveInvoice() {
 
+    if (isSavingInProgress) return;
+
     const saveButton = document.getElementById("saveInvoice");
-    if (saveButton.disabled) return;
+    const confirmButton = document.getElementById("confirmSaveInvoiceButton");
 
     const docType = document.getElementById("document_type")?.value || "Invoice";
     const isQuotation = docType === "Quotation";
 
-    saveButton.disabled = true;
-    saveButton.textContent = "Saving...";
+    isSavingInProgress = true;
+    if (saveButton) {
+        saveButton.disabled = true;
+        saveButton.textContent = "Saving...";
+    }
+    if (confirmButton) {
+        confirmButton.disabled = true;
+        confirmButton.innerHTML = "⏳ Saving / सुरक्षित हो रहा है...";
+    }
+
+    function resetSaveButtons() {
+        isSavingInProgress = false;
+        if (saveButton) {
+            saveButton.disabled = false;
+            saveButton.textContent = isQuotation ? (editInvoiceId ? "Update Quotation" : "Save Quotation") : (editInvoiceId ? "Update Invoice" : "Save Invoice");
+        }
+        if (confirmButton) {
+            confirmButton.disabled = false;
+            confirmButton.innerHTML = isQuotation ? "✓ Submit &amp; Save Quotation (कोटेशन सुरक्षित करें)" : "✓ Submit &amp; Save Invoice (बिल सुरक्षित करें)";
+        }
+    }
 
     const customerId =
         customerSelect.value;
@@ -2177,10 +2215,9 @@ async function saveInvoice() {
     if (!customerId) {
 
         alert(
-            "Please select Customer"
+            "Please select Customer (कृपया ग्राहक चुनें)"
         );
-        saveButton.disabled = false;
-        saveButton.textContent = isQuotation ? (editInvoiceId ? "Update Quotation" : "Save Quotation") : (editInvoiceId ? "Update Invoice" : "Save Invoice");
+        resetSaveButtons();
         return;
 
     }
@@ -2195,10 +2232,9 @@ async function saveInvoice() {
     if (rows.length === 0) {
 
         alert(
-            "Please add at least one product"
+            "Please add at least one product (कम से कम एक सामान जोड़ें)"
         );
-        saveButton.disabled = false;
-        saveButton.textContent = isQuotation ? (editInvoiceId ? "Update Quotation" : "Save Quotation") : (editInvoiceId ? "Update Invoice" : "Save Invoice");
+        resetSaveButtons();
         return;
 
     }
@@ -2224,8 +2260,7 @@ async function saveInvoice() {
             const listStr = outOfStockItems.map(it => `• ${it.name} (उपलब्ध: ${it.available}, बिल में: ${it.required})`).join("\n");
             const proceed = confirm(`⚠️ स्टॉक चेतावनी (Stock Warning):\nनिम्नलिखित सामान का स्टॉक पर्याप्त नहीं है:\n${listStr}\n\nक्या आप फिर भी यह बिल बनाना चाहते हैं?`);
             if (!proceed) {
-                saveButton.disabled = false;
-                saveButton.textContent = editInvoiceId ? "Update Invoice" : "Save Invoice";
+                resetSaveButtons();
                 return;
             }
         }
@@ -2402,8 +2437,7 @@ async function saveInvoice() {
 
 
     if (invalid) {
-        saveButton.disabled = false;
-        saveButton.textContent = isQuotation ? (editInvoiceId ? "Update Quotation" : "Save Quotation") : (editInvoiceId ? "Update Invoice" : "Save Invoice");
+        resetSaveButtons();
         return;
     }
 
@@ -2536,42 +2570,28 @@ async function saveInvoice() {
         const result = await response.json();
 
         if (result.success) {
-            const invoiceId = result.invoice_id || editInvoiceId;
             const invoiceNumber = result.invoice_number || document.getElementById("invoice_number").value;
 
-            const successMsg = isQuotation 
-                ? (editInvoiceId ? "Quotation Updated Successfully" : "Quotation Successfully Saved")
-                : (editInvoiceId ? "Invoice Updated Successfully" : (quotationId ? "Quotation Converted & Sale Saved!" : "Sale Successfully Saved"));
-            showSaveStatus(successMsg);
+            // Immediately close preview modal to prevent any re-clicks
+            closePreviewModal();
 
-            const detailsResponse = await fetch(`${API_BASE || "API_BASE_URL"}/sales/${invoiceId}`);
-            const detailsResult = await detailsResponse.json();
-
-            if (!detailsResult.success) {
-                throw new Error(detailsResult.message || "Invoice details failed");
+            if (isQuotation) {
+                alert(`✅ कोटेशन (${invoiceNumber}) सफलतापूर्वक सुरक्षित (Saved) हो गया!`);
+                window.location.href = "quotation-list.html";
+            } else {
+                alert(`✅ Sale Invoice (${invoiceNumber}) सफलतापूर्वक सुरक्षित (Saved) हो गया!`);
+                window.location.href = "sales-list.html";
             }
-
-            document.getElementById("previewContent").innerHTML = buildInvoicePreview(detailsResult);
-            openPreviewModal();
-
-            if (invoiceNumber) {
-                document.getElementById("invoice_number").value = invoiceNumber;
-            }
-
-            if (editInvoiceId) {
-                const target = isQuotation ? "quotation-list.html" : "sales-list.html";
-                setTimeout(() => window.location.href = target, 800);
-            }
+            return;
         } else {
             alert(result.message || "Unable to save invoice.");
+            resetSaveButtons();
         }
 
     } catch (error) {
         console.error("Sales Save Error:", error);
         alert("Backend Server से connection नहीं हो पाया");
-    } finally {
-        saveButton.disabled = false;
-        saveButton.textContent = isQuotation ? (editInvoiceId ? "Update Quotation" : "Save Quotation") : (editInvoiceId ? "Update Invoice" : "Save Invoice");
+        resetSaveButtons();
     }
 
 }

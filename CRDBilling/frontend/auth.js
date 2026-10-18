@@ -312,11 +312,12 @@
         applyRoleBasedUI();
     }
 
-    window.API_BASE_URL = window.API_BASE_URL || "https://crdbilling-api.onrender.com";
+    const _dynOrigin = (typeof window !== "undefined" && window.location.origin && window.location.protocol !== "file:") ? window.location.origin : "https://crd-global-solutions.onrender.com";
+    window.API_BASE_URL = window.API_BASE_URL || _dynOrigin;
 
     window.fetch = async function authenticatedFetch(input, init = {}) {
         let targetUrl = input;
-        const base = window.API_BASE_URL || "https://crdbilling-api.onrender.com";
+        const base = window.API_BASE_URL || _dynOrigin;
         if (typeof targetUrl === "string") {
             targetUrl = targetUrl
                 .replace(/^API_BASE_URL\/?/, base + "/")
@@ -362,7 +363,7 @@
             return;
         }
         try {
-            const base = window.API_BASE_URL || "https://crdbilling-api.onrender.com";
+            const base = window.API_BASE_URL || _dynOrigin;
             const response = await originalFetch(base + "/settings/business-profile", {
                 headers: { "Authorization": `Bearer ${token}` }
             });

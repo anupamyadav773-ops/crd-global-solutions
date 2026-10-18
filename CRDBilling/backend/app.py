@@ -99,7 +99,9 @@ allowed_origins.extend([
     r"^http://127\.0\.0\.1(:\d+)?$",
     r"^null$",
     r"https://.*\.netlify\.app",
-    r"https://.*\.onrender\.com"
+    r"https://.*\.onrender\.com",
+    r"https://.*\.crdglobalsolutions\.com",
+    "https://crdglobalsolutions.com"
 ])
 
 CORS(

@@ -55,12 +55,20 @@ function setDocumentMode(mode) {
             saveBtn.textContent = editInvoiceId ? "Update Quotation" : "Save Quotation";
         }
         if (invNumInput) {
-            if (!editInvoiceId && invNumInput.value && invNumInput.value.startsWith("INV-")) {
-                invNumInput.value = "QTN-" + invNumInput.value.slice(4);
-            } else if (!invNumInput.value) {
-                invNumInput.value = "QTN-" + Date.now().toString().slice(-6);
+            if (editInvoiceId) {
+                invNumInput.readOnly = false;
+                invNumInput.style.backgroundColor = "#fff";
+                invNumInput.style.border = "1px solid #f59e0b";
+                invNumInput.title = "कोटेशन नंबर बदलें (यदि आवश्यक हो)";
+            } else {
+                invNumInput.readOnly = true;
+                invNumInput.style.backgroundColor = "";
+                invNumInput.style.border = "";
+                if (!invNumInput.value || invNumInput.value.startsWith("INV-")) {
+                    invNumInput.value = "";
+                }
+                invNumInput.placeholder = "Auto Generated (जैसे: QTN-000003)";
             }
-            invNumInput.placeholder = "Auto Generated (QTN-...)";
         }
     } else {
         document.body.classList.remove("quotation-mode");
@@ -74,10 +82,11 @@ function setDocumentMode(mode) {
             saveBtn.textContent = editInvoiceId ? "Update Invoice" : "Save Invoice";
         }
         if (invNumInput) {
-            if (!editInvoiceId && invNumInput.value && invNumInput.value.startsWith("QTN-")) {
-                invNumInput.value = "INV-" + invNumInput.value.slice(4);
-            } else if (!invNumInput.value) {
-                invNumInput.value = "INV-" + Date.now().toString().slice(-6);
+            invNumInput.readOnly = true;
+            invNumInput.style.backgroundColor = "";
+            invNumInput.style.border = "";
+            if (!editInvoiceId && (!invNumInput.value || invNumInput.value.startsWith("QTN-"))) {
+                invNumInput.value = "";
             }
             invNumInput.placeholder = "Auto Generated";
         }

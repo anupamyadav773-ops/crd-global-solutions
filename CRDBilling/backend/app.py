@@ -1229,7 +1229,24 @@ def generate_document_number(category, prefix_key, next_key, fallback_prefix):
     if next_number < 1:
         next_number = 1
 
-    document_number = f"{prefix}{next_number:06d}"
+    # Ensure document_number is not already used in the relevant table
+    while True:
+        document_number = f"{prefix}{next_number:06d}"
+        if category == "quotation-billing":
+            g.cursor.execute("SELECT id FROM sales_invoices WHERE invoice_number = %s AND document_type = 'Quotation' LIMIT 1", (document_number,))
+        elif category == "invoice-billing":
+            g.cursor.execute("SELECT id FROM sales_invoices WHERE invoice_number = %s AND (document_type != 'Quotation' OR document_type IS NULL) LIMIT 1", (document_number,))
+        elif category == "purchase-billing":
+            g.cursor.execute("SELECT id FROM purchase_invoices WHERE purchase_number = %s LIMIT 1", (document_number,))
+        elif category == "sales-return-billing":
+            g.cursor.execute("SELECT id FROM sales_returns WHERE return_number = %s LIMIT 1", (document_number,))
+        else:
+            break
+
+        if not g.cursor.fetchone():
+            break
+        next_number += 1
+
     g.cursor.execute(
         """
         INSERT INTO settings (category, setting_key, setting_value)
@@ -1239,6 +1256,54 @@ def generate_document_number(category, prefix_key, next_key, fallback_prefix):
         (category, next_key, str(next_number + 1))
     )
     return document_number
+
+
+def sync_document_sequence(category, next_key, prefix_key, fallback_prefix, doc_type=None):
+    """
+    Recalculate and update the next document sequence number in settings
+    based on the current maximum document number existing in the database.
+    """
+    try:
+        import re
+        if category == "quotation-billing" or doc_type == "Quotation":
+            g.cursor.execute("SELECT invoice_number FROM sales_invoices WHERE document_type = 'Quotation'")
+        elif category == "invoice-billing" or doc_type == "Invoice":
+            g.cursor.execute("SELECT invoice_number FROM sales_invoices WHERE document_type != 'Quotation' OR document_type IS NULL")
+        elif category == "purchase-billing":
+            g.cursor.execute("SELECT purchase_number FROM purchase_invoices")
+        elif category == "sales-return-billing":
+            g.cursor.execute("SELECT return_number FROM sales_returns")
+        else:
+            return
+
+        rows = g.cursor.fetchall() or []
+        max_num = 0
+        for r in rows:
+            val = list(r.values())[0] if isinstance(r, dict) else r[0]
+            if not val:
+                continue
+            matches = re.findall(r'(\d+)', str(val))
+            if matches:
+                try:
+                    num = int(matches[-1])
+                    if num > max_num:
+                        max_num = num
+                except ValueError:
+                    pass
+
+        next_val = max_num + 1 if max_num > 0 else 1
+
+        g.cursor.execute(
+            """
+            INSERT INTO settings (category, setting_key, setting_value)
+            VALUES (%s, %s, %s)
+            ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value), updated_at = CURRENT_TIMESTAMP
+            """,
+            (category, next_key, str(next_val))
+        )
+    except Exception as e:
+        print(f"Error in sync_document_sequence for {category}: {e}")
+
 
 
 ensure_expenses_table()
@@ -7950,6 +8015,7 @@ def delete_purchase(purchase_id):
         # 5. Delete purchase items and invoice
         g.cursor.execute("DELETE FROM purchase_invoice_items WHERE purchase_invoice_id = %s", (purchase_id,))
         g.cursor.execute("DELETE FROM purchase_invoices WHERE id = %s", (purchase_id,))
+        sync_document_sequence("purchase-billing", "next_purchase_number", "purchase_prefix", "PUR-")
         g.db.commit()
 
         return jsonify({
@@ -9067,6 +9133,21 @@ def update_sale(invoice_id):
             )
         )
 
+        # Allow updating invoice_number / quotation_number if provided
+        new_inv_num = (data.get("invoice_number") or "").strip()
+        final_inv_num = invoice_record.get("invoice_number")
+        if new_inv_num and new_inv_num != final_inv_num:
+            g.cursor.execute("SELECT id FROM sales_invoices WHERE invoice_number = %s AND id != %s LIMIT 1", (new_inv_num, invoice_id))
+            if g.cursor.fetchone():
+                return jsonify({"success": False, "message": f"Document number '{new_inv_num}' पहले से किसी अन्य बिल/कोटेशन में उपयोग किया गया है।"}), 400
+
+            g.cursor.execute("UPDATE sales_invoices SET invoice_number = %s WHERE id = %s", (new_inv_num, invoice_id))
+            final_inv_num = new_inv_num
+            if is_quotation:
+                sync_document_sequence("quotation-billing", "next_quotation_number", "quotation_prefix", "QTN-", "Quotation")
+            else:
+                sync_document_sequence("invoice-billing", "next_invoice_number", "invoice_prefix", "INV-", "Invoice")
+
         g.db.commit()
 
         doc_label = "Quotation" if is_quotation else "Invoice"
@@ -9074,7 +9155,7 @@ def update_sale(invoice_id):
             "success": True,
             "message": f"{doc_label} updated successfully.",
             "invoice_id": invoice_id,
-            "invoice_number": invoice_record.get("invoice_number"),
+            "invoice_number": final_inv_num,
             "document_type": doc_type
         })
 
@@ -9153,6 +9234,12 @@ def delete_sale(invoice_id):
 
         g.cursor.execute("DELETE FROM sales_invoice_items WHERE invoice_id = %s", (invoice_id,))
         g.cursor.execute("DELETE FROM sales_invoices WHERE id = %s", (invoice_id,))
+
+        if is_quotation:
+            sync_document_sequence("quotation-billing", "next_quotation_number", "quotation_prefix", "QTN-", "Quotation")
+        else:
+            sync_document_sequence("invoice-billing", "next_invoice_number", "invoice_prefix", "INV-", "Invoice")
+
         g.db.commit()
 
         label = "Quotation" if is_quotation else "Sales Invoice"
@@ -9164,6 +9251,36 @@ def delete_sale(invoice_id):
     except Exception as e:
         g.db.rollback()
         print("Delete Sale Error:", e)
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route("/sales/sync-sequence", methods=["POST", "OPTIONS"])
+@roles_required("Admin", "Manager", "Staff")
+def api_sync_sales_sequence():
+    if request.method == "OPTIONS":
+        return "", 200
+    try:
+        data = request.get_json(silent=True) or {}
+        doc_type = data.get("document_type", "Quotation")
+        if doc_type == "Quotation":
+            sync_document_sequence("quotation-billing", "next_quotation_number", "quotation_prefix", "QTN-", "Quotation")
+            cat, key = "quotation-billing", "next_quotation_number"
+        else:
+            sync_document_sequence("invoice-billing", "next_invoice_number", "invoice_prefix", "INV-", "Invoice")
+            cat, key = "invoice-billing", "next_invoice_number"
+
+        g.cursor.execute("SELECT setting_value FROM settings WHERE category = %s AND setting_key = %s LIMIT 1", (cat, key))
+        row = g.cursor.fetchone()
+        next_val = row.get("setting_value") if row else "1"
+        g.db.commit()
+
+        return jsonify({
+            "success": True,
+            "message": f"{doc_type} sequence synchronized successfully.",
+            "next_number": next_val
+        }), 200
+    except Exception as e:
+        g.db.rollback()
         return jsonify({"success": False, "message": str(e)}), 500
 
 

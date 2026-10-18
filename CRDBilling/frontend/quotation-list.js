@@ -308,6 +308,37 @@ function convertToInvoice(quotationId) {
     }
 })();
 
+// Wire Sync Sequence Button
+(function() {
+    var syncBtn = document.getElementById('syncSequenceBtn');
+    if (syncBtn) {
+        syncBtn.addEventListener('click', async function() {
+            try {
+                syncBtn.disabled = true;
+                syncBtn.textContent = '⏳ Syncing...';
+                var res = await fetch(API_BASE_URL + '/sales/sync-sequence', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ document_type: 'Quotation' })
+                });
+                var result = await res.json();
+                if (result.success) {
+                    alert('✅ कोटेशन नंबर क्रम सफलतापूर्वक सिंक हो गया है!\nमौजूदा कोटेशन के अनुसार अगला कोटेशन नंबर ' + (result.next_number ? 'QTN-' + String(result.next_number).padStart(6, '0') : '') + ' बनेगा।');
+                    loadQuotations();
+                } else {
+                    alert(result.message || 'सिंक नहीं हो पाया');
+                }
+            } catch (err) {
+                console.error('syncSequence error:', err);
+                alert('Server से connection नहीं हो पाया');
+            } finally {
+                syncBtn.disabled = false;
+                syncBtn.textContent = '🔄 Sync Sequence';
+            }
+        });
+    }
+})();
+
 window.editQuotation = editQuotation;
 window.duplicateQuotation = duplicateQuotation;
 window.convertToInvoice = convertToInvoice;
@@ -317,4 +348,5 @@ window.deleteQuotation = deleteQuotation;
 // -------  init  ---------------------------------------------
 
 loadQuotations();
+
 

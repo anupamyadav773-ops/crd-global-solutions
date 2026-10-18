@@ -94,7 +94,7 @@ function _resolveBiz(businessProfile) {
     } catch (e) {}
     var b = Object.assign({}, stored, businessProfile || {});
     var name = b.company_name || b.business_name || 'CRD Global Solutions';
-    var tagline = b.tagline || 'Sales, Service & IT Solutions';
+    var tagline = b.tagline || 'Solar Solutions';
     var phone = b.phone || b.mobile || '';
     var email = b.email || '';
     var gstin = b.gstin || b.gst_number || '';
@@ -577,7 +577,7 @@ function _renderMinimalTemplate(d, biz, isQuotation) {
                 '<div style="display:flex; align-items:flex-start; gap:10px;">' +
                     (biz.logo ? '<img src="' + _esc(biz.logo) + '" alt="Logo" style="max-height:45px; max-width:110px; object-fit:contain;" />' : '') +
                     '<div>' +
-                        '<div class="m-brand-title">' + _esc(biz.name) + '<span>IT Solutions</span></div>' +
+                        '<div class="m-brand-title">' + _esc(biz.name) + '<span>' + _esc(biz.tagline || 'Solar Solutions') + '</span></div>' +
                         '<div style="font-size:10px; color:#64748b; margin-top:2px;">' + _esc(biz.address) + '</div>' +
                         (biz.phone ? '<div style="font-size:10px; color:#64748b;">Phone: ' + _esc(biz.phone) + '</div>' : '') +
                         (biz.gstin ? '<div style="font-size:10px; color:#0f172a; font-weight:700;">GSTIN: ' + _esc(biz.gstin) + '</div>' : '') +

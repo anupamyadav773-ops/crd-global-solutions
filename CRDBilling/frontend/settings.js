@@ -6,6 +6,7 @@ const settingsConfig = [
         name: 'Business Profile',
         fields: [
             { key: 'company_name', label: 'Company Name', type: 'text', required: true },
+            { key: 'tagline', label: 'Business Tagline / Subtitle (व्यापार टैगलाइन - प्रिंट हेडर)', type: 'text', placeholder: 'Solar Solutions' },
             { key: 'owner_name', label: 'Owner Name', type: 'text' },
             { key: 'mobile', label: 'Mobile', type: 'text' },
             { key: 'email', label: 'Email', type: 'email' },

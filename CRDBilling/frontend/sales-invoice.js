@@ -597,7 +597,6 @@ function buildInvoicePreview(invoiceData) {
             <tr>
                 <td style="text-align:center;">${idx + 1}</td>
                 <td><strong>${escapeHtml(item.product_name || "-")}</strong>${item.brand ? ` <span style="font-size:9px; color:#64748b;">(${escapeHtml(item.brand)})</span>` : ""}${serialBadge}${warrantyInfo}</td>
-                <td style="text-align:center;">${escapeHtml(item.hsn_code || "-")}</td>
                 <td style="text-align:center;">${Number(item.quantity || 0)}</td>
                 <td style="text-align:center;">${escapeHtml(item.unit || "Pcs")}</td>
                 <td style="text-align:right;">${formatMoney(item.rate || 0)}</td>
@@ -655,8 +654,7 @@ function buildInvoicePreview(invoiceData) {
                 <thead>
                     <tr style="background:#1e1b4b; color:#fff; font-size:10px;">
                         <th style="width:5%; text-align:center; padding:5px;">#</th>
-                        <th style="width:31%; text-align:left; padding:5px;">Item Name &amp; Description</th>
-                        <th style="width:9%; text-align:center; padding:5px;">HSN/SAC</th>
+                        <th style="width:40%; text-align:left; padding:5px;">Item Name &amp; Description</th>
                         <th style="width:6%; text-align:center; padding:5px;">Qty</th>
                         <th style="width:7%; text-align:center; padding:5px;">Unit</th>
                         <th style="width:11%; text-align:right; padding:5px;">Price/Unit</th>
@@ -665,7 +663,7 @@ function buildInvoicePreview(invoiceData) {
                         <th style="width:13%; text-align:right; padding:5px;">Total Amount</th>
                     </tr>
                 </thead>
-                <tbody style="font-size:10.5px;">${itemsHtml || '<tr><td colspan="9" style="text-align:center; padding:8px;">No items added</td></tr>'}</tbody>
+                <tbody style="font-size:10.5px;">${itemsHtml || '<tr><td colspan="8" style="text-align:center; padding:8px;">No items added</td></tr>'}</tbody>
             </table>
 
             <div style="display:grid; grid-template-columns:1.3fr 1fr; gap:10px; margin-bottom:8px;">

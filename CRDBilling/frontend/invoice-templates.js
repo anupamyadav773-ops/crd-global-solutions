@@ -292,7 +292,7 @@ function _normalizeInvoiceData(data) {
 
 function _renderItemsRows(items, templateName) {
     if (!items || !items.length) {
-        return '<tr><td colspan="9" style="text-align:center; padding:12px; color:#64748b;">No items added</td></tr>';
+        return '<tr><td colspan="8" style="text-align:center; padding:12px; color:#64748b;">No items added</td></tr>';
     }
 
     return items.map(function(item, idx) {
@@ -305,7 +305,6 @@ function _renderItemsRows(items, templateName) {
         return '<tr>' +
             '<td style="text-align:center;">' + (idx + 1) + '</td>' +
             '<td><strong>' + _esc(item.product_name) + '</strong>' + brandText + modelText + serialBadge + warrantyBadge + '</td>' +
-            '<td style="text-align:center;">' + _esc(item.hsn_code || '-') + '</td>' +
             '<td style="text-align:center;">' + Number(item.quantity || 0) + '</td>' +
             '<td style="text-align:center;">' + _esc(item.unit || 'Pcs') + '</td>' +
             '<td style="text-align:right;">' + _money(item.rate) + '</td>' +
@@ -403,8 +402,7 @@ function _renderModernTemplate(d, biz, isQuotation) {
             '<table class="items-table">' +
                 '<thead><tr>' +
                     '<th style="width:5%; text-align:center;">#</th>' +
-                    '<th style="width:31%; text-align:left;">Item Name &amp; Description</th>' +
-                    '<th style="width:9%; text-align:center;">HSN/SAC</th>' +
+                    '<th style="width:40%; text-align:left;">Item Name &amp; Description</th>' +
                     '<th style="width:6%; text-align:center;">Qty</th>' +
                     '<th style="width:7%; text-align:center;">Unit</th>' +
                     '<th style="width:11%; text-align:right;">Price/Unit</th>' +
@@ -437,12 +435,16 @@ function _renderModernTemplate(d, biz, isQuotation) {
                 '</div>' +
             '</div>' +
 
-            (d.hsn_summary && d.hsn_summary.length ? (
-                '<div class="hsn-section">' +
+            (function() {
+                var hasValidHsn = d.hsn_summary && d.hsn_summary.some(function(h) {
+                    return h.hsn_code && h.hsn_code !== '-' && String(h.hsn_code).trim() !== '';
+                });
+                if (!hasValidHsn) return '';
+                return '<div class="hsn-section">' +
                     '<div class="hsn-header-title">📊 GST Tax Breakdown (HSN / SAC Summary)</div>' +
                     _renderHsnTable(d.hsn_summary) +
-                '</div>'
-            ) : '') +
+                '</div>';
+            })() +
 
             '<div class="bottom-section">' +
                 '<div class="bank-qr-box">' +
@@ -517,8 +519,7 @@ function _renderClassicTemplate(d, biz, isQuotation) {
             '<table class="c-items-table">' +
                 '<thead><tr>' +
                     '<th style="width:5%; text-align:center;">#</th>' +
-                    '<th style="width:31%; text-align:left;">Description of Goods / Services</th>' +
-                    '<th style="width:9%; text-align:center;">HSN/SAC</th>' +
+                    '<th style="width:40%; text-align:left;">Description of Goods / Services</th>' +
                     '<th style="width:6%; text-align:center;">Qty</th>' +
                     '<th style="width:7%; text-align:center;">Unit</th>' +
                     '<th style="width:11%; text-align:right;">Rate</th>' +
@@ -612,8 +613,7 @@ function _renderMinimalTemplate(d, biz, isQuotation) {
             '<table class="m-table">' +
                 '<thead><tr>' +
                     '<th style="width:5%; text-align:center;">#</th>' +
-                    '<th style="width:31%; text-align:left;">Item / Description</th>' +
-                    '<th style="width:9%; text-align:center;">HSN</th>' +
+                    '<th style="width:40%; text-align:left;">Item / Description</th>' +
                     '<th style="width:6%; text-align:center;">Qty</th>' +
                     '<th style="width:7%; text-align:center;">Unit</th>' +
                     '<th style="width:11%; text-align:right;">Rate</th>' +

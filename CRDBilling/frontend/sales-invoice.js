@@ -2721,6 +2721,23 @@ function openQuickProductModal(triggerElement, initialName = "") {
     }
 
     modal.classList.remove("hidden");
+    fetch(`${API_BASE}/units`).then(r => r.json()).then(data => {
+        if (data.success && Array.isArray(data.units)) {
+            const sel = document.getElementById("quick_product_unit");
+            if (sel) {
+                const cur = sel.value || "Piece";
+                sel.innerHTML = "";
+                data.units.forEach(u => {
+                    const opt = document.createElement("option");
+                    opt.value = u;
+                    opt.textContent = u;
+                    sel.appendChild(opt);
+                });
+                if (cur) sel.value = cur;
+            }
+        }
+    }).catch(e => console.error("Quick product units load error:", e));
+
     setTimeout(() => {
         if (nameInput && nameInput.value) {
             document.getElementById("quick_product_sale_price")?.focus();

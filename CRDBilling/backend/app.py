@@ -6010,6 +6010,133 @@ def import_products():
     })
 
 
+
+# ==========================================
+# PRODUCT UNITS API
+# ==========================================
+
+DEFAULT_PRODUCT_UNITS = [
+    "Piece", "Box", "Pkt", "Kg", "Gm", "Meter", "Feet", "Sq.Ft",
+    "Set", "Dozen", "Litre", "Nos", "Roll", "Bottle", "Can",
+    "Pair", "Bag", "Bundle", "Service"
+]
+
+@app.route("/units", methods=["GET", "OPTIONS"])
+def get_units():
+    if request.method == "OPTIONS":
+        return "", 200
+    try:
+        # 1. Fetch custom units from settings
+        g.cursor.execute(
+            "SELECT setting_value FROM settings WHERE category = 'inventory' AND setting_key = 'custom_units' LIMIT 1"
+        )
+        row = g.cursor.fetchone()
+        custom_units = []
+        if row and row.get("setting_value"):
+            try:
+                import json
+                custom_units = json.loads(row["setting_value"])
+                if not isinstance(custom_units, list):
+                    custom_units = []
+            except Exception:
+                custom_units = []
+
+        # 2. Fetch distinct units already in products table
+        db_units = set()
+        try:
+            g.cursor.execute("SELECT DISTINCT unit FROM products WHERE unit IS NOT NULL AND unit != ''")
+            for r in g.cursor.fetchall() or []:
+                val = (r.get("unit") or "").strip()
+                if val:
+                    db_units.add(val)
+
+            g.cursor.execute("SELECT DISTINCT secondary_unit FROM products WHERE secondary_unit IS NOT NULL AND secondary_unit != ''")
+            for r in g.cursor.fetchall() or []:
+                val = (r.get("secondary_unit") or "").strip()
+                if val:
+                    db_units.add(val)
+        except Exception as e:
+            print("Notice fetching db_units:", e)
+
+        # 3. Combine preserving order: default units first, then custom & db units
+        combined = []
+        seen = set()
+        for u in DEFAULT_PRODUCT_UNITS:
+            u_clean = u.strip()
+            if u_clean and u_clean.lower() not in seen:
+                seen.add(u_clean.lower())
+                combined.append(u_clean)
+
+        for u in custom_units + list(db_units):
+            u_clean = str(u).strip()
+            if u_clean and u_clean.lower() not in seen:
+                seen.add(u_clean.lower())
+                combined.append(u_clean)
+
+        return jsonify({
+            "success": True,
+            "units": combined
+        }), 200
+    except Exception as e:
+        print("Get Units Error:", e)
+        return jsonify({"success": False, "message": str(e), "units": DEFAULT_PRODUCT_UNITS}), 500
+
+
+@app.route("/units", methods=["POST", "OPTIONS"])
+@roles_required("Admin", "Manager", "Staff")
+def add_unit():
+    if request.method == "OPTIONS":
+        return "", 200
+    try:
+        data = request.get_json(silent=True) or {}
+        new_unit = (data.get("unit_name") or data.get("unit") or "").strip()
+        if not new_unit:
+            return jsonify({"success": False, "message": "यूनिट का नाम आवश्यक है (Unit name is required)."}), 400
+
+        if len(new_unit) > 30:
+            return jsonify({"success": False, "message": "यूनिट का नाम अधिकतम 30 अक्षरों का हो सकता है।"}), 400
+
+        # Load existing custom units from settings
+        g.cursor.execute(
+            "SELECT setting_value FROM settings WHERE category = 'inventory' AND setting_key = 'custom_units' LIMIT 1"
+        )
+        row = g.cursor.fetchone()
+        custom_units = []
+        if row and row.get("setting_value"):
+            try:
+                import json
+                custom_units = json.loads(row["setting_value"])
+                if not isinstance(custom_units, list):
+                    custom_units = []
+            except Exception:
+                custom_units = []
+
+        all_existing_lower = [u.lower() for u in (DEFAULT_PRODUCT_UNITS + custom_units)]
+        if new_unit.lower() not in all_existing_lower:
+            custom_units.append(new_unit)
+            import json
+            val_str = json.dumps(custom_units)
+            g.cursor.execute(
+                """
+                INSERT INTO settings (category, setting_key, setting_value)
+                VALUES ('inventory', 'custom_units', %s)
+                ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value), updated_at = CURRENT_TIMESTAMP
+                """,
+                (val_str,)
+            )
+            g.db.commit()
+
+        return jsonify({
+            "success": True,
+            "message": f"यूनिट '{new_unit}' सफलतापूर्वक जोड़ी गई।",
+            "unit": new_unit
+        }), 200
+    except Exception as e:
+        g.db.rollback()
+        print("Add Unit Error:", e)
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
 # ==========================================
 # GET ALL PRODUCTS
 # ==========================================

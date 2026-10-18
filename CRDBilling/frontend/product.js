@@ -79,16 +79,219 @@ function autoCalculateSecondaryPrices() {
     }
 }
 
+// ==========================================
+// DYNAMIC UNIT MANAGEMENT & ADD NEW UNIT
+// ==========================================
+
+let activeUnitTarget = "unit";
+let lastPrimaryUnitValue = unitSelect ? unitSelect.value : "Piece";
+let lastSecondaryUnitValue = secondaryUnitSelect ? secondaryUnitSelect.value : "";
+
+const addUnitModal = document.getElementById("addUnitModal");
+const newUnitInput = document.getElementById("newUnitInput");
+const addNewUnitBtn = document.getElementById("addNewUnitBtn");
+const addNewSecUnitBtn = document.getElementById("addNewSecUnitBtn");
+const closeAddUnitModal = document.getElementById("closeAddUnitModal");
+const cancelAddUnitBtn = document.getElementById("cancelAddUnitBtn");
+const saveNewUnitBtn = document.getElementById("saveNewUnitBtn");
+
+function openAddUnitModal(target) {
+    activeUnitTarget = target || "unit";
+    if (addUnitModal) {
+        addUnitModal.style.display = "flex";
+        if (newUnitInput) {
+            newUnitInput.value = "";
+            setTimeout(() => newUnitInput.focus(), 50);
+        }
+    }
+}
+
+function hideAddUnitModal() {
+    if (addUnitModal) {
+        addUnitModal.style.display = "none";
+    }
+    if (unitSelect && unitSelect.value === "__ADD_NEW__") {
+        unitSelect.value = lastPrimaryUnitValue || "Piece";
+    }
+    if (secondaryUnitSelect && secondaryUnitSelect.value === "__ADD_NEW__") {
+        secondaryUnitSelect.value = lastSecondaryUnitValue || "";
+    }
+}
+
+if (addNewUnitBtn) {
+    addNewUnitBtn.addEventListener("click", () => openAddUnitModal("unit"));
+}
+
+if (addNewSecUnitBtn) {
+    addNewSecUnitBtn.addEventListener("click", () => openAddUnitModal("secondary_unit"));
+}
+
+if (closeAddUnitModal) {
+    closeAddUnitModal.addEventListener("click", hideAddUnitModal);
+}
+
+if (cancelAddUnitBtn) {
+    cancelAddUnitBtn.addEventListener("click", hideAddUnitModal);
+}
+
+if (addUnitModal) {
+    addUnitModal.addEventListener("click", function(e) {
+        if (e.target === addUnitModal) hideAddUnitModal();
+    });
+}
+
+async function loadUnits(preferredPrimary, preferredSecondary) {
+    try {
+        const res = await fetch("API_BASE_URL/units");
+        const data = await res.json();
+        if (data.success && Array.isArray(data.units)) {
+            populateUnitDropdowns(data.units, preferredPrimary, preferredSecondary);
+        }
+    } catch (e) {
+        console.error("Failed to load units:", e);
+    }
+}
+
+function populateUnitDropdowns(unitsList, preferredPrimary, preferredSecondary) {
+    const curP = preferredPrimary !== undefined ? preferredPrimary : (unitSelect ? unitSelect.value : "Piece");
+    const curS = preferredSecondary !== undefined ? preferredSecondary : (secondaryUnitSelect ? secondaryUnitSelect.value : "");
+
+    // Populate Primary Unit
+    if (unitSelect) {
+        unitSelect.innerHTML = "";
+        unitsList.forEach(u => {
+            const opt = document.createElement("option");
+            opt.value = u;
+            opt.textContent = u;
+            unitSelect.appendChild(opt);
+        });
+        const addOpt = document.createElement("option");
+        addOpt.value = "__ADD_NEW__";
+        addOpt.textContent = "➕ + Add New Unit... (नई इकाई जोड़ें...)";
+        addOpt.style.fontWeight = "bold";
+        addOpt.style.color = "#2563eb";
+        unitSelect.appendChild(addOpt);
+
+        if (curP && curP !== "__ADD_NEW__") {
+            if (!unitsList.includes(curP)) {
+                const customOpt = document.createElement("option");
+                customOpt.value = curP;
+                customOpt.textContent = curP;
+                unitSelect.insertBefore(customOpt, addOpt);
+            }
+            unitSelect.value = curP;
+            lastPrimaryUnitValue = curP;
+        }
+    }
+
+    // Populate Secondary Unit
+    if (secondaryUnitSelect) {
+        secondaryUnitSelect.innerHTML = '<option value="">-- None (सिर्फ 1 Unit) --</option>';
+        unitsList.forEach(u => {
+            const opt = document.createElement("option");
+            opt.value = u;
+            opt.textContent = u;
+            secondaryUnitSelect.appendChild(opt);
+        });
+        const addOpt2 = document.createElement("option");
+        addOpt2.value = "__ADD_NEW__";
+        addOpt2.textContent = "➕ + Add New Unit... (नई इकाई जोड़ें...)";
+        addOpt2.style.fontWeight = "bold";
+        addOpt2.style.color = "#2563eb";
+        secondaryUnitSelect.appendChild(addOpt2);
+
+        if (curS && curS !== "__ADD_NEW__") {
+            if (!unitsList.includes(curS)) {
+                const customOpt2 = document.createElement("option");
+                customOpt2.value = curS;
+                customOpt2.textContent = curS;
+                secondaryUnitSelect.insertBefore(customOpt2, addOpt2);
+            }
+            secondaryUnitSelect.value = curS;
+            lastSecondaryUnitValue = curS;
+        }
+    }
+
+    updateUnitConversionUI();
+}
+
 if (unitSelect) {
     unitSelect.addEventListener("change", function() {
-        updateUnitConversionUI();
+        if (this.value === "__ADD_NEW__") {
+            openAddUnitModal("unit");
+        } else {
+            lastPrimaryUnitValue = this.value;
+            updateUnitConversionUI();
+        }
     });
 }
 
 if (secondaryUnitSelect) {
     secondaryUnitSelect.addEventListener("change", function() {
-        updateUnitConversionUI();
-        autoCalculateSecondaryPrices();
+        if (this.value === "__ADD_NEW__") {
+            openAddUnitModal("secondary_unit");
+        } else {
+            lastSecondaryUnitValue = this.value;
+            updateUnitConversionUI();
+            autoCalculateSecondaryPrices();
+        }
+    });
+}
+
+if (saveNewUnitBtn) {
+    saveNewUnitBtn.addEventListener("click", async function() {
+        const val = (newUnitInput.value || "").trim();
+        if (!val) {
+            alert("कृपया यूनिट का नाम लिखें (Please enter unit name)");
+            newUnitInput.focus();
+            return;
+        }
+        if (val.length > 30) {
+            alert("यूनिट का नाम अधिकतम 30 अक्षरों का हो सकता है।");
+            return;
+        }
+
+        saveNewUnitBtn.disabled = true;
+        saveNewUnitBtn.textContent = "Saving...";
+
+        try {
+            const token = localStorage.getItem("token") || "";
+            const res = await fetch("API_BASE_URL/units", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": token ? "Bearer " + token : ""
+                },
+                body: JSON.stringify({ unit_name: val })
+            });
+            const result = await res.json();
+            if (result.success) {
+                const pVal = activeUnitTarget === "unit" ? val : (unitSelect ? unitSelect.value : "Piece");
+                const sVal = activeUnitTarget === "secondary_unit" ? val : (secondaryUnitSelect ? secondaryUnitSelect.value : "");
+                await loadUnits(pVal, sVal);
+                hideAddUnitModal();
+                alert(`✅ नई इकाई (Unit) "${val}" सफलतापूर्वक जोड़ी गई और चुन ली गई!`);
+            } else {
+                alert(result.message || "यूनिट जोड़ने में विफल");
+            }
+        } catch (err) {
+            console.error("Save Unit Error:", err);
+            alert("Server से संपर्क नहीं हो पाया");
+        } finally {
+            saveNewUnitBtn.disabled = false;
+            saveNewUnitBtn.textContent = "✓ Save & Select";
+        }
+    });
+}
+
+if (newUnitInput) {
+    newUnitInput.addEventListener("keydown", function(e) {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            if (saveNewUnitBtn) saveNewUnitBtn.click();
+        } else if (e.key === "Escape") {
+            hideAddUnitModal();
+        }
     });
 }
 
@@ -183,6 +386,8 @@ if (productId) {
 
     loadProduct(productId);
 
+} else {
+    loadUnits("Piece", "");
 }
 
 
@@ -242,10 +447,11 @@ async function loadProduct(id) {
         ).value =
             product.description || "";
 
-        document.getElementById(
-            "unit"
-        ).value =
-            product.unit || "Piece";
+        await loadUnits(product.unit || "Piece", product.secondary_unit || "");
+
+        if (unitSelect) {
+            unitSelect.value = product.unit || "Piece";
+        }
 
         if (secondaryUnitSelect) {
             secondaryUnitSelect.value = product.secondary_unit || "";

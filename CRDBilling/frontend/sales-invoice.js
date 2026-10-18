@@ -8,6 +8,7 @@ const customerSelect =
 const urlParams = new URLSearchParams(window.location.search);
 const editInvoiceId = urlParams.get("id");
 const quotationId = urlParams.get("quotation_id");
+const duplicateQuotationId = urlParams.get("duplicate_quotation_id") || urlParams.get("duplicate_id");
 const docTypeParam = urlParams.get("type");
 const pageModeBanner = document.getElementById("pageModeBanner");
 
@@ -39,10 +40,16 @@ function setDocumentMode(mode) {
     if (isQuotation) {
         document.body.classList.add("quotation-mode");
         if (mainHeading) {
-            mainHeading.innerHTML = `${editInvoiceId ? "Edit Quotation" : "Create Quotation"} <span class="quotation-badge-indicator">📄 Quotation / Estimate Mode</span>`;
+            if (duplicateQuotationId) {
+                mainHeading.innerHTML = `Duplicate Quotation <span class="quotation-badge-indicator">📄 Quotation / Estimate Mode</span>`;
+            } else {
+                mainHeading.innerHTML = `${editInvoiceId ? "Edit Quotation" : "Create Quotation"} <span class="quotation-badge-indicator">📄 Quotation / Estimate Mode</span>`;
+            }
         }
         if (subHeading) {
-            subHeading.textContent = "Price Quotation for Customer (Stock deduction & serial numbers disabled)";
+            subHeading.textContent = duplicateQuotationId
+                ? "Items copied from existing quotation. Select or change customer and save as a new quotation."
+                : "Price Quotation for Customer (Stock deduction & serial numbers disabled)";
         }
         if (saveBtn) {
             saveBtn.textContent = editInvoiceId ? "Update Quotation" : "Save Quotation";
@@ -2019,6 +2026,8 @@ if (editInvoiceId) {
         pageModeBanner.textContent = "Edit Invoice Mode";
         pageModeBanner.classList.remove("hidden");
     }
+} else if (duplicateQuotationId) {
+    saveButton.textContent = "Save Quotation";
 }
 
 document
@@ -3018,6 +3027,212 @@ async function loadQuotationForConversion(quotId) {
 }
 
 // ==========================================
+// DUPLICATE EXISTING QUOTATION
+// ==========================================
+
+async function loadQuotationForDuplicate(quotId) {
+    try {
+        const response = await fetch(`${API_BASE}/sales/${quotId}`);
+        const result = await response.json();
+
+        if (!result.success || !result.invoice) {
+            alert(result.message || "Quotation details load नहीं हो पाईं");
+            addProductRow();
+            return;
+        }
+
+        const quotation = result.invoice;
+        const items = result.items || [];
+
+        setDocumentMode("Quotation");
+
+        const today = new Date().toISOString().split("T")[0];
+        document.getElementById("invoice_date").value = today;
+
+        const invNumInput = document.getElementById("invoice_number");
+        if (invNumInput) {
+            invNumInput.value = "QTN-" + Date.now().toString().slice(-6);
+            invNumInput.placeholder = "Auto Generated (QTN-...)";
+        }
+
+        if (quotation.customer_id && customerSelect) {
+            customerSelect.value = String(quotation.customer_id);
+            customerSelect.dispatchEvent(new Event("change"));
+        }
+
+        const notesEl = document.getElementById("notes");
+        if (notesEl && quotation.notes) {
+            notesEl.value = quotation.notes;
+        }
+
+        const discountEl = document.getElementById("discount");
+        if (discountEl && quotation.discount) {
+            discountEl.value = quotation.discount;
+        }
+
+        invoiceItems.innerHTML = "";
+
+        for (const item of items) {
+            const row = document.createElement("tr");
+            const qty = Number(item.quantity || 0);
+            const savedRate = Number(item.rate || 0);
+            const savedGstRate = Number(item.gst_rate || 0);
+
+            row.innerHTML = `
+                <td class="product-col">
+                    <div class="product-picker-wrapper">
+                        <div class="product-search-box-wrap">
+                            <div class="product-search-input-wrap">
+                                <input 
+                                    type="text" 
+                                    class="product-search-input" 
+                                    placeholder="🔍 Search / खोजें..." 
+                                    autocomplete="off"
+                                >
+                                <span class="clear-search-btn" title="Clear">&times;</span>
+                            </div>
+                            <button type="button" class="quick-add-btn" title="Add New Product (नया प्रोडक्ट जोड़ें)" onclick="openQuickProductModal(this)">
+                                ➕ New
+                            </button>
+                            <div class="product-live-results" role="listbox"></div>
+                        </div>
+                        <div class="product-selected-view" style="display: none;">
+                            <select class="product-select">
+                                <option value="">Select Product</option>
+                                ${savedProducts.filter(p => p.status !== "Inactive").map(p => `
+                                    <option value="${p.id}" ${String(p.id) === String(item.product_id) ? "selected" : ""}>
+                                        ${escapeHtml(formatProductOptionText(p))}
+                                    </option>
+                                `).join("")}
+                            </select>
+                            <button type="button" class="product-change-search-btn" title="Change product / प्रोडक्ट बदलें">
+                                🔍 Change
+                            </button>
+                        </div>
+                    </div>
+                </td>
+                <td class="serial-col">
+                    <div class="serial-container"></div>
+                </td>
+                <td><input type="number" class="qty-input" value="${qty}" min="1" step="1"></td>
+                <td>
+                    <select class="unit-select" style="min-width: 85px; padding: 6px 8px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.9rem;">
+                        <option value="">-</option>
+                    </select>
+                </td>
+                <td><input type="number" class="rate-input" value="${savedRate}" min="0" step="0.01"></td>
+                <td>
+                    <select class="gst-input">
+                        ${getGstOptionsMarkup(savedGstRate)}
+                    </select>
+                </td>
+                <td><span class="gst-amount">₹ 0.00</span></td>
+                <td><strong class="line-total">₹ 0.00</strong></td>
+                <td><input type="number" class="warranty-input" value="${item.warranty_months != null ? item.warranty_months : 0}" min="0" step="1" placeholder="0" style="width: 60px; text-align: center; padding: 6px 4px; border: 1px solid #d1d5db; border-radius: 4px;" title="Warranty in Months (वारंटी महीने)"></td>
+                <td><button type="button" class="remove-item">Remove</button></td>
+            `;
+
+            invoiceItems.appendChild(row);
+
+            const productSelect = row.querySelector(".product-select");
+            const serialContainer = row.querySelector(".serial-container");
+            const qtyInput = row.querySelector(".qty-input");
+            const unitSelect = row.querySelector(".unit-select");
+            const rateInput = row.querySelector(".rate-input");
+
+            setupProductSearch(row);
+
+            function getProductForCurrentRow() {
+                const productId = productSelect.value;
+                if (!productId) return null;
+                return savedProducts.find(p => String(p.id) === String(productId)) || null;
+            }
+
+            function populateUnitSelect(product, currentUnit) {
+                if (!unitSelect) return;
+                unitSelect.innerHTML = "";
+                if (!product) {
+                    const opt = document.createElement("option");
+                    opt.value = "";
+                    opt.textContent = "-";
+                    unitSelect.appendChild(opt);
+                    return;
+                }
+                const baseUnit = product.unit || "Piece";
+                const secUnit = product.secondary_unit;
+                const opt1 = document.createElement("option");
+                opt1.value = baseUnit;
+                opt1.textContent = baseUnit;
+                unitSelect.appendChild(opt1);
+                if (secUnit && secUnit !== baseUnit) {
+                    const opt2 = document.createElement("option");
+                    opt2.value = secUnit;
+                    opt2.textContent = secUnit;
+                    unitSelect.appendChild(opt2);
+                }
+                if (currentUnit) unitSelect.value = currentUnit;
+            }
+
+            function renderSerialInputs() {
+                if (!serialContainer) return;
+                serialContainer.innerHTML = "";
+            }
+
+            const pObj = savedProducts.find(p => String(p.id) === String(item.product_id));
+            populateUnitSelect(pObj, item.unit);
+            updateProductRowDisplay(row);
+
+            productSelect.addEventListener("change", function() {
+                const selected = getProductForCurrentRow();
+                if (selected) {
+                    rateInput.value = selected.sale_price != null ? selected.sale_price : "";
+                    setSelectGst(row.querySelector(".gst-input"), selected.tax_rate ?? 0);
+                    populateUnitSelect(selected);
+                    const wInput = row.querySelector(".warranty-input");
+                    if (wInput) wInput.value = selected.warranty_months != null ? selected.warranty_months : 0;
+                }
+                renderSerialInputs();
+                calculateRow(row);
+            });
+
+            qtyInput.addEventListener("input", function() {
+                calculateRow(row);
+            });
+
+            rateInput.addEventListener("input", function() { calculateRow(row); });
+            const gstInput = row.querySelector(".gst-input");
+            if (gstInput) {
+                gstInput.addEventListener("change", function() { calculateRow(row); });
+                gstInput.addEventListener("input", function() { calculateRow(row); });
+            }
+
+            row.querySelector(".remove-item").addEventListener("click", function() {
+                row.remove();
+                refreshProductOptionsForAllRows();
+                calculateInvoice();
+            });
+
+            refreshProductOptionsForAllRows();
+            calculateRow(row);
+        }
+
+        calculateInvoice();
+
+        const banner = document.getElementById("pageModeBanner");
+        if (banner) {
+            banner.innerHTML = `📑 <strong>Quotation Duplicate Mode:</strong> Quotation <strong>#${escapeHtml(quotation.invoice_number || quotId)}</strong> ke sabhi items load ho chuke hain. Aap Customer change/select karke naya Quotation Save kar sakte hain.`;
+            banner.style.display = "flex";
+            banner.classList.remove("hidden");
+        }
+        showSaveStatus(`Quotation #${quotation.invoice_number || quotId} duplicated! All items loaded.`, "info");
+    } catch (error) {
+        console.error("Load quotation for duplicate error:", error);
+        alert("Unable to duplicate quotation.");
+        addProductRow();
+    }
+}
+
+// ==========================================
 // EDIT EXISTING INVOICE (IF ID IN URL)
 // ==========================================
 
@@ -3363,6 +3578,8 @@ async function initSalesPage() {
         }
     } else if (quotationId) {
         await loadQuotationForConversion(quotationId);
+    } else if (duplicateQuotationId) {
+        await loadQuotationForDuplicate(duplicateQuotationId);
     } else {
         addProductRow();
     }

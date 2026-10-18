@@ -1,4 +1,4 @@
-﻿/* global API_BASE_URL */
+/* global API_BASE_URL */
 
 // ============================================================
 //  QUOTATION LIST  -  quotation-list.js
@@ -105,6 +105,8 @@ function renderQuotations(rows) {
                     ' onclick="previewQuotation(' + q.id + ')">View</button> ' +
                 '<button class="action-btn edit-btn" type="button"' +
                     ' onclick="editQuotation(' + q.id + ')">Edit</button> ' +
+                '<button class="action-btn duplicate-btn" type="button"' +
+                    ' onclick="duplicateQuotation(' + q.id + ')" title="Duplicate Quotation (कोटेशन की प्रतिलिपि बनाएं)">Duplicate</button> ' +
                 (!isConverted ? '<button class="convert-btn" type="button"' +
                     ' onclick="convertToInvoice(' + q.id + ')">Convert</button> ' : '') +
                 '<button class="action-btn delete-btn" type="button"' +
@@ -283,11 +285,31 @@ function editQuotation(quotationId) {
     window.location.href = 'sales-invoice.html?id=' + quotationId + '&type=quotation';
 }
 
+function duplicateQuotation(quotationId) {
+    window.location.href = 'sales-invoice.html?duplicate_quotation_id=' + quotationId + '&type=quotation';
+}
+
 function convertToInvoice(quotationId) {
     window.location.href = 'sales-invoice.html?quotation_id=' + quotationId;
 }
 
+// Wire preview modal duplicate button
+(function() {
+    var dupBtn = document.getElementById('duplicatePreviewButton');
+    if (dupBtn) {
+        dupBtn.addEventListener('click', function() {
+            if (_lastViewedQuotationData) {
+                var q = _lastViewedQuotationData.invoice || _lastViewedQuotationData;
+                if (q && q.id) {
+                    duplicateQuotation(q.id);
+                }
+            }
+        });
+    }
+})();
+
 window.editQuotation = editQuotation;
+window.duplicateQuotation = duplicateQuotation;
 window.convertToInvoice = convertToInvoice;
 window.previewQuotation = previewQuotation;
 window.deleteQuotation = deleteQuotation;

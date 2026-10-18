@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -29,6 +29,20 @@
         }
         .convert-btn:hover {
             background: #e65c00 !important;
+        }
+        .duplicate-btn {
+            background: #0284c7 !important;
+            color: #fff !important;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .duplicate-btn:hover {
+            background: #0369a1 !important;
         }
     </style>
 </head>
@@ -121,6 +135,7 @@
             <div id="previewContent" class="preview-content"></div>
             <div class="modal-actions">
                 <button type="button" class="secondary-button" id="closePreviewButton">Close</button>
+                <button type="button" class="duplicate-btn" id="duplicatePreviewButton" style="padding: 9px 16px; font-size: 13px;">📑 Duplicate Quotation</button>
                 <button type="button" class="primary-button" id="printPreviewButton">Print Quotation</button>
             </div>
         </div>

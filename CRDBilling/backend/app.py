@@ -700,7 +700,7 @@ def require_authenticated_api_request():
         or request.path.startswith("/frontend/")
         or request.path.startswith("/tech")
         or request.path.startswith("/_next/")
-        or (request.method == "GET" and request.path in {"/settings/business-profile", "/settings/service", "/settings/print-display"})
+        or (request.method == "GET" and request.path in {"/settings/business-profile", "/settings/service", "/settings/print-display", "/settings/quotation-billing", "/settings/invoice-billing"})
     ):
         return None
 
@@ -738,7 +738,7 @@ def require_authenticated_api_request():
             request.path.startswith("/api/tech/") or
             request.path.startswith("/api/auth/") or
             request.path.startswith("/uploads/") or
-            (request.method == "GET" and request.path in {"/settings/business-profile", "/settings/service", "/settings/print-display"})
+            (request.method == "GET" and request.path in {"/settings/business-profile", "/settings/service", "/settings/print-display", "/settings/quotation-billing", "/settings/invoice-billing"})
         )
         if not allowed_prefix:
             return jsonify({
@@ -1711,6 +1711,24 @@ def save_settings_by_category(category):
                         "INSERT INTO settings (category, setting_key, setting_value) VALUES ('business-profile', 'company_logo', %s)",
                         (normalized_value,)
                     )
+            # Keep quotation_terms synchronized across business-profile, invoice-billing, and quotation-billing
+            if str(key) == "quotation_terms":
+                for target_cat in ["business-profile", "invoice-billing", "quotation-billing"]:
+                    if target_cat != category:
+                        g.cursor.execute(
+                            "SELECT id FROM settings WHERE category = %s AND setting_key = 'quotation_terms' LIMIT 1",
+                            (target_cat,)
+                        )
+                        if g.cursor.fetchone():
+                            g.cursor.execute(
+                                "UPDATE settings SET setting_value = %s, updated_at = CURRENT_TIMESTAMP WHERE category = %s AND setting_key = 'quotation_terms'",
+                                (normalized_value, target_cat)
+                            )
+                        else:
+                            g.cursor.execute(
+                                "INSERT INTO settings (category, setting_key, setting_value) VALUES (%s, 'quotation_terms', %s)",
+                                (target_cat, normalized_value)
+                            )
 
             count += 1
 

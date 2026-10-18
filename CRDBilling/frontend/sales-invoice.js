@@ -1,4 +1,4 @@
-﻿// ==========================================
+// ==========================================
 // SALES INVOICE
 // ==========================================
 
@@ -22,6 +22,19 @@ function setDocumentMode(mode) {
     const subHeading = document.getElementById("pageSubHeading");
     const saveBtn = document.getElementById("saveInvoice");
     const invNumInput = document.getElementById("invoice_number");
+    const invNumLabel = document.getElementById("invoice_number_label");
+    const invDateLabel = document.getElementById("invoice_date_label");
+
+    if (invNumLabel) {
+        invNumLabel.innerHTML = isQuotation
+            ? 'Quotation / Estimate No <span style="font-size:11px; color:#d97706; font-weight:normal;">(कोटेशन नंबर)</span>'
+            : 'Invoice Number';
+    }
+    if (invDateLabel) {
+        invDateLabel.innerHTML = isQuotation
+            ? 'Quotation / Estimate Date <span style="font-size:11px; color:#d97706; font-weight:normal;">(कोटेशन तिथि)</span>'
+            : 'Invoice Date';
+    }
 
     if (isQuotation) {
         document.body.classList.add("quotation-mode");
@@ -34,7 +47,12 @@ function setDocumentMode(mode) {
         if (saveBtn) {
             saveBtn.textContent = editInvoiceId ? "Update Quotation" : "Save Quotation";
         }
-        if (invNumInput && !invNumInput.value) {
+        if (invNumInput) {
+            if (!editInvoiceId && invNumInput.value && invNumInput.value.startsWith("INV-")) {
+                invNumInput.value = "QTN-" + invNumInput.value.slice(4);
+            } else if (!invNumInput.value) {
+                invNumInput.value = "QTN-" + Date.now().toString().slice(-6);
+            }
             invNumInput.placeholder = "Auto Generated (QTN-...)";
         }
     } else {
@@ -48,7 +66,12 @@ function setDocumentMode(mode) {
         if (saveBtn) {
             saveBtn.textContent = editInvoiceId ? "Update Invoice" : "Save Invoice";
         }
-        if (invNumInput && !invNumInput.value) {
+        if (invNumInput) {
+            if (!editInvoiceId && invNumInput.value && invNumInput.value.startsWith("QTN-")) {
+                invNumInput.value = "INV-" + invNumInput.value.slice(4);
+            } else if (!invNumInput.value) {
+                invNumInput.value = "INV-" + Date.now().toString().slice(-6);
+            }
             invNumInput.placeholder = "Auto Generated";
         }
     }
@@ -207,8 +230,9 @@ invoiceDate.value =
 // INVOICE NUMBER
 // ==========================================
 
+const isInitialQuotationMode = (docTypeParam && docTypeParam.toLowerCase() === "quotation");
 const invoiceNumber =
-    "INV-" +
+    (isInitialQuotationMode ? "QTN-" : "INV-") +
     Date.now().toString().slice(-6);
 
 document.getElementById(
@@ -598,8 +622,8 @@ function buildInvoicePreview(invoiceData) {
                 </div>
                 <div class="invoice-meta" style="text-align:right;">
                     <div style="display:inline-block; background:${isQuotation ? '#d97706' : '#3730a3'}; color:#fff; font-size:11px; font-weight:bold; padding:2px 8px; border-radius:3px;">${isQuotation ? 'QUOTATION / ESTIMATE' : 'TAX INVOICE'}</div>
-                    <div style="font-size:13px; font-weight:bold; margin-top:3px;"># ${escapeHtml(invoice.invoice_number || "-")}</div>
-                    <div style="font-size:10px; color:#475569;"><strong>Date:</strong> ${escapeHtml(invoice.invoice_date || "-")}</div>
+                    <div style="font-size:13px; font-weight:bold; margin-top:3px;">${isQuotation ? 'Quotation #: ' : '# '}${escapeHtml(invoice.invoice_number || "-")}</div>
+                    <div style="font-size:10px; color:#475569;"><strong>${isQuotation ? 'Quotation Date:' : 'Date:'}</strong> ${escapeHtml(invoice.invoice_date || "-")}</div>
                 </div>
             </div>
 
@@ -648,6 +672,14 @@ function buildInvoicePreview(invoiceData) {
                 <div style="font-size:10px; color:#475569;">
                     <div><strong>Amount in Words:</strong> ${escapeHtml(invoice.amount_in_words || "-")}</div>
                     ${invoice.notes ? `<div style="margin-top:4px;"><strong>Notes:</strong> ${escapeHtml(invoice.notes)}</div>` : ""}
+                    ${(() => {
+                        const terms = isQuotation ? (companySettings.quotation_terms || companySettings.terms_conditions || "") : (companySettings.terms_conditions || companySettings.invoice_terms || "");
+                        if (!terms) return "";
+                        return `<div style="margin-top:6px; padding:6px 8px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:4px;">
+                            <strong style="color:#1e1b4b; text-transform:uppercase; font-size:9.5px;">${isQuotation ? '📄 Quotation Terms &amp; Conditions / नियम एवं शर्तें:' : '📝 Terms &amp; Conditions / नियम एवं शर्तें:'}</strong>
+                            <div style="white-space:pre-line; font-size:9.5px; color:#334155; margin-top:2px; line-height:1.4;">${escapeHtml(terms)}</div>
+                        </div>`;
+                    })()}
                     ${(company.bank_name || company.bank_account_no || company.upi_id || company.upi_qr_code) ? `
                         <div style="margin-top:6px; padding:6px 8px; background:#f1f5f9; border-radius:4px; font-size:9.5px; line-height:1.4; display:flex; align-items:center; gap:8px;">
                             ${company.upi_qr_code ? `<img src="${escapeHtml(company.upi_qr_code)}" alt="QR" style="width:55px; height:55px; object-fit:contain; border:1px solid #cbd5e1; border-radius:3px; background:#fff; padding:2px; flex-shrink:0;" />` : ""}

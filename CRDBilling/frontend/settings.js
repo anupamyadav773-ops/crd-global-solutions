@@ -30,12 +30,13 @@ const settingsConfig = [
             { key: 'upi_qr_code', label: 'UPI QR Code (यूपीआई क्यूआर कोड)', type: 'image-upload', hint: 'बिल/इनवॉइस के बैंक बॉक्स में प्रिंट होगा (GPay/PhonePe/Paytm QR)' },
             {
                 type: 'section-header',
-                label: '📄 Invoice Header & Terms (बिल प्रिंट फुटर एवं शर्तें)',
-                subtitle: 'इनवॉइस पर प्रिंट होने वाले अतिरिक्त हेडर, फुटर व नियम'
+                label: '📄 Invoice & Quotation Header / Terms (बिल एवं कोटेशन शर्तें)',
+                subtitle: 'बिल एवं कोटेशन पर प्रिंट होने वाले हेडर, फुटर व नियम एवं शर्तें'
             },
             { key: 'invoice_header', label: 'Invoice Header', type: 'textarea' },
             { key: 'invoice_footer', label: 'Invoice Footer', type: 'textarea' },
-            { key: 'terms_conditions', label: 'Terms & Conditions', type: 'textarea' }
+            { key: 'terms_conditions', label: 'Tax Invoice Terms & Conditions (बिल के नियम व शर्तें)', type: 'textarea', placeholder: '1. Goods once sold will not be taken back.\n2. Warranty as per manufacturer terms.\n3. Subject to local jurisdiction.' },
+            { key: 'quotation_terms', label: 'Quotation Terms & Conditions (कोटेशन / एस्टीमेट के नियम व शर्तें)', type: 'textarea', placeholder: '1. Quotation is valid for 15 days from the date of issue.\n2. 50% advance payment required upon order confirmation.\n3. Goods will be dispatched after receipt of payment.' }
         ]
     },
     {
@@ -52,7 +53,19 @@ const settingsConfig = [
             { key: 'discount_enabled', label: 'Discount Enable / Disable', type: 'toggle' },
             { key: 'round_off_enabled', label: 'Round Off Enable / Disable', type: 'toggle' },
             { key: 'invoice_notes', label: 'Invoice Notes', type: 'textarea' },
-            { key: 'invoice_terms', label: 'Invoice Terms & Conditions', type: 'textarea' }
+            { key: 'invoice_terms', label: 'Invoice Terms & Conditions (बिल नियम व शर्तें)', type: 'textarea' },
+            { key: 'quotation_terms', label: 'Quotation Terms & Conditions (कोटेशन नियम व शर्तें)', type: 'textarea', placeholder: '1. Quotation valid for 15 days.\n2. Subject to product availability.' }
+        ]
+    },
+    {
+        id: 'quotation-billing',
+        name: 'Quotation & Estimate',
+        fields: [
+            { key: 'quotation_prefix', label: 'Quotation Number Prefix (कोटेशन नंबर प्रीफिक्स)', type: 'text', placeholder: 'QTN-' },
+            { key: 'next_quotation_number', label: 'Next Quotation Number (अगला कोटेशन नंबर)', type: 'number', placeholder: '1001' },
+            { key: 'quotation_validity_days', label: 'Default Validity Days (कोटेशन वैधता दिन)', type: 'number', placeholder: '15' },
+            { key: 'quotation_notes', label: 'Quotation Notes (कोटेशन पर अतिरिक्त नोट)', type: 'textarea', placeholder: 'Thank you for your enquiry. We look forward to doing business with you.' },
+            { key: 'quotation_terms', label: 'Quotation Terms & Conditions (कोटेशन / एस्टीमेट के नियम एवं शर्तें)', type: 'textarea', placeholder: '1. This quotation is valid for 15 days from the date of issue.\n2. Rates are subject to revision without prior notice.\n3. 50% advance payment required for order confirmation.\n4. Delivery within 7 working days from order confirmation.' }
         ]
     },
     {
@@ -926,6 +939,19 @@ async function fetchSettings() {
                 mapped['business-profile']['company_logo'] = mapped['print-display']['business_logo'];
             }
 
+            // Sync quotation terms across business-profile, invoice-billing, and quotation-billing
+            const qTerms = (mapped['business-profile'] && mapped['business-profile']['quotation_terms'])
+                || (mapped['quotation-billing'] && mapped['quotation-billing']['quotation_terms'])
+                || (mapped['invoice-billing'] && mapped['invoice-billing']['quotation_terms'])
+                || '';
+            if (qTerms) {
+                if (mapped['business-profile']) mapped['business-profile']['quotation_terms'] = qTerms;
+                if (!mapped['quotation-billing']) mapped['quotation-billing'] = {};
+                mapped['quotation-billing']['quotation_terms'] = qTerms;
+                if (!mapped['invoice-billing']) mapped['invoice-billing'] = {};
+                mapped['invoice-billing']['quotation_terms'] = qTerms;
+            }
+
             localStorage.setItem('companySettings', JSON.stringify(mapped['business-profile']));
             localStorage.setItem('companySettings_lastSync', String(Date.now()));
             window.companySettings = mapped['business-profile'];
@@ -1035,6 +1061,25 @@ async function saveCategory(categoryId) {
             const updatedSrv = state.values['service'];
             localStorage.setItem('serviceSettings', JSON.stringify(updatedSrv));
             window.serviceSettings = updatedSrv;
+        }
+
+        if (categoryId === 'quotation-billing' || categoryId === 'invoice-billing') {
+            if (payload.quotation_terms !== undefined) {
+                let existingBiz = {};
+                try { existingBiz = JSON.parse(localStorage.getItem('companySettings') || '{}'); } catch (e) {}
+                state.values['business-profile'] = { ...existingBiz, ...(state.values['business-profile'] || {}) };
+                state.values['business-profile']['quotation_terms'] = payload.quotation_terms;
+                if (!state.values['quotation-billing']) state.values['quotation-billing'] = {};
+                state.values['quotation-billing']['quotation_terms'] = payload.quotation_terms;
+                if (!state.values['invoice-billing']) state.values['invoice-billing'] = {};
+                state.values['invoice-billing']['quotation_terms'] = payload.quotation_terms;
+
+                const updatedBiz = state.values['business-profile'];
+                localStorage.setItem('companySettings', JSON.stringify(updatedBiz));
+                localStorage.setItem('companySettings_lastSync', String(Date.now()));
+                window.companySettings = updatedBiz;
+                try { window.dispatchEvent(new CustomEvent('companySettingsUpdated', { detail: updatedBiz })); } catch (e) {}
+            }
         }
 
         setStatus(categoryId, 'Settings saved successfully. (सेटिंग्स सफलतापूर्वक सुरक्षित कर ली गई हैं)', 'success');

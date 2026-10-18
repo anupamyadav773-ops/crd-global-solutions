@@ -1,4 +1,4 @@
-﻿/* global API_BASE_URL */
+/* global API_BASE_URL */
 
 // ====================================================================
 //  CRD Global Solutions - MULTI-TEMPLATE INVOICE & QUOTATION PRINT SYSTEM
@@ -133,7 +133,10 @@ function _resolveBiz(businessProfile) {
         bank_ifsc: bankIfsc,
         branch_name: branchName,
         upi_id: upiId,
-        upi_qr_code: upiQr
+        upi_qr_code: upiQr,
+        quotation_terms: b.quotation_terms || '',
+        terms_conditions: b.terms_conditions || b.invoice_terms || '',
+        invoice_terms: b.invoice_terms || b.terms_conditions || ''
     };
 }
 
@@ -265,6 +268,7 @@ function _normalizeInvoiceData(data) {
     return {
         invoice_number: inv.invoice_number || inv.quotation_number || inv.number || '-',
         invoice_date: inv.invoice_date || inv.date || new Date().toISOString().slice(0, 10),
+        document_type: inv.document_type || data.document_type || (inv.is_quotation ? 'Quotation' : 'Invoice'),
         customer_name: customerName,
         customer_mobile: customerMobile,
         customer_address: customerAddress,
@@ -369,22 +373,22 @@ function _renderModernTemplate(d, biz, isQuotation) {
                     '<div class="doc-badge ' + (isQuotation ? 'quotation' : '') + '">' +
                         (isQuotation ? 'QUOTATION / ESTIMATE' : 'TAX INVOICE') +
                     '</div>' +
-                    '<div style="font-size:14px; font-weight:800; color:#1e1b4b; margin:3px 0;"># ' + _esc(d.invoice_number) + '</div>' +
-                    '<div style="font-size:10.5px; color:#475569;"><strong>Date:</strong> ' + _date(d.invoice_date) + '</div>' +
+                    '<div style="font-size:14px; font-weight:800; color:#1e1b4b; margin:3px 0;">' + (isQuotation ? 'Quotation #: ' : '# ') + _esc(d.invoice_number) + '</div>' +
+                    '<div style="font-size:10.5px; color:#475569;"><strong>' + (isQuotation ? 'Quotation Date:' : 'Date:') + '</strong> ' + _date(d.invoice_date) + '</div>' +
                     (biz.state ? '<div style="font-size:10px; color:#64748b;">Place of Supply: ' + _esc(biz.state) + '</div>' : '') +
                 '</div>' +
             '</div>' +
 
             '<div class="info-cards-grid">' +
                 '<div class="info-card">' +
-                    '<div class="card-label">👤 BILL TO / CUSTOMER DETAILS</div>' +
+                    '<div class="card-label">👤 ' + (isQuotation ? 'QUOTATION FOR / CUSTOMER DETAILS' : 'BILL TO / CUSTOMER DETAILS') + '</div>' +
                     '<div style="font-weight:700; font-size:12px; color:#0f172a; margin-bottom:2px;">' + _esc(d.customer_name) + '</div>' +
                     (d.customer_address && d.customer_address !== '-' ? '<div>' + _esc(d.customer_address) + '</div>' : '') +
                     (d.customer_mobile && d.customer_mobile !== '-' ? '<div><strong>Contact:</strong> ' + _esc(d.customer_mobile) + '</div>' : '') +
                     (d.customer_gstin && d.customer_gstin !== '-' ? '<div style="font-weight:700; color:#1e293b; margin-top:2px;">GSTIN: ' + _esc(d.customer_gstin) + '</div>' : '') +
                 '</div>' +
                 '<div class="info-card">' +
-                    '<div class="card-label">💳 PAYMENT &amp; DISPATCH</div>' +
+                    '<div class="card-label">💳 ' + (isQuotation ? 'ESTIMATE &amp; VALIDITY' : 'PAYMENT &amp; DISPATCH') + '</div>' +
                     '<div><strong>Payment Mode:</strong> ' + _esc(d.payment_method) + '</div>' +
                     '<div><strong>Payment Status:</strong> ' + _esc(d.payment_status) + '</div>' +
                     (!isQuotation ? (
@@ -414,7 +418,15 @@ function _renderModernTemplate(d, biz, isQuotation) {
             '<div class="calc-section">' +
                 '<div class="words-and-notes">' +
                     '<div><strong>Amount in Words:</strong> ' + _esc(d.amount_in_words) + '</div>' +
-                    (d.notes ? '<div style="margin-top:6px;"><strong>Notes / Terms:</strong> ' + _esc(d.notes) + '</div>' : '') +
+                    (d.notes ? '<div style="margin-top:4px; font-size:10px;"><strong>Notes:</strong> ' + _esc(d.notes) + '</div>' : '') +
+                    (function() {
+                        var terms = isQuotation ? (biz.quotation_terms || biz.terms_conditions || '') : (biz.terms_conditions || biz.invoice_terms || '');
+                        if (!terms) return '';
+                        return '<div style="margin-top:6px; padding:6px 8px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:4px;">' +
+                            '<strong style="color:#1e1b4b; text-transform:uppercase; font-size:9.5px;">' + (isQuotation ? '📄 Quotation Terms &amp; Conditions / नियम एवं शर्तें:' : '📝 Terms &amp; Conditions / नियम एवं शर्तें:') + '</strong>' +
+                            '<div style="white-space:pre-line; font-size:9.5px; color:#334155; margin-top:2px; line-height:1.4;">' + _esc(terms) + '</div>' +
+                        '</div>';
+                    })() +
                 '</div>' +
                 '<div class="totals-box">' +
                     '<div class="tot-row"><span>Taxable Subtotal</span><span>' + _money(d.subtotal) + '</span></div>' +
@@ -476,27 +488,29 @@ function _renderClassicTemplate(d, biz, isQuotation) {
                     '</div>' +
                 '</div>' +
                 '<div style="text-align:right; font-size:10.5px;">' +
-                    '<div><strong>Invoice No:</strong> ' + _esc(d.invoice_number) + '</div>' +
-                    '<div><strong>Invoice Date:</strong> ' + _date(d.invoice_date) + '</div>' +
+                    '<div><strong>' + (isQuotation ? 'Quotation / Estimate No:' : 'Invoice No:') + '</strong> ' + _esc(d.invoice_number) + '</div>' +
+                    '<div><strong>' + (isQuotation ? 'Quotation / Estimate Date:' : 'Invoice Date:') + '</strong> ' + _date(d.invoice_date) + '</div>' +
                     (biz.state ? '<div><strong>State:</strong> ' + _esc(biz.state) + '</div>' : '') +
                 '</div>' +
             '</div>' +
 
             '<div class="c-info-grid">' +
                 '<div class="c-col-left">' +
-                    '<div style="font-size:9px; font-weight:700; color:#64748b; text-transform:uppercase;">Details of Receiver (Billed To):</div>' +
+                    '<div style="font-size:9px; font-weight:700; color:#64748b; text-transform:uppercase;">' + (isQuotation ? 'Details of Receiver (Quotation For):' : 'Details of Receiver (Billed To):') + '</div>' +
                     '<div style="font-weight:700; font-size:11.5px; color:#0f172a;">' + _esc(d.customer_name) + '</div>' +
                     (d.customer_address && d.customer_address !== '-' ? '<div style="font-size:10px;">' + _esc(d.customer_address) + '</div>' : '') +
                     (d.customer_mobile && d.customer_mobile !== '-' ? '<div style="font-size:10px;">Ph: ' + _esc(d.customer_mobile) + '</div>' : '') +
                     (d.customer_gstin && d.customer_gstin !== '-' ? '<div style="font-size:10px; font-weight:700;">GSTIN: ' + _esc(d.customer_gstin) + '</div>' : '') +
                 '</div>' +
                 '<div class="c-col-right" style="font-size:10.5px;">' +
-                    '<div><strong>Payment Mode:</strong> ' + _esc(d.payment_method) + '</div>' +
+                    '<div><strong>' + (isQuotation ? 'Document Mode:' : 'Payment Mode:') + '</strong> ' + (isQuotation ? 'Estimate / Quotation' : _esc(d.payment_method)) + '</div>' +
                     '<div><strong>Payment Status:</strong> ' + _esc(d.payment_status) + '</div>' +
                     (!isQuotation ? (
                         '<div><strong>Received Amount:</strong> ' + _money(d.paid_amount) + '</div>' +
                         '<div><strong>Balance Due:</strong> ' + _money(d.balance_amount) + '</div>'
-                    ) : '') +
+                    ) : (
+                        '<div style="color:#d97706; font-weight:600; font-size:9.5px; margin-top:2px;">* Price Quotation only. Valid for 7 days.</div>'
+                    )) +
                 '</div>' +
             '</div>' +
 
@@ -518,6 +532,7 @@ function _renderClassicTemplate(d, biz, isQuotation) {
             '<div class="c-footer-grid">' +
                 '<div style="padding:6px 8px; border-right:1px solid #0f172a; font-size:10px;">' +
                     '<div><strong>Amount in Words:</strong><br>' + _esc(d.amount_in_words) + '</div>' +
+                    (d.notes ? '<div style="margin-top:4px;"><strong>Notes:</strong> ' + _esc(d.notes) + '</div>' : '') +
                     (biz.bank_name || biz.bank_account_no || biz.upi_id || biz.upi_qr_code ? '<div style="margin-top:6px; display:flex; align-items:center; gap:8px;">' + (biz.upi_qr_code ? '<img src="' + _esc(biz.upi_qr_code) + '" alt="QR" style="width:50px; height:50px; object-fit:contain; border:1px solid #cbd5e1; border-radius:3px; padding:2px; background:#fff; flex-shrink:0;" />' : '') + '<div><strong>Bank Details:</strong> ' + [biz.bank_name ? _esc(biz.bank_name) : '', biz.bank_account_no ? 'A/C: ' + _esc(biz.bank_account_no) : '', biz.bank_ifsc ? 'IFSC: ' + _esc(biz.bank_ifsc) : '', biz.upi_id ? 'UPI: ' + _esc(biz.upi_id) : ''].filter(Boolean).join(' | ') + '</div></div>' : '') +
                 '</div>' +
                 '<div style="padding:6px 8px; font-size:10.5px;">' +
@@ -528,6 +543,15 @@ function _renderClassicTemplate(d, biz, isQuotation) {
                     '<div style="display:flex; justify-content:space-between; border-top:1.5px solid #0f172a; padding-top:4px; font-weight:800; font-size:13px;"><span>Total Amount:</span><span>' + _money(d.grand_total) + '</span></div>' +
                 '</div>' +
             '</div>' +
+
+            (function() {
+                var terms = isQuotation ? (biz.quotation_terms || biz.terms_conditions || '') : (biz.terms_conditions || biz.invoice_terms || '');
+                if (!terms) return '';
+                return '<div style="border-top:1px solid #0f172a; padding:6px 8px; font-size:9.5px; color:#1e293b; background:#f8fafc;">' +
+                    '<div style="font-weight:700; text-transform:uppercase; margin-bottom:2px; color:#0f172a;">' + (isQuotation ? '📄 Quotation Terms &amp; Conditions / कोटेशन नियम एवं शर्तें:' : '📝 Terms &amp; Conditions / नियम एवं शर्तें:') + '</div>' +
+                    '<div style="white-space:pre-line; line-height:1.4;">' + _esc(terms) + '</div>' +
+                '</div>';
+            })() +
 
             '<div class="c-bottom-grid">' +
                 '<div style="font-size:9.5px; color:#475569;">' +
@@ -569,18 +593,18 @@ function _renderMinimalTemplate(d, biz, isQuotation) {
 
             '<div class="m-info-strip">' +
                 '<div>' +
-                    '<div class="m-strip-label">Billed To</div>' +
+                    '<div class="m-strip-label">' + (isQuotation ? 'Quotation For' : 'Billed To') + '</div>' +
                     '<div style="font-weight:700; font-size:11px; color:#0f172a;">' + _esc(d.customer_name) + '</div>' +
                     (d.customer_mobile && d.customer_mobile !== '-' ? '<div style="font-size:10px; color:#64748b;">' + _esc(d.customer_mobile) + '</div>' : '') +
                     (d.customer_address && d.customer_address !== '-' ? '<div style="font-size:10px; color:#64748b;">' + _esc(d.customer_address) + '</div>' : '') +
                 '</div>' +
                 '<div>' +
-                    '<div class="m-strip-label">Payment Mode</div>' +
-                    '<div style="font-weight:600; font-size:11px; color:#0f172a;">' + _esc(d.payment_method) + ' (' + _esc(d.payment_status) + ')</div>' +
+                    '<div class="m-strip-label">' + (isQuotation ? 'Document Type' : 'Payment Mode') + '</div>' +
+                    '<div style="font-weight:600; font-size:11px; color:#0f172a;">' + (isQuotation ? 'Price Quotation / Estimate' : _esc(d.payment_method) + ' (' + _esc(d.payment_status) + ')') + '</div>' +
                     (!isQuotation && d.balance_amount > 0 ? '<div style="font-size:10px; color:#e11d48; font-weight:700;">Due: ' + _money(d.balance_amount) + '</div>' : '') +
                 '</div>' +
                 '<div style="text-align:right;">' +
-                    '<div class="m-strip-label">Document Total</div>' +
+                    '<div class="m-strip-label">' + (isQuotation ? 'Estimated Total' : 'Document Total') + '</div>' +
                     '<div style="font-weight:900; font-size:14px; color:#0d9488;">' + _money(d.grand_total) + '</div>' +
                 '</div>' +
             '</div>' +
@@ -604,6 +628,14 @@ function _renderMinimalTemplate(d, biz, isQuotation) {
                 '<div style="font-size:10px; color:#475569; max-width:60%;">' +
                     '<div><strong>Words:</strong> ' + _esc(d.amount_in_words) + '</div>' +
                     (d.notes ? '<div style="margin-top:4px;"><strong>Notes:</strong> ' + _esc(d.notes) + '</div>' : '') +
+                    (function() {
+                        var terms = isQuotation ? (biz.quotation_terms || biz.terms_conditions || '') : (biz.terms_conditions || biz.invoice_terms || '');
+                        if (!terms) return '';
+                        return '<div style="margin-top:6px; font-size:9.5px; color:#334155; line-height:1.4;">' +
+                            '<strong>' + (isQuotation ? 'Quotation Terms:' : 'Terms:') + '</strong><br>' +
+                            '<span style="white-space:pre-line;">' + _esc(terms) + '</span>' +
+                        '</div>';
+                    })() +
                 '</div>' +
                 '<div style="min-width:220px;">' +
                     '<div style="display:flex; justify-content:space-between; font-size:10.5px; padding:2px 0;"><span>Subtotal:</span><span>' + _money(d.subtotal) + '</span></div>' +
@@ -613,7 +645,7 @@ function _renderMinimalTemplate(d, biz, isQuotation) {
             '</div>' +
 
             '<div class="m-total-banner">' +
-                '<span>TOTAL PAYABLE</span>' +
+                '<span>' + (isQuotation ? 'ESTIMATED TOTAL' : 'TOTAL PAYABLE') + '</span>' +
                 '<span class="amount">' + _money(d.grand_total) + '</span>' +
             '</div>' +
 
@@ -658,11 +690,11 @@ function _renderThermalTemplate(d, biz, isQuotation) {
             '<div class="th-double-divider"></div>' +
 
             '<div class="th-meta-row">' +
-                '<span><strong>' + (isQuotation ? 'QUOTATION' : 'INVOICE') + ':</strong> ' + _esc(d.invoice_number) + '</span>' +
+                '<span><strong>' + (isQuotation ? 'QUOTATION NO:' : 'INVOICE NO:') + '</strong> ' + _esc(d.invoice_number) + '</span>' +
                 '<span>' + _date(d.invoice_date) + '</span>' +
             '</div>' +
             '<div class="th-meta-row">' +
-                '<span><strong>Cust:</strong> ' + _esc(d.customer_name) + '</span>' +
+                '<span><strong>' + (isQuotation ? 'Est. For:' : 'Cust:') + '</strong> ' + _esc(d.customer_name) + '</span>' +
                 (d.customer_mobile && d.customer_mobile !== '-' ? '<span>' + _esc(d.customer_mobile) + '</span>' : '') +
             '</div>' +
 
@@ -682,7 +714,7 @@ function _renderThermalTemplate(d, biz, isQuotation) {
             (d.discount > 0 ? '<div class="th-total-row"><span>Discount:</span><span>- ' + _money(d.discount) + '</span></div>' : '') +
             (d.tax_amount > 0 ? '<div class="th-total-row"><span>GST Tax:</span><span>' + _money(d.tax_amount) + '</span></div>' : '') +
 
-            '<div class="th-total-row grand"><span>NET TOTAL:</span><span>' + _money(d.grand_total) + '</span></div>' +
+            '<div class="th-total-row grand"><span>' + (isQuotation ? 'ESTIMATED TOTAL:' : 'NET TOTAL:') + '</span><span>' + _money(d.grand_total) + '</span></div>' +
 
             (!isQuotation ? (
                 '<div class="th-meta-row"><span>Paid Mode: ' + _esc(d.payment_method) + '</span><span>' + _esc(d.payment_status) + '</span></div>' +
@@ -693,6 +725,11 @@ function _renderThermalTemplate(d, biz, isQuotation) {
 
             '<div class="th-footer">' +
                 '<div>' + _esc(d.amount_in_words) + '</div>' +
+                (function() {
+                    var terms = isQuotation ? (biz.quotation_terms || biz.terms_conditions || '') : (biz.terms_conditions || biz.invoice_terms || '');
+                    if (!terms) return '';
+                    return '<div style="margin-top:4px; font-size:8px; text-align:left; white-space:pre-line; border-top:1px dotted #ccc; padding-top:3px;"><strong>' + (isQuotation ? 'Quotation Terms:' : 'Terms:') + '</strong><br>' + _esc(terms) + '</div>';
+                })() +
                 (biz.upi_qr_code ? '<div style="text-align:center; margin:8px 0;"><img src="' + _esc(biz.upi_qr_code) + '" alt="QR" style="width:75px; height:75px; object-fit:contain; border:1px solid #000; padding:2px; background:#fff;" /><div style="font-size:8px; margin-top:2px; font-weight:bold;">Scan to Pay via UPI</div></div>' : '') +
                 '<div style="margin-top:6px; font-weight:bold;">Thank You! Visit Again</div>' +
                 '<div style="font-size:8.5px; color:#555;">Software by CRD Global Solutions</div>' +
@@ -716,17 +753,20 @@ function renderInvoiceTemplate(invoiceData, templateName, isQuotation, businessP
     var tpl = String(templateName || localStorage.getItem('pari_preferred_invoice_template') || 'modern').toLowerCase();
     var biz = _resolveBiz(businessProfile);
     var d = _normalizeInvoiceData(invoiceData);
+    var isQuot = (isQuotation !== undefined && isQuotation !== null)
+        ? Boolean(isQuotation)
+        : (String(d.document_type || '').toLowerCase() === 'quotation' || String(d.invoice_number || '').toUpperCase().startsWith('QTN'));
 
     switch (tpl) {
         case 'classic':
-            return _renderClassicTemplate(d, biz, Boolean(isQuotation));
+            return _renderClassicTemplate(d, biz, isQuot);
         case 'minimal':
-            return _renderMinimalTemplate(d, biz, Boolean(isQuotation));
+            return _renderMinimalTemplate(d, biz, isQuot);
         case 'thermal':
-            return _renderThermalTemplate(d, biz, Boolean(isQuotation));
+            return _renderThermalTemplate(d, biz, isQuot);
         case 'modern':
         default:
-            return _renderModernTemplate(d, biz, Boolean(isQuotation));
+            return _renderModernTemplate(d, biz, isQuot);
     }
 }
 

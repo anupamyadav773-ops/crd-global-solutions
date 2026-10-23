@@ -4,26 +4,42 @@ let activeView = localStorage.getItem("crd_solar_view") || "kanban";
 let currentModalTab = "tab1";
 let draggedProjectId = null;
 
+// Exact 7 Documents from user's handwritten list
 const CHECKLIST_ITEMS = [
-    ["electricity_bill", "बिजली बिल (Electricity Bill)"],
-    ["identity_proof", "आधार / पहचान पत्र (Aadhar Card)"],
-    ["pan_card", "पैन कार्ड (PAN Card)"],
-    ["bank_passbook", "बैंक पासबुक / चेक (Bank Details)"],
-    ["site_survey_photos", "साइट सर्वे / छत की फोटो"],
-    ["solar_application", "राष्ट्रीय पोर्टल आवेदन (National Portal)"],
-    ["installation_photos", "प्लांट स्थापना फोटो (Plant Photos)"],
-    ["dcr_certificate", "DCR Certificate (मॉड्यूल प्रमाण)"],
-    ["discom_ack", "DISCOM पावती (Acknowledgment)"]
+    ["doc_aadhar", "1. आधार कार्ड (Adhar Card)"],
+    ["doc_pan", "2. पैन कार्ड (PAN Card)"],
+    ["doc_passbook", "3. बैंक पासबुक (Bank Passbook)"],
+    ["doc_light_bill", "4. बिजली बिल (Light Bill)"],
+    ["doc_roof_photo", "5. छत की फोटो (Photo of Roof)"],
+    ["doc_agreement", "6. एग्रीमेंट साइन फॉर्म (Agreement Sig Form)"],
+    ["doc_quotation", "7. एस्टीमेट / कोटेशन (Estimate / Quotation)"]
 ];
 
-const STAGE_KEYS = ["lead_docs", "portal_feasibility", "installation", "net_metering", "subsidy_completed"];
+// Exact 10-Step Workflow (Step 7 & 8 exchanged)
+const STAGE_KEYS = [
+    "create_customer",     // 1. Create Custmer
+    "collect_docs",        // 2. Collect Document
+    "pm_suryaghar",        // 3. Online PM Suryaghar
+    "finance_online",      // 4. Finance Online
+    "bank_submission",     // 5. Submit Document to Bank
+    "installation",        // 6. Installation Project
+    "final_bill",          // 7. Generate Final Bill (Swapped with 8)
+    "dcr_certificate",     // 8. Generate DCR Certificate (Swapped with 7)
+    "discom_submission",   // 9. Submit Document to DISCOM
+    "track_subsidy"        // 10. Track Subsidy
+];
 
 const STAGE_NAMES = {
-    "lead_docs": "1. टोकन व दस्तावेज़",
-    "portal_feasibility": "2. पोर्टल व डिस्कॉम",
-    "installation": "3. प्लांट इंस्टॉलेशन",
-    "net_metering": "4. नेट मीटरिंग",
-    "subsidy_completed": "5. सब्सिडी व पूर्ण"
+    "create_customer": "1. ग्राहक विवरण (Create Customer)",
+    "collect_docs": "2. दस्तावेज़ संग्रह (Collect Document)",
+    "pm_suryaghar": "3. PM सूर्यघर ऑनलाइन (Online Portal)",
+    "finance_online": "4. ऑनलाइन फाइनेंस (Finance Online)",
+    "bank_submission": "5. बैंक डॉक जमा (Submit Docs to Bank)",
+    "installation": "6. प्लांट इंस्टॉलेशन (Installation Project)",
+    "final_bill": "7. फ़ाइनल बिल जनरेट (Generate Final Bill)",
+    "dcr_certificate": "8. DCR सर्टिफिकेट (Generate DCR Certificate)",
+    "discom_submission": "9. डिस्कॉम में जमा (Submit Document to DISCOM)",
+    "track_subsidy": "10. सब्सिडी ट्रैकिंग (Track Subsidy)"
 };
 
 function $(id) {
@@ -93,18 +109,15 @@ async function loadProjects() {
 // Render Top Stats
 function renderStats(stats) {
     $("stat_total").textContent = stats.total || projects.length;
-    $("stat_stage_lead_docs").textContent = stats.stage_lead_docs || 0;
-    $("stat_stage_portal_feasibility").textContent = stats.stage_portal_feasibility || 0;
-    $("stat_stage_installation").textContent = stats.stage_installation || 0;
-    $("stat_stage_net_metering").textContent = stats.stage_net_metering || 0;
-    $("stat_stage_subsidy_completed").textContent = stats.stage_subsidy_completed || 0;
+    const stageCounts = stats.stage_counts || {};
 
-    // Update column counters
-    STAGE_KEYS.forEach(stage => {
-        const countEl = $("count_" + stage);
-        if (countEl) {
-            countEl.textContent = stats["stage_" + stage] || 0;
-        }
+    STAGE_KEYS.forEach(k => {
+        const statEl = $("stat_stage_" + k);
+        const count = stageCounts[k] != null ? stageCounts[k] : projects.filter(p => p.current_stage === k).length;
+        if (statEl) statEl.textContent = count;
+
+        const colCount = $("count_" + k);
+        if (colCount) colCount.textContent = count;
     });
 }
 
@@ -117,12 +130,13 @@ function getFilteredProjects() {
         const matchesQuery = !query ||
             (p.customer_name && p.customer_name.toLowerCase().includes(query)) ||
             (p.phone && p.phone.toLowerCase().includes(query)) ||
+            (p.email && p.email.toLowerCase().includes(query)) ||
             (p.project_code && p.project_code.toLowerCase().includes(query)) ||
             (p.consumer_number && p.consumer_number.toLowerCase().includes(query)) ||
-            (p.portal_app_number && p.portal_app_number.toLowerCase().includes(query));
+            (p.portal_app_number && p.portal_app_number.toLowerCase().includes(query)) ||
+            (p.final_bill_number && p.final_bill_number.toLowerCase().includes(query));
 
         const matchesPay = payFilter === "all" || p.payment_type === payFilter;
-
         return matchesQuery && matchesPay;
     });
 }
@@ -141,19 +155,19 @@ function renderViews() {
     }
 }
 
-// Render Kanban Board Cards
+// Render Kanban Board Cards (10 Stages)
 function renderKanban(list) {
     STAGE_KEYS.forEach(stage => {
         const container = $("cards_" + stage);
         if (!container) return;
-        const stageProjects = list.filter(p => (p.current_stage || "lead_docs") === stage);
+        const stageProjects = list.filter(p => (p.current_stage || "create_customer") === stage);
 
         // Update column count badge
         const countBadge = $("count_" + stage);
         if (countBadge) countBadge.textContent = stageProjects.length;
 
         if (stageProjects.length === 0) {
-            container.innerHTML = `<div style="text-align:center; padding:24px 10px; color:#94a3b8; font-size:0.8rem; border:1px dashed #cbd5e1; border-radius:6px;">यहाँ कोई फ़ाइल नहीं है</div>`;
+            container.innerHTML = `<div style="text-align:center; padding:20px 8px; color:#94a3b8; font-size:0.78rem; border:1px dashed #cbd5e1; border-radius:6px;">यहाँ कोई फ़ाइल नहीं है</div>`;
             return;
         }
 
@@ -166,15 +180,25 @@ function renderKanban(list) {
 
             // Stage specific highlights
             let highlightHtml = "";
-            if (stage === "lead_docs") {
+            if (stage === "create_customer") {
                 highlightHtml = `<div class="card-highlight">💳 <strong>${p.payment_type === "finance" ? "Finance / Loan" : "सीधा भुगतान"}</strong> · Advance: ${p.advance_amount ? formatMoney(p.advance_amount) : "₹ 0"}</div>`;
-            } else if (stage === "portal_feasibility") {
-                highlightHtml = `<div class="card-highlight">⚡ App: <strong>${escapeHtml(p.portal_app_number || "पोर्टल आवेदन बाकी")}</strong><br>Cons. No: <strong>${escapeHtml(p.consumer_number || "-")}</strong></div>`;
+            } else if (stage === "collect_docs") {
+                highlightHtml = `<div class="card-highlight">📑 डॉक्स प्राप्त: <strong>${checkedCount} / ${CHECKLIST_ITEMS.length}</strong></div>`;
+            } else if (stage === "pm_suryaghar") {
+                highlightHtml = `<div class="card-highlight">⚡ Portal App: <strong>${escapeHtml(p.portal_app_number || "आवेदन बाकी")}</strong><br>बिजली खाता: <strong>${escapeHtml(p.consumer_number || "-")}</strong></div>`;
+            } else if (stage === "finance_online") {
+                highlightHtml = `<div class="card-highlight">💳 Bank: <strong>${escapeHtml(p.finance_provider || "Unassigned")}</strong><br>Status: <strong>${escapeHtml(p.finance_status || "Pending")}</strong></div>`;
+            } else if (stage === "bank_submission") {
+                highlightHtml = `<div class="card-highlight">🏦 Branch: <strong>${escapeHtml(p.bank_branch || "जमा करना बाकी")}</strong><br>Ref: <strong>${escapeHtml(p.bank_reference || "-")}</strong></div>`;
             } else if (stage === "installation") {
                 highlightHtml = `<div class="card-highlight">🔧 Panels: <strong>${escapeHtml(p.panel_details || "Unspecified")}</strong><br>Team: <strong>${escapeHtml(p.technician_name || "Assign Pending")}</strong></div>`;
-            } else if (stage === "net_metering") {
-                highlightHtml = `<div class="card-highlight">⏱️ Net Meter: <strong>${escapeHtml(p.net_meter_status || "Pending")}</strong> ${p.meter_number ? `(#${escapeHtml(p.meter_number)})` : ""}</div>`;
-            } else if (stage === "subsidy_completed") {
+            } else if (stage === "final_bill") {
+                highlightHtml = `<div class="card-highlight">🧾 Bill No: <strong>${escapeHtml(p.final_bill_number || "बिल तैयार बाकी")}</strong><br>Amount: <strong>${p.final_bill_amount ? formatMoney(p.final_bill_amount) : "-"}</strong></div>`;
+            } else if (stage === "dcr_certificate") {
+                highlightHtml = `<div class="card-highlight">📜 DCR No: <strong>${escapeHtml(p.dcr_cert_number || "सर्टिफिकेट बाकी")}</strong></div>`;
+            } else if (stage === "discom_submission") {
+                highlightHtml = `<div class="card-highlight">🏢 DISCOM: <strong>${escapeHtml(p.discom_status || "Pending")}</strong><br>Net Meter: <strong>${escapeHtml(p.meter_number || "बाकी")}</strong></div>`;
+            } else if (stage === "track_subsidy") {
                 highlightHtml = `<div class="card-highlight">💰 Subsidy: <strong>${escapeHtml(p.subsidy_status || "Pending")}</strong> · ${p.subsidy_amount ? formatMoney(p.subsidy_amount) : "₹ 0"}</div>`;
             }
 
@@ -196,10 +220,6 @@ function renderKanban(list) {
                         ${p.deal_amount ? `· <span class="card-deal">${formatMoney(p.deal_amount)}</span>` : ""}
                     </div>
 
-                    <div class="card-detail" style="font-size:0.75rem;">
-                        <span>📋 चेकलिस्ट: <strong>${checkedCount}/${CHECKLIST_ITEMS.length}</strong></span>
-                    </div>
-
                     ${highlightHtml}
 
                     <div class="card-footer">
@@ -209,7 +229,7 @@ function renderKanban(list) {
 
                         <div class="card-actions">
                             ${p.phone ? `
-                                <button type="button" class="action-icon-btn whatsapp" title="WhatsApp पर स्टेटस भेजें" onclick="sendWhatsAppUpdate(${p.id})">
+                                <button type="button" class="action-icon-btn whatsapp" title="WhatsApp पर 10-स्टेप स्टेटस भेजें" onclick="sendWhatsAppUpdate(${p.id})">
                                     💬
                                 </button>
                             ` : ""}
@@ -220,7 +240,7 @@ function renderKanban(list) {
                                 </button>
                             ` : ""}
 
-                            <button type="button" class="action-icon-btn" title="फ़ाइल खोलें / एडिट करें" onclick="openProjectModal(${p.id})">
+                            <button type="button" class="action-icon-btn" title="फ़ाइल खोलें / 10-स्टेप एडिट करें" onclick="openProjectModal(${p.id})">
                                 ✏️
                             </button>
 
@@ -248,32 +268,31 @@ function renderTable(list) {
     }
 
     tbody.innerHTML = list.map(p => {
-        const stage = p.current_stage || "lead_docs";
-        const stageIdx = STAGE_KEYS.indexOf(stage) + 1;
-        const stagePillClass = "pill-stage-" + (stageIdx || 1);
+        const stageIdx = STAGE_KEYS.indexOf(p.current_stage || "create_customer");
+        const pillClass = `pill-stage-${(stageIdx >= 0 ? stageIdx : 0) + 1}`;
+        const stageLabel = STAGE_NAMES[p.current_stage || "create_customer"] || p.current_stage;
 
         return `
             <tr>
                 <td><strong>${escapeHtml(p.project_code || "SOL")}</strong></td>
-                <td><strong style="color:var(--primary);">${escapeHtml(p.customer_name)}</strong></td>
-                <td>${escapeHtml(p.phone || "-")}</td>
+                <td><strong>${escapeHtml(p.customer_name)}</strong><br><small style="color:#64748b;">${escapeHtml(p.address || "")}</small></td>
+                <td>${escapeHtml(p.phone || "-")}<br><small style="color:#64748b;">${escapeHtml(p.email || "")}</small></td>
                 <td><strong>${p.system_capacity_kw ? p.system_capacity_kw + " kW" : "-"}</strong></td>
-                <td><span class="status-pill ${stagePillClass}">${STAGE_NAMES[stage] || stage}</span></td>
+                <td><span class="status-pill ${pillClass}">${stageLabel}</span></td>
                 <td>${escapeHtml(p.consumer_number || "-")}</td>
-                <td style="font-weight:700; color:#047857;">${p.deal_amount ? formatMoney(p.deal_amount) : "-"}</td>
-                <td>${escapeHtml(p.net_meter_status || "Pending")}</td>
-                <td>${escapeHtml(p.subsidy_status || "Pending")}</td>
-                <td style="text-align:right;">
-                    <button type="button" class="btn btn-secondary" style="padding:4px 8px; font-size:0.78rem;" onclick="openProjectModal(${p.id})">
-                        ✏️ फ़ाइल खोलें
-                    </button>
+                <td>${p.deal_amount ? formatMoney(p.deal_amount) : "-"}</td>
+                <td>${escapeHtml(p.final_bill_number || "-")}</td>
+                <td>${p.subsidy_amount ? formatMoney(p.subsidy_amount) : (p.subsidy_status || "-")}</td>
+                <td style="text-align: right; white-space: nowrap;">
+                    ${p.phone ? `<button type="button" class="action-icon-btn whatsapp" style="display:inline-flex;" onclick="sendWhatsAppUpdate(${p.id})">💬</button>` : ""}
+                    <button type="button" class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.78rem;" onclick="openProjectModal(${p.id})">✏️ एडिट</button>
                 </td>
             </tr>
         `;
     }).join("");
 }
 
-// Drag and Drop Logic
+// HTML5 Drag and Drop Handlers
 function setupDragAndDrop() {
     const cards = document.querySelectorAll(".kanban-card");
     const columns = document.querySelectorAll(".kanban-column");
@@ -327,7 +346,7 @@ async function moveStage(projectId, newStage) {
     }
 }
 
-// Send WhatsApp Update to Customer
+// Send WhatsApp Update to Customer (Exact 10 Steps)
 function sendWhatsAppUpdate(projectId) {
     const p = projects.find(it => it.id === projectId);
     if (!p || !p.phone) {
@@ -335,12 +354,23 @@ function sendWhatsAppUpdate(projectId) {
         return;
     }
     const cleanPhone = String(p.phone).replace(/\D/g, "").slice(-10);
-    const stageName = STAGE_NAMES[p.current_stage || "lead_docs"] || p.current_stage;
+    const stageName = STAGE_NAMES[p.current_stage || "create_customer"] || p.current_stage;
 
     const message = `नमस्कार ${p.customer_name} जी,\n\nCRD Global Solutions से आपके सोलर प्लांट (ID: ${p.project_code || "SOL"}, ${p.system_capacity_kw || ""} kW) की फाइल का नवीनतम स्टेटस:\n\n📍 वर्तमान चरण: *${stageName}*\n⚡ नेट मीटर स्टेटस: *${p.net_meter_status || "प्रक्रिया में"}*\n💰 सब्सिडी स्टेटस: *${p.subsidy_status || "प्रक्रिया में"}*\n\nकिसी भी जानकारी के लिए संपर्क करें: 9286138880\nधन्यवाद!`;
 
     const url = `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(message)}`;
     window.open(url, "_blank");
+}
+
+// Update Checklist Counter
+function updateDocCountBadge() {
+    const total = CHECKLIST_ITEMS.length;
+    let checked = 0;
+    document.querySelectorAll("[data-check-key]").forEach(cb => {
+        if (cb.checked) checked++;
+    });
+    const badge = $("docCountBadge");
+    if (badge) badge.textContent = `${checked} / ${total} प्राप्त`;
 }
 
 // Modal & Tabs Logic
@@ -349,7 +379,7 @@ function openProjectModal(projectId = null) {
     $("project_id").value = projectId || "";
     $("deleteProjectBtn").style.display = projectId ? "inline-block" : "none";
 
-    // Build Checklist Checkboxes
+    // Build Checklist Checkboxes (Exact 7 items)
     $("checklistContainer").innerHTML = CHECKLIST_ITEMS.map(([k, label]) => `
         <label class="check-item">
             <input type="checkbox" data-check-key="${k}">
@@ -357,22 +387,31 @@ function openProjectModal(projectId = null) {
         </label>
     `).join("");
 
+    // Add change listeners to update count badge
+    document.querySelectorAll("[data-check-key]").forEach(cb => {
+        cb.addEventListener("change", updateDocCountBadge);
+    });
+
     if (projectId) {
         const p = projects.find(it => it.id === projectId);
         if (p) {
             $("modalTitle").textContent = `📁 ${p.customer_name} (${p.project_code || "SOL"})`;
-            $("modalSubhead").textContent = `${p.system_capacity_kw ? p.system_capacity_kw + " kW" : ""} · ${p.phone || ""} · Deal: ${p.deal_amount ? formatMoney(p.deal_amount) : "-"}`;
-            $("current_stage").value = p.current_stage || "lead_docs";
+            $("modalSubhead").textContent = `${p.system_capacity_kw ? p.system_capacity_kw + " kW" : ""} · 📞 ${p.phone || ""} · 📧 ${p.email || ""} · Deal: ${p.deal_amount ? formatMoney(p.deal_amount) : "-"}`;
+            $("current_stage").value = p.current_stage || "create_customer";
 
             // Fill all fields
             const fields = [
-                "customer_name", "phone", "address", "system_capacity_kw", "deal_amount",
-                "advance_amount", "payment_type", "finance_provider", "finance_status",
-                "portal_app_number", "consumer_number", "sanction_load_kw", "discom_status",
-                "discom_submission_date", "discom_reference", "panel_details", "inverter_details",
-                "technician_name", "installation_status", "installation_date", "net_meter_status",
-                "net_meter_date", "meter_number", "subsidy_status", "subsidy_amount",
-                "subsidy_applied_date", "subsidy_received_date", "notes"
+                "customer_name", "phone", "email", "address", "system_capacity_kw", "deal_amount",
+                "advance_amount", "portal_app_number", "consumer_number", "sanction_load_kw",
+                "portal_date", "payment_type", "finance_provider", "finance_status",
+                "bank_submission_date", "bank_branch", "bank_reference",
+                "panel_details", "inverter_details", "technician_name", "installation_status",
+                "installation_date", "final_bill_number", "final_bill_date", "final_bill_amount",
+                "dcr_cert_number", "dcr_cert_date",
+                "discom_status", "discom_submission_date", "discom_reference",
+                "net_meter_status", "meter_number", "net_meter_date",
+                "subsidy_status", "subsidy_amount", "subsidy_applied_date", "subsidy_received_date",
+                "notes"
             ];
 
             fields.forEach(f => {
@@ -385,15 +424,17 @@ function openProjectModal(projectId = null) {
                 const key = cb.getAttribute("data-check-key");
                 cb.checked = !!(p.checklist && p.checklist[key]);
             });
+            updateDocCountBadge();
 
             // Toggle Finance Box
             $("financeBox").style.display = p.payment_type === "finance" ? "block" : "none";
         }
     } else {
         $("modalTitle").textContent = "➕ नया सोलर ग्राहक";
-        $("modalSubhead").textContent = "नया सोलर प्रोजेक्ट व फाइल रिकॉर्ड बनाएं";
-        $("current_stage").value = "lead_docs";
+        $("modalSubhead").textContent = "नया सोलर प्रोजेक्ट व 10-स्टेप वर्कफ़्लो रिकॉर्ड बनाएं";
+        $("current_stage").value = "create_customer";
         $("financeBox").style.display = "none";
+        updateDocCountBadge();
     }
 
     switchTab("tab1");
@@ -406,7 +447,7 @@ function closeProjectModal() {
 
 function switchTab(tabId) {
     currentModalTab = tabId;
-    const tabs = ["tab1", "tab2", "tab3", "tab4", "tab5"];
+    const tabs = ["tab1", "tab2", "tab3", "tab4", "tab5", "tab6", "tab7", "tab8", "tab9", "tab10"];
     const idx = tabs.indexOf(tabId);
 
     document.querySelectorAll(".tab-btn").forEach(btn => {
@@ -489,15 +530,15 @@ document.querySelectorAll(".tab-btn").forEach(btn => {
     });
 });
 
-// Prev / Next Tab buttons
+// Prev / Next Tab buttons (10 tabs)
 $("prevTabBtn").addEventListener("click", function() {
-    const tabs = ["tab1", "tab2", "tab3", "tab4", "tab5"];
+    const tabs = ["tab1", "tab2", "tab3", "tab4", "tab5", "tab6", "tab7", "tab8", "tab9", "tab10"];
     const idx = tabs.indexOf(currentModalTab);
     if (idx > 0) switchTab(tabs[idx - 1]);
 });
 
 $("nextTabBtn").addEventListener("click", function() {
-    const tabs = ["tab1", "tab2", "tab3", "tab4", "tab5"];
+    const tabs = ["tab1", "tab2", "tab3", "tab4", "tab5", "tab6", "tab7", "tab8", "tab9", "tab10"];
     const idx = tabs.indexOf(currentModalTab);
     if (idx < tabs.length - 1) switchTab(tabs[idx + 1]);
 });
@@ -511,13 +552,17 @@ $("projectForm").addEventListener("submit", async function(e) {
 
     const payload = {};
     const fields = [
-        "customer_name", "phone", "address", "system_capacity_kw", "current_stage",
-        "deal_amount", "advance_amount", "payment_type", "finance_provider", "finance_status",
-        "portal_app_number", "consumer_number", "sanction_load_kw", "discom_status",
-        "discom_submission_date", "discom_reference", "panel_details", "inverter_details",
-        "technician_name", "installation_status", "installation_date", "net_meter_status",
-        "net_meter_date", "meter_number", "subsidy_status", "subsidy_amount",
-        "subsidy_applied_date", "subsidy_received_date", "notes"
+        "customer_name", "phone", "email", "address", "system_capacity_kw", "current_stage",
+        "deal_amount", "advance_amount", "portal_app_number", "consumer_number", "sanction_load_kw",
+        "portal_date", "payment_type", "finance_provider", "finance_status",
+        "bank_submission_date", "bank_branch", "bank_reference",
+        "panel_details", "inverter_details", "technician_name", "installation_status",
+        "installation_date", "final_bill_number", "final_bill_date", "final_bill_amount",
+        "dcr_cert_number", "dcr_cert_date",
+        "discom_status", "discom_submission_date", "discom_reference",
+        "net_meter_status", "meter_number", "net_meter_date",
+        "subsidy_status", "subsidy_amount", "subsidy_applied_date", "subsidy_received_date",
+        "notes"
     ];
 
     fields.forEach(f => {
@@ -552,7 +597,7 @@ $("projectForm").addEventListener("submit", async function(e) {
         alert("प्रोजेक्ट सेव करने में त्रुटि: " + err.message);
     } finally {
         saveBtn.disabled = false;
-        saveBtn.textContent = "✓ सेव करें";
+        saveBtn.textContent = "💾 सुरक्षित करें";
     }
 });
 
@@ -560,25 +605,19 @@ $("projectForm").addEventListener("submit", async function(e) {
 $("deleteProjectBtn").addEventListener("click", async function() {
     const projectId = $("project_id").value;
     if (!projectId) return;
-    if (!confirm("क्या आप वाकई इस सोलर फ़ाइल को हटाना (Delete) चाहते हैं?")) return;
+
+    if (!confirm("क्या आप वाकई इस सोलर फ़ाइल को हटाना चाहते हैं? यह क्रिया वापस नहीं होगी।")) {
+        return;
+    }
 
     try {
         await apiCall("/solar-projects/" + projectId, { method: "DELETE" });
         closeProjectModal();
         await loadProjects();
     } catch (err) {
-        alert("डिलीट करने में त्रुटि: " + err.message);
+        alert("हटाने में त्रुटि: " + err.message);
     }
 });
 
-// Global functions for inline HTML events
-window.openProjectModal = openProjectModal;
-window.moveStage = moveStage;
-window.sendWhatsAppUpdate = sendWhatsAppUpdate;
-
-// Initialize
-if (activeView === "table") {
-    $("viewTableBtn").classList.add("active");
-    $("viewKanbanBtn").classList.remove("active");
-}
+// Initial boot
 loadProjects();

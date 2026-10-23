@@ -3,14 +3,39 @@ from flask import Blueprint, request, jsonify, g
 
 solar_bp = Blueprint("solar", __name__)
 
-STAGE_KEYS = ["lead_docs", "portal_feasibility", "installation", "net_metering", "subsidy_completed"]
+# Exact 10-Step Workflow from real-world solar pipeline
+# Note: Step 7 and 8 swapped as requested by user
+STAGE_KEYS = [
+    "create_customer",     # 1. Create Custmer
+    "collect_docs",        # 2. Collect Document (7 docs)
+    "pm_suryaghar",        # 3. Online PM Suryaghar
+    "finance_online",      # 4. Finance Online
+    "bank_submission",     # 5. Submit Document to Bank
+    "installation",        # 6. Installation Project
+    "final_bill",          # 7. Generate Final Bill (Swapped with 8)
+    "dcr_certificate",     # 8. Generate DCR Certificate (Swapped with 7)
+    "discom_submission",   # 9. Submit Document to DISCOM
+    "track_subsidy"        # 10. Track Subsidy
+]
 
 STAGE_LABELS = {
-    "lead_docs": "1. टोकन व दस्तावेज़",
-    "portal_feasibility": "2. पोर्टल व डिस्कॉम",
-    "installation": "3. प्लांट इंस्टॉलेशन",
-    "net_metering": "4. नेट मीटरिंग",
-    "subsidy_completed": "5. सब्सिडी व पूर्ण"
+    "create_customer": "1. Create Customer",
+    "collect_docs": "2. Collect Document",
+    "pm_suryaghar": "3. Online PM Suryaghar",
+    "finance_online": "4. Finance Online",
+    "bank_submission": "5. Submit Document to Bank",
+    "installation": "6. Installation Project",
+    "final_bill": "7. Generate Final Bill",
+    "dcr_certificate": "8. Generate DCR Certificate",
+    "discom_submission": "9. Submit Document to DISCOM",
+    "track_subsidy": "10. Track Subsidy"
+}
+
+LEGACY_STAGE_MAP = {
+    "lead_docs": "create_customer",
+    "portal_feasibility": "pm_suryaghar",
+    "net_metering": "discom_submission",
+    "subsidy_completed": "track_subsidy"
 }
 
 def ensure_solar_projects_schema(get_db_connection):
@@ -24,23 +49,33 @@ def ensure_solar_projects_schema(get_db_connection):
                 project_code VARCHAR(40) NULL UNIQUE,
                 customer_name VARCHAR(180) NOT NULL,
                 phone VARCHAR(40),
+                email VARCHAR(180),
                 address TEXT,
                 system_capacity_kw DECIMAL(8,2),
-                current_stage VARCHAR(50) NOT NULL DEFAULT 'lead_docs',
+                current_stage VARCHAR(50) NOT NULL DEFAULT 'create_customer',
                 deal_amount DECIMAL(12,2) NULL,
                 advance_amount DECIMAL(12,2) NULL,
                 consumer_number VARCHAR(100) NULL,
                 sanction_load_kw DECIMAL(8,2) NULL,
                 portal_app_number VARCHAR(100) NULL,
+                portal_date DATE NULL,
                 payment_type VARCHAR(20) NOT NULL DEFAULT 'direct',
                 finance_provider VARCHAR(180),
                 finance_status VARCHAR(40) NOT NULL DEFAULT 'not_applicable',
+                bank_submission_date DATE NULL,
+                bank_reference VARCHAR(100) NULL,
+                bank_branch VARCHAR(180) NULL,
                 checklist_json LONGTEXT,
                 inverter_details VARCHAR(255) NULL,
                 panel_details VARCHAR(255) NULL,
                 technician_name VARCHAR(180) NULL,
                 installation_status VARCHAR(40) NOT NULL DEFAULT 'pending',
                 installation_date DATE,
+                final_bill_number VARCHAR(100) NULL,
+                final_bill_date DATE NULL,
+                final_bill_amount DECIMAL(12,2) NULL,
+                dcr_cert_number VARCHAR(100) NULL,
+                dcr_cert_date DATE NULL,
                 discom_status VARCHAR(40) NOT NULL DEFAULT 'pending',
                 discom_submission_date DATE,
                 discom_reference VARCHAR(180),
@@ -67,15 +102,25 @@ def ensure_solar_projects_schema(get_db_connection):
         existing_cols = {row["Field"] for row in cur.fetchall()}
 
         new_columns = [
-            ("current_stage", "ALTER TABLE solar_projects ADD COLUMN current_stage VARCHAR(50) NOT NULL DEFAULT 'lead_docs'"),
+            ("email", "ALTER TABLE solar_projects ADD COLUMN email VARCHAR(180) NULL"),
+            ("current_stage", "ALTER TABLE solar_projects ADD COLUMN current_stage VARCHAR(50) NOT NULL DEFAULT 'create_customer'"),
             ("deal_amount", "ALTER TABLE solar_projects ADD COLUMN deal_amount DECIMAL(12,2) NULL"),
             ("advance_amount", "ALTER TABLE solar_projects ADD COLUMN advance_amount DECIMAL(12,2) NULL"),
             ("consumer_number", "ALTER TABLE solar_projects ADD COLUMN consumer_number VARCHAR(100) NULL"),
             ("sanction_load_kw", "ALTER TABLE solar_projects ADD COLUMN sanction_load_kw DECIMAL(8,2) NULL"),
             ("portal_app_number", "ALTER TABLE solar_projects ADD COLUMN portal_app_number VARCHAR(100) NULL"),
+            ("portal_date", "ALTER TABLE solar_projects ADD COLUMN portal_date DATE NULL"),
+            ("bank_submission_date", "ALTER TABLE solar_projects ADD COLUMN bank_submission_date DATE NULL"),
+            ("bank_reference", "ALTER TABLE solar_projects ADD COLUMN bank_reference VARCHAR(100) NULL"),
+            ("bank_branch", "ALTER TABLE solar_projects ADD COLUMN bank_branch VARCHAR(180) NULL"),
             ("inverter_details", "ALTER TABLE solar_projects ADD COLUMN inverter_details VARCHAR(255) NULL"),
             ("panel_details", "ALTER TABLE solar_projects ADD COLUMN panel_details VARCHAR(255) NULL"),
             ("technician_name", "ALTER TABLE solar_projects ADD COLUMN technician_name VARCHAR(180) NULL"),
+            ("final_bill_number", "ALTER TABLE solar_projects ADD COLUMN final_bill_number VARCHAR(100) NULL"),
+            ("final_bill_date", "ALTER TABLE solar_projects ADD COLUMN final_bill_date DATE NULL"),
+            ("final_bill_amount", "ALTER TABLE solar_projects ADD COLUMN final_bill_amount DECIMAL(12,2) NULL"),
+            ("dcr_cert_number", "ALTER TABLE solar_projects ADD COLUMN dcr_cert_number VARCHAR(100) NULL"),
+            ("dcr_cert_date", "ALTER TABLE solar_projects ADD COLUMN dcr_cert_date DATE NULL"),
             ("meter_number", "ALTER TABLE solar_projects ADD COLUMN meter_number VARCHAR(100) NULL"),
             ("stage_updated_at", "ALTER TABLE solar_projects ADD COLUMN stage_updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
         ]
@@ -121,31 +166,26 @@ def payload(r):
     date_keys = [
         "installation_date", "discom_submission_date", "net_meter_date",
         "subsidy_applied_date", "subsidy_received_date", "stage_updated_at",
+        "final_bill_date", "dcr_cert_date", "bank_submission_date", "portal_date",
         "created_at", "updated_at"
     ]
     for k in date_keys:
         if d.get(k) is not None:
             d[k] = d[k].isoformat() if hasattr(d[k], "isoformat") else str(d[k])
 
-    float_keys = ["system_capacity_kw", "deal_amount", "advance_amount", "sanction_load_kw", "subsidy_amount"]
+    float_keys = [
+        "system_capacity_kw", "deal_amount", "advance_amount", "sanction_load_kw",
+        "subsidy_amount", "final_bill_amount"
+    ]
     for k in float_keys:
         if d.get(k) is not None:
             d[k] = float(d[k])
 
-    if not d.get("current_stage") or d["current_stage"] not in STAGE_KEYS:
-        # Infer stage based on completed steps if not explicitly set
-        if d.get("subsidy_status") == "received":
-            d["current_stage"] = "subsidy_completed"
-        elif d.get("net_meter_status") == "installed":
-            d["current_stage"] = "net_metering"
-        elif d.get("installation_status") == "completed":
-            d["current_stage"] = "net_metering"
-        elif d.get("discom_status") == "submitted":
-            d["current_stage"] = "installation"
-        elif d.get("portal_app_number"):
-            d["current_stage"] = "portal_feasibility"
-        else:
-            d["current_stage"] = "lead_docs"
+    st = d.get("current_stage")
+    if st in LEGACY_STAGE_MAP:
+        d["current_stage"] = LEGACY_STAGE_MAP[st]
+    elif not st or st not in STAGE_KEYS:
+        d["current_stage"] = "create_customer"
 
     return d
 
@@ -173,24 +213,31 @@ def projects():
     if payment not in ("direct", "finance"):
         return jsonify(success=False, message="Payment type invalid hai."), 400
 
-    stage = str(d.get("current_stage") or "lead_docs").strip()
+    stage = str(d.get("current_stage") or "create_customer").strip()
+    if stage in LEGACY_STAGE_MAP:
+        stage = LEGACY_STAGE_MAP[stage]
     if stage not in STAGE_KEYS:
-        stage = "lead_docs"
+        stage = "create_customer"
 
     fields = [
-        "customer_name", "phone", "address", "system_capacity_kw", "current_stage",
+        "customer_name", "phone", "email", "address", "system_capacity_kw", "current_stage",
         "deal_amount", "advance_amount", "consumer_number", "sanction_load_kw",
-        "portal_app_number", "payment_type", "finance_provider", "finance_status",
+        "portal_app_number", "portal_date", "payment_type", "finance_provider", "finance_status",
+        "bank_submission_date", "bank_reference", "bank_branch",
         "checklist_json", "inverter_details", "panel_details", "technician_name",
-        "installation_status", "installation_date", "discom_status",
-        "discom_submission_date", "discom_reference", "net_meter_status",
-        "net_meter_date", "meter_number", "subsidy_status", "subsidy_applied_date",
-        "subsidy_received_date", "subsidy_amount", "notes", "created_by"
+        "installation_status", "installation_date",
+        "final_bill_number", "final_bill_date", "final_bill_amount",
+        "dcr_cert_number", "dcr_cert_date",
+        "discom_status", "discom_submission_date", "discom_reference",
+        "net_meter_status", "net_meter_date", "meter_number",
+        "subsidy_status", "subsidy_applied_date", "subsidy_received_date", "subsidy_amount",
+        "notes", "created_by"
     ]
 
     vals = [
         name,
         d.get("phone") or None,
+        d.get("email") or None,
         d.get("address") or None,
         clean_float(d.get("system_capacity_kw")),
         stage,
@@ -199,15 +246,24 @@ def projects():
         d.get("consumer_number") or None,
         clean_float(d.get("sanction_load_kw")),
         d.get("portal_app_number") or None,
+        clean_date(d.get("portal_date")),
         payment,
         (d.get("finance_provider") or None) if payment == "finance" else None,
         (d.get("finance_status") or "pending") if payment == "finance" else "not_applicable",
+        clean_date(d.get("bank_submission_date")),
+        d.get("bank_reference") or None,
+        d.get("bank_branch") or None,
         json.dumps(d.get("checklist") or {}, ensure_ascii=False),
         d.get("inverter_details") or None,
         d.get("panel_details") or None,
         d.get("technician_name") or None,
         d.get("installation_status") or "pending",
         clean_date(d.get("installation_date")),
+        d.get("final_bill_number") or None,
+        clean_date(d.get("final_bill_date")),
+        clean_float(d.get("final_bill_amount")),
+        d.get("dcr_cert_number") or None,
+        clean_date(d.get("dcr_cert_date")),
         d.get("discom_status") or "pending",
         clean_date(d.get("discom_submission_date")),
         d.get("discom_reference") or None,
@@ -269,13 +325,16 @@ def project(pid):
     if payment not in ("direct", "finance"):
         return jsonify(success=False, message="Payment type invalid hai."), 400
 
-    stage = str(d.get("current_stage") or row.get("current_stage") or "lead_docs").strip()
+    stage = str(d.get("current_stage") or row.get("current_stage") or "create_customer").strip()
+    if stage in LEGACY_STAGE_MAP:
+        stage = LEGACY_STAGE_MAP[stage]
     if stage not in STAGE_KEYS:
-        stage = "lead_docs"
+        stage = "create_customer"
 
     vals = [
         name,
         d.get("phone") or None,
+        d.get("email") or None,
         d.get("address") or None,
         clean_float(d.get("system_capacity_kw")),
         stage,
@@ -284,15 +343,24 @@ def project(pid):
         d.get("consumer_number") or None,
         clean_float(d.get("sanction_load_kw")),
         d.get("portal_app_number") or None,
+        clean_date(d.get("portal_date")),
         payment,
         (d.get("finance_provider") or None) if payment == "finance" else None,
         (d.get("finance_status") or "pending") if payment == "finance" else "not_applicable",
+        clean_date(d.get("bank_submission_date")),
+        d.get("bank_reference") or None,
+        d.get("bank_branch") or None,
         json.dumps(d.get("checklist") or {}, ensure_ascii=False),
         d.get("inverter_details") or None,
         d.get("panel_details") or None,
         d.get("technician_name") or None,
         d.get("installation_status") or "pending",
         clean_date(d.get("installation_date")),
+        d.get("final_bill_number") or None,
+        clean_date(d.get("final_bill_date")),
+        clean_float(d.get("final_bill_amount")),
+        d.get("dcr_cert_number") or None,
+        clean_date(d.get("dcr_cert_date")),
         d.get("discom_status") or "pending",
         clean_date(d.get("discom_submission_date")),
         d.get("discom_reference") or None,
@@ -309,15 +377,18 @@ def project(pid):
 
     try:
         cols = """
-            customer_name=%s, phone=%s, address=%s, system_capacity_kw=%s, current_stage=%s,
+            customer_name=%s, phone=%s, email=%s, address=%s, system_capacity_kw=%s, current_stage=%s,
             deal_amount=%s, advance_amount=%s, consumer_number=%s, sanction_load_kw=%s,
-            portal_app_number=%s, payment_type=%s, finance_provider=%s, finance_status=%s,
+            portal_app_number=%s, portal_date=%s, payment_type=%s, finance_provider=%s, finance_status=%s,
+            bank_submission_date=%s, bank_reference=%s, bank_branch=%s,
             checklist_json=%s, inverter_details=%s, panel_details=%s, technician_name=%s,
-            installation_status=%s, installation_date=%s, discom_status=%s,
-            discom_submission_date=%s, discom_reference=%s, net_meter_status=%s,
-            net_meter_date=%s, meter_number=%s, subsidy_status=%s, subsidy_applied_date=%s,
-            subsidy_received_date=%s, subsidy_amount=%s, notes=%s,
-            stage_updated_at=CURRENT_TIMESTAMP
+            installation_status=%s, installation_date=%s,
+            final_bill_number=%s, final_bill_date=%s, final_bill_amount=%s,
+            dcr_cert_number=%s, dcr_cert_date=%s,
+            discom_status=%s, discom_submission_date=%s, discom_reference=%s,
+            net_meter_status=%s, net_meter_date=%s, meter_number=%s,
+            subsidy_status=%s, subsidy_applied_date=%s, subsidy_received_date=%s, subsidy_amount=%s,
+            notes=%s, stage_updated_at=CURRENT_TIMESTAMP
         """
         sql = f"UPDATE solar_projects SET {cols} WHERE id=%s"
         g.cursor.execute(sql, tuple(vals))
@@ -338,6 +409,9 @@ def update_stage(pid):
 
     data = request.get_json(silent=True) or {}
     new_stage = str(data.get("current_stage") or "").strip()
+    if new_stage in LEGACY_STAGE_MAP:
+        new_stage = LEGACY_STAGE_MAP[new_stage]
+
     if new_stage not in STAGE_KEYS:
         return jsonify(success=False, message=f"Invalid stage '{new_stage}'."), 400
 
@@ -365,19 +439,15 @@ def solar_dashboard():
 
         stage_counts = {k: 0 for k in STAGE_KEYS}
         for p in ps:
-            st = p.get("current_stage") or "lead_docs"
+            st = p.get("current_stage") or "create_customer"
             if st in stage_counts:
                 stage_counts[st] += 1
             else:
-                stage_counts["lead_docs"] += 1
+                stage_counts["create_customer"] += 1
 
         stats = {
             "total": len(ps),
-            "stage_lead_docs": stage_counts["lead_docs"],
-            "stage_portal_feasibility": stage_counts["portal_feasibility"],
-            "stage_installation": stage_counts["installation"],
-            "stage_net_metering": stage_counts["net_metering"],
-            "stage_subsidy_completed": stage_counts["subsidy_completed"],
+            "stage_counts": stage_counts,
             "finance_pending": sum(1 for p in ps if p.get("payment_type") == "finance" and p.get("finance_status") not in ("approved", "disbursed", "complete")),
             "subsidy_received_total": sum(float(p.get("subsidy_amount") or 0) for p in ps if p.get("subsidy_status") == "received"),
             "total_deal_value": sum(float(p.get("deal_amount") or 0) for p in ps)

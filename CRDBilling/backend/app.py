@@ -1375,6 +1375,7 @@ ALL_PERMISSIONS = [
     {"id": "reports", "name": "Reports & Analytics", "description": "View business reports and export spreadsheets", "icon": "📈"},
     {"id": "scrap", "name": "Scrap Management", "description": "Manage broken computer parts, scrap inventory and kabadi sales", "icon": "♻️"},
     {"id": "users", "name": "User Management", "description": "Manage users, create custom roles and permissions", "icon": "👤"},
+    {"id": "solar", "name": "Solar File Tracker", "description": "Track solar checklists and project workflow", "icon": "☀️"},
     {"id": "settings", "name": "Settings", "description": "Configure business info and system settings", "icon": "⚙️"}
 ]
 ALL_PERMISSION_KEYS = [p["id"] for p in ALL_PERMISSIONS]
@@ -1405,8 +1406,8 @@ def ensure_roles_schema():
 
         defaults = [
             ("Admin", "Full unrestricted access to all modules and configurations", ALL_PERMISSION_KEYS, 1),
-            ("Manager", "Management access to sales, purchases, inventory, services and reports", ["dashboard", "sales", "customers", "products", "purchases", "suppliers", "expenses", "services", "employees", "attendance", "reports", "scrap"], 1),
-            ("Staff", "Standard operational access for counter sales, services and customer entries", ["dashboard", "sales", "customers", "products", "services"], 1),
+            ("Manager", "Management access to sales, purchases, inventory, services and reports", ["dashboard", "sales", "customers", "products", "purchases", "suppliers", "expenses", "services", "employees", "attendance", "reports", "scrap", "solar"], 1),
+            ("Staff", "Standard operational access for counter sales, services and customer entries", ["dashboard", "sales", "customers", "products", "services", "solar"], 1),
             ("Technician", "Operational access for technician mobile app, assigned jobs, attendance and tools", ["technician_portal"], 1)
         ]
 
@@ -1419,6 +1420,17 @@ def ensure_roles_schema():
                     """,
                     (r_name, r_desc, json.dumps(r_perms), r_sys)
                 )
+            elif r_name in ("Manager", "Staff"):
+                # Add the new Solar module to existing built-in roles without removing custom permissions.
+                cursor.execute("SELECT permissions FROM user_roles WHERE LOWER(role_name)=LOWER(%s) LIMIT 1", (r_name,))
+                current = cursor.fetchone()
+                try:
+                    current_permissions = json.loads(current["permissions"] or "[]") if current else []
+                except Exception:
+                    current_permissions = []
+                if isinstance(current_permissions, list) and "solar" not in current_permissions:
+                    current_permissions.append("solar")
+                    cursor.execute("UPDATE user_roles SET permissions=%s WHERE LOWER(role_name)=LOWER(%s)", (json.dumps(current_permissions), r_name))
 
         db.commit()
     except Exception as e:
@@ -1491,6 +1503,13 @@ ensure_stock_locations_schema()
 ensure_technician_employee_schema(get_db_connection)
 app.register_blueprint(technician_bp)
 
+
+try:
+    from backend.solar_module import solar_bp, ensure_solar_projects_schema
+except ImportError:
+    from solar_module import solar_bp, ensure_solar_projects_schema
+ensure_solar_projects_schema(get_db_connection)
+app.register_blueprint(solar_bp)
 
 # ==========================================
 # HOME & STATIC ROUTE (Handled by serve_website_home)

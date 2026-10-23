@@ -6,7 +6,7 @@
     const ALL_SYSTEM_PERMISSIONS = [
         "dashboard", "sales", "customers", "products", "purchases",
         "suppliers", "expenses", "services", "employees", "attendance",
-        "technician_portal", "device_security", "reports", "users", "settings"
+        "technician_portal", "device_security", "reports", "users", "settings", "solar"
     ];
 
     function clearAuthentication() {
@@ -45,9 +45,9 @@
 
         const role = getUserRole().toLowerCase();
         if (role === "manager") {
-            return ["dashboard", "sales", "customers", "products", "purchases", "suppliers", "expenses", "services", "reports"];
+            return ["dashboard", "sales", "customers", "products", "purchases", "suppliers", "expenses", "services", "reports", "solar"];
         }
-        return ["dashboard", "sales", "customers", "products", "services"];
+        return ["dashboard", "sales", "customers", "products", "services", "solar"];
     }
 
     function hasPermission(permissionKey) {
@@ -107,6 +107,7 @@
         "sales-invoice.html": "sales",
         "customer-list.html": "customers",
         "customer.html": "customers",
+        "solar-tracker.html": "solar",
         "product-list.html": "products",
         "product.html": "products",
         "attendance.html": "attendance",

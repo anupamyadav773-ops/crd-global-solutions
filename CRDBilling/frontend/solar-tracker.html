@@ -145,37 +145,55 @@
             <div class="modal-header">
                 <div>
                     <h2 id="modalTitle">➕ नया सोलर ग्राहक</h2>
-                    <span id="modalSubhead" style="font-size: 0.8rem; color: var(--text-muted);"></span>
+                    <span id="modalSubhead" style="font-size: 0.82rem; color: var(--text-muted); display: block; margin-top: 2px;"></span>
                 </div>
-                <button type="button" id="closeModalBtn" class="close-btn">&times;</button>
+                <button type="button" id="closeModalBtn" class="close-btn" title="बंद करें">&times;</button>
             </div>
 
-            <!-- Quick Stage Stepper -->
-            <div class="stage-stepper" id="modalStageStepper">
-                <button type="button" class="stage-step-btn current" data-set-stage="lead_docs">1. टोकन व डॉक्स</button>
-                <button type="button" class="stage-step-btn" data-set-stage="portal_feasibility">2. पोर्टल व डिस्कॉम</button>
-                <button type="button" class="stage-step-btn" data-set-stage="installation">3. इंस्टॉलेशन</button>
-                <button type="button" class="stage-step-btn" data-set-stage="net_metering">4. नेट मीटरिंग</button>
-                <button type="button" class="stage-step-btn" data-set-stage="subsidy_completed">5. सब्सिडी व पूर्ण</button>
-            </div>
-
-            <!-- Modal Tab Navigation -->
-            <div class="modal-tabs">
-                <button type="button" class="tab-btn active" data-tab="tab1">📋 ग्राहक व दस्तावेज़</button>
-                <button type="button" class="tab-btn" data-tab="tab2">⚡ पोर्टल व डिस्कॉम</button>
-                <button type="button" class="tab-btn" data-tab="tab3">🔧 सामग्री व इंस्टॉलेशन</button>
-                <button type="button" class="tab-btn" data-tab="tab4">⏱️ नेट मीटरिंग</button>
-                <button type="button" class="tab-btn" data-tab="tab5">💰 सब्सिडी व भुगतान</button>
+            <!-- Modal Tab Navigation (5 Unified Steps) -->
+            <div class="modal-tabs" id="modalTabs">
+                <button type="button" class="tab-btn active" data-tab="tab1">
+                    <span class="tab-num">1</span>
+                    <span>📋 ग्राहक व दस्तावेज़</span>
+                </button>
+                <button type="button" class="tab-btn" data-tab="tab2">
+                    <span class="tab-num">2</span>
+                    <span>⚡ पोर्टल व डिस्कॉम</span>
+                </button>
+                <button type="button" class="tab-btn" data-tab="tab3">
+                    <span class="tab-num">3</span>
+                    <span>🔧 सामग्री व इंस्टॉलेशन</span>
+                </button>
+                <button type="button" class="tab-btn" data-tab="tab4">
+                    <span class="tab-num">4</span>
+                    <span>⏱️ नेट मीटरिंग</span>
+                </button>
+                <button type="button" class="tab-btn" data-tab="tab5">
+                    <span class="tab-num">5</span>
+                    <span>💰 सब्सिडी व भुगतान</span>
+                </button>
             </div>
 
             <form id="projectForm">
                 <input type="hidden" id="project_id">
-                <input type="hidden" id="current_stage" value="lead_docs">
 
                 <div class="modal-body">
                     <!-- TAB 1: CUSTOMER & DOCS -->
                     <div id="tab1" class="tab-content active">
                         <div class="form-grid">
+                            <div class="form-group full-col stage-selector-box">
+                                <label for="current_stage" style="font-weight: 700; color: #1e293b; font-size: 0.85rem;">
+                                    📍 फ़ाइल का वर्तमान चरण (Current Pipeline Stage):
+                                </label>
+                                <select id="current_stage" style="font-weight: 600; color: var(--primary);">
+                                    <option value="lead_docs">1. टोकन व दस्तावेज़ (Lead & Docs)</option>
+                                    <option value="portal_feasibility">2. पोर्टल व डिस्कॉम (Portal & Discom)</option>
+                                    <option value="installation">3. प्लांट इंस्टॉलेशन (Installation)</option>
+                                    <option value="net_metering">4. नेट मीटरिंग (Net Metering)</option>
+                                    <option value="subsidy_completed">5. सब्सिडी व पूर्ण (Subsidy & Closure)</option>
+                                </select>
+                            </div>
+
                             <div class="form-group">
                                 <label for="customer_name">ग्राहक का नाम (Customer Name) *</label>
                                 <input type="text" id="customer_name" required placeholder="उदा. राजेश कुमार">
@@ -207,7 +225,7 @@
                                     <option value="finance">Finance / Bank Loan</option>
                                 </select>
                             </div>
-                            <div id="financeBox" class="form-group full-col" style="display:none; background:#f0fdf4; border:1px solid #bbf7d0; padding:10px; border-radius:6px;">
+                            <div id="financeBox" class="form-group full-col" style="display:none; background:#f0fdf4; border:1px solid #bbf7d0; padding:12px; border-radius:8px;">
                                 <div class="form-grid">
                                     <div class="form-group">
                                         <label for="finance_provider">Bank / Finance Provider</label>
@@ -355,13 +373,14 @@
                 </div>
 
                 <div class="modal-footer">
-                    <div>
-                        <button type="button" id="deleteProjectBtn" class="btn" style="background:#fee2e2; color:#b91c1c; display:none;">🗑️ हटाएं</button>
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <button type="button" id="cancelModalBtn" class="btn btn-secondary">❌ रद्द करें</button>
+                        <button type="button" id="deleteProjectBtn" class="btn" style="background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5; display:none;">🗑️ हटाएं</button>
                     </div>
                     <div class="modal-footer-right">
                         <button type="button" id="prevTabBtn" class="btn btn-secondary">◀ पिछला</button>
                         <button type="button" id="nextTabBtn" class="btn btn-secondary">अगला ▶</button>
-                        <button type="submit" id="saveProjectBtn" class="btn btn-primary">✓ सेव करें</button>
+                        <button type="submit" id="saveProjectBtn" class="btn btn-primary" style="background:#059669; border-color:#059669; font-weight:700;">💾 सुरक्षित करें</button>
                     </div>
                 </div>
             </form>

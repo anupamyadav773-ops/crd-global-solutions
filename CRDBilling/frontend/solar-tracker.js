@@ -388,16 +388,12 @@ function openProjectModal(projectId = null) {
 
             // Toggle Finance Box
             $("financeBox").style.display = p.payment_type === "finance" ? "block" : "none";
-
-            // Highlight current stage in stepper
-            updateModalStageStepper(p.current_stage || "lead_docs");
         }
     } else {
         $("modalTitle").textContent = "➕ नया सोलर ग्राहक";
         $("modalSubhead").textContent = "नया सोलर प्रोजेक्ट व फाइल रिकॉर्ड बनाएं";
         $("current_stage").value = "lead_docs";
         $("financeBox").style.display = "none";
-        updateModalStageStepper("lead_docs");
     }
 
     switchTab("tab1");
@@ -408,29 +404,57 @@ function closeProjectModal() {
     $("projectModal").classList.add("hidden");
 }
 
-function updateModalStageStepper(stageKey) {
-    document.querySelectorAll(".stage-step-btn").forEach(btn => {
-        if (btn.getAttribute("data-set-stage") === stageKey) {
-            btn.classList.add("current");
-        } else {
-            btn.classList.remove("current");
-        }
-    });
-}
-
 function switchTab(tabId) {
     currentModalTab = tabId;
+    const tabs = ["tab1", "tab2", "tab3", "tab4", "tab5"];
+    const idx = tabs.indexOf(tabId);
+
     document.querySelectorAll(".tab-btn").forEach(btn => {
         btn.classList.toggle("active", btn.getAttribute("data-tab") === tabId);
     });
     document.querySelectorAll(".tab-content").forEach(content => {
         content.classList.toggle("active", content.id === tabId);
     });
+
+    // Update prev/next button visibility
+    const prevBtn = $("prevTabBtn");
+    const nextBtn = $("nextTabBtn");
+    if (prevBtn) {
+        prevBtn.disabled = idx <= 0;
+        prevBtn.style.opacity = idx <= 0 ? "0.4" : "1";
+    }
+    if (nextBtn) {
+        if (idx >= tabs.length - 1) {
+            nextBtn.style.display = "none";
+        } else {
+            nextBtn.style.display = "inline-flex";
+            nextBtn.disabled = false;
+            nextBtn.style.opacity = "1";
+        }
+    }
+
+    // Scroll modal-body to top on tab switch
+    const modalBody = document.querySelector(".modal-body");
+    if (modalBody) modalBody.scrollTop = 0;
 }
 
 // Event Listeners
 $("newProjectBtn").addEventListener("click", () => openProjectModal());
 $("closeModalBtn").addEventListener("click", closeProjectModal);
+const cancelBtn = $("cancelModalBtn");
+if (cancelBtn) cancelBtn.addEventListener("click", closeProjectModal);
+
+// Close on backdrop click
+$("projectModal").addEventListener("click", function(e) {
+    if (e.target === this) closeProjectModal();
+});
+
+// Close on Esc key
+document.addEventListener("keydown", function(e) {
+    if (e.key === "Escape" && !$("projectModal").classList.contains("hidden")) {
+        closeProjectModal();
+    }
+});
 
 // View Toggle
 $("viewKanbanBtn").addEventListener("click", function() {
@@ -456,15 +480,6 @@ $("paymentFilter").addEventListener("change", renderViews);
 // Payment type toggle finance box
 $("payment_type").addEventListener("change", function() {
     $("financeBox").style.display = this.value === "finance" ? "block" : "none";
-});
-
-// Modal Stepper Click
-document.querySelectorAll(".stage-step-btn").forEach(btn => {
-    btn.addEventListener("click", function() {
-        const stage = this.getAttribute("data-set-stage");
-        $("current_stage").value = stage;
-        updateModalStageStepper(stage);
-    });
 });
 
 // Modal Tab Switch

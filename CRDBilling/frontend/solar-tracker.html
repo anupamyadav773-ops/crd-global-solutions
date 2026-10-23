@@ -1,3 +1,373 @@
-<!doctype html><html lang="hi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Solar File Tracker | CRD Global Solutions</title><link rel="stylesheet" href="solar-tracker.css"><script src="config.js"></script><script src="auth.js"></script></head><body>
-<header><div><small>CRD GLOBAL SOLUTIONS</small><h1>☀️ Solar File Tracker</h1><p>Checklist aur workflow tracking — documents upload karne ki zaroorat nahi.</p></div><button id="newBtn">＋ नया ग्राहक</button></header><main><section id="stats" class="stats"></section><section class="tools"><input id="search" placeholder="ग्राहक, मोबाइल या Project ID खोजें"><select id="filter"><option value="all">सभी ग्राहक</option><option value="installation">Installation बाकी</option><option value="discom">DISCOM submission बाकी</option><option value="meter">Net meter बाकी</option><option value="subsidy">Subsidy बाकी</option></select></section><section id="projects" class="projects">लोड हो रहा है...</section></main>
-<div id="modal" class="modal hidden"><div class="dialog"><div class="dialoghead"><div><h2 id="formTitle">नया Solar ग्राहक</h2><p>केवल checklist/status भरें; कोई फाइल upload नहीं होगी।</p></div><button id="closeBtn" class="close">×</button></div><form id="form"><input type="hidden" id="id"><div class="grid"><label>ग्राहक का नाम *<input id="customer_name" required></label><label>मोबाइल<input id="phone"></label><label class="wide">पता<input id="address"></label><label>सिस्टम क्षमता (kW)<input id="system_capacity_kw" type="number" min="0" step=".01"></label><label>भुगतान का प्रकार<select id="payment_type"><option value="direct">सीधा भुगतान</option><option value="finance">Finance / Bank Loan</option></select></label><div id="financeFields" class="finance wide hidden"><label>Bank / Finance Provider<input id="finance_provider"></label><label>Finance Status<select id="finance_status"><option value="pending">Pending</option><option value="applied">Applied</option><option value="approved">Approved</option><option value="disbursed">Disbursed</option><option value="rejected">Rejected</option></select></label></div><div class="wide"><h3>दस्तावेज़ Checklist</h3><p class="hint">दस्तावेज़ मिल गए हों तो tick करें। फाइल अपलोड नहीं करनी है।</p><div id="checklist" class="checks"></div></div><label>Installation Status<select id="installation_status"><option value="pending">बाकी</option><option value="in_progress">काम जारी</option><option value="completed">पूरा</option></select></label><label>Installation Date<input id="installation_date" type="date"></label><label>DISCOM Status<select id="discom_status"><option value="pending">जमा करना बाकी</option><option value="submitted">जमा हो गए</option><option value="returned">Correction/Returned</option></select></label><label>DISCOM Submission Date<input id="discom_submission_date" type="date"></label><label>DISCOM Reference / Acknowledgment<input id="discom_reference"></label><label>Net Meter Status<select id="net_meter_status"><option value="pending">बाकी</option><option value="in_progress">प्रक्रिया में</option><option value="installed">लग गया</option></select></label><label>Net Meter Date<input id="net_meter_date" type="date"></label><label>Subsidy Status<select id="subsidy_status"><option value="pending">बाकी</option><option value="applied">आवेदन किया</option><option value="processing">प्रक्रिया में</option><option value="received">प्राप्त हो गई</option><option value="rejected">अस्वीकृत</option></select></label><label>Subsidy Applied Date<input id="subsidy_applied_date" type="date"></label><label>Subsidy Received Date<input id="subsidy_received_date" type="date"></label><label>Subsidy Amount (₹)<input id="subsidy_amount" type="number" min="0" step=".01"></label><label class="wide">Notes / अगला काम<textarea id="notes" rows="3"></textarea></label></div><div class="actions"><button type="button" id="cancelBtn" class="secondary">रद्द करें</button><button type="submit">सेव करें</button></div><p id="message" class="message"></p></form></div></div><script src="solar-tracker.js"></script></body></html>
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solar Project Pipeline &amp; File Tracker | CRD Global Solutions</title>
+    <link rel="stylesheet" href="solar-tracker.css">
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+</head>
+<body>
+
+    <header>
+        <div class="header-left">
+            <small>CRD GLOBAL SOLUTIONS</small>
+            <h1>☀️ Solar Project Pipeline &amp; File Tracker</h1>
+            <p>5-स्टेज वर्कफ़्लो, डॉक्युमेंट चेकलिस्ट एवं सरकारी सब्सिडी ट्रैकिंग</p>
+        </div>
+        <div class="header-actions">
+            <a href="dashboard.html" class="btn btn-secondary">← Dashboard</a>
+            <button id="newProjectBtn" class="btn btn-primary">＋ नया सोलर ग्राहक</button>
+        </div>
+    </header>
+
+    <!-- Top Summary Stats -->
+    <section class="stats-container">
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card">
+                <div class="stat-label">कुल प्रोजेक्ट्स</div>
+                <div class="stat-value" id="stat_total">0</div>
+            </div>
+            <div class="stat-card stage-1">
+                <div class="stat-label">1. टोकन व डॉक्स</div>
+                <div class="stat-value" id="stat_stage_lead_docs">0</div>
+            </div>
+            <div class="stat-card stage-2">
+                <div class="stat-label">2. पोर्टल व डिस्कॉम</div>
+                <div class="stat-value" id="stat_stage_portal_feasibility">0</div>
+            </div>
+            <div class="stat-card stage-3">
+                <div class="stat-label">3. इंस्टॉलेशन</div>
+                <div class="stat-value" id="stat_stage_installation">0</div>
+            </div>
+            <div class="stat-card stage-4">
+                <div class="stat-label">4. नेट मीटरिंग</div>
+                <div class="stat-value" id="stat_stage_net_metering">0</div>
+            </div>
+            <div class="stat-card stage-5">
+                <div class="stat-label">5. सब्सिडी व पूर्ण</div>
+                <div class="stat-value" id="stat_stage_subsidy_completed">0</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Toolbar: Search, Filters & View Toggle -->
+    <section class="toolbar">
+        <div class="toolbar-left">
+            <input type="text" id="searchInput" class="search-input" placeholder="🔍 ग्राहक का नाम, मोबाइल, प्रोजेक्ट ID या Consumer No. खोजें...">
+            <select id="paymentFilter" class="search-input" style="max-width: 160px;">
+                <option value="all">सभी भुगतान</option>
+                <option value="direct">सीधा भुगतान</option>
+                <option value="finance">Finance / लोन</option>
+            </select>
+        </div>
+        <div class="view-toggle">
+            <button id="viewKanbanBtn" class="toggle-btn active">📊 Kanban Board</button>
+            <button id="viewTableBtn" class="toggle-btn">📋 List View</button>
+        </div>
+    </section>
+
+    <!-- KANBAN BOARD VIEW -->
+    <main id="kanbanBoard" class="kanban-board">
+        <!-- 1. Docs & Booking -->
+        <div class="kanban-column" data-stage="lead_docs">
+            <div class="column-header c1">
+                <span>📋 1. टोकन व दस्तावेज़</span>
+                <span class="column-count" id="count_lead_docs">0</span>
+            </div>
+            <div class="column-cards" id="cards_lead_docs"></div>
+        </div>
+
+        <!-- 2. Portal & Feasibility -->
+        <div class="kanban-column" data-stage="portal_feasibility">
+            <div class="column-header c2">
+                <span>⚡ 2. पोर्टल व डिस्कॉम</span>
+                <span class="column-count" id="count_portal_feasibility">0</span>
+            </div>
+            <div class="column-cards" id="cards_portal_feasibility"></div>
+        </div>
+
+        <!-- 3. Plant Installation -->
+        <div class="kanban-column" data-stage="installation">
+            <div class="column-header c3">
+                <span>🔧 3. प्लांट इंस्टॉलेशन</span>
+                <span class="column-count" id="count_installation">0</span>
+            </div>
+            <div class="column-cards" id="cards_installation"></div>
+        </div>
+
+        <!-- 4. Net Metering -->
+        <div class="kanban-column" data-stage="net_metering">
+            <div class="column-header c4">
+                <span>⏱️ 4. नेट मीटरिंग</span>
+                <span class="column-count" id="count_net_metering">0</span>
+            </div>
+            <div class="column-cards" id="cards_net_metering"></div>
+        </div>
+
+        <!-- 5. Subsidy & Completion -->
+        <div class="kanban-column" data-stage="subsidy_completed">
+            <div class="column-header c5">
+                <span>💰 5. सब्सिडी व पूर्ण</span>
+                <span class="column-count" id="count_subsidy_completed">0</span>
+            </div>
+            <div class="column-cards" id="cards_subsidy_completed"></div>
+        </div>
+    </main>
+
+    <!-- TABLE / LIST VIEW -->
+    <div id="tableView" class="table-container">
+        <table class="projects-table">
+            <thead>
+                <tr>
+                    <th>Project ID</th>
+                    <th>Customer Name</th>
+                    <th>Contact</th>
+                    <th>Capacity</th>
+                    <th>Current Stage</th>
+                    <th>Consumer No.</th>
+                    <th>Deal Amount</th>
+                    <th>Net Meter</th>
+                    <th>Subsidy</th>
+                    <th style="text-align: right;">Action</th>
+                </tr>
+            </thead>
+            <tbody id="projectsTableBody">
+                <tr><td colspan="10" style="text-align: center; padding: 20px;">लोड हो रहा है...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- STEP-BY-STEP TABS MODAL -->
+    <div id="projectModal" class="modal hidden">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <div>
+                    <h2 id="modalTitle">➕ नया सोलर ग्राहक</h2>
+                    <span id="modalSubhead" style="font-size: 0.8rem; color: var(--text-muted);"></span>
+                </div>
+                <button type="button" id="closeModalBtn" class="close-btn">&times;</button>
+            </div>
+
+            <!-- Quick Stage Stepper -->
+            <div class="stage-stepper" id="modalStageStepper">
+                <button type="button" class="stage-step-btn current" data-set-stage="lead_docs">1. टोकन व डॉक्स</button>
+                <button type="button" class="stage-step-btn" data-set-stage="portal_feasibility">2. पोर्टल व डिस्कॉम</button>
+                <button type="button" class="stage-step-btn" data-set-stage="installation">3. इंस्टॉलेशन</button>
+                <button type="button" class="stage-step-btn" data-set-stage="net_metering">4. नेट मीटरिंग</button>
+                <button type="button" class="stage-step-btn" data-set-stage="subsidy_completed">5. सब्सिडी व पूर्ण</button>
+            </div>
+
+            <!-- Modal Tab Navigation -->
+            <div class="modal-tabs">
+                <button type="button" class="tab-btn active" data-tab="tab1">📋 ग्राहक व दस्तावेज़</button>
+                <button type="button" class="tab-btn" data-tab="tab2">⚡ पोर्टल व डिस्कॉम</button>
+                <button type="button" class="tab-btn" data-tab="tab3">🔧 सामग्री व इंस्टॉलेशन</button>
+                <button type="button" class="tab-btn" data-tab="tab4">⏱️ नेट मीटरिंग</button>
+                <button type="button" class="tab-btn" data-tab="tab5">💰 सब्सिडी व भुगतान</button>
+            </div>
+
+            <form id="projectForm">
+                <input type="hidden" id="project_id">
+                <input type="hidden" id="current_stage" value="lead_docs">
+
+                <div class="modal-body">
+                    <!-- TAB 1: CUSTOMER & DOCS -->
+                    <div id="tab1" class="tab-content active">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="customer_name">ग्राहक का नाम (Customer Name) *</label>
+                                <input type="text" id="customer_name" required placeholder="उदा. राजेश कुमार">
+                            </div>
+                            <div class="form-group">
+                                <label for="phone">मोबाइल नंबर (Mobile No)</label>
+                                <input type="text" id="phone" placeholder="उदा. 9876543210">
+                            </div>
+                            <div class="form-group full-col">
+                                <label for="address">साइट का पता (Installation Address)</label>
+                                <input type="text" id="address" placeholder="गाँव / मोहल्ला, पोस्ट, जिला">
+                            </div>
+                            <div class="form-group">
+                                <label for="system_capacity_kw">सोलर प्लांट क्षमता (kW में)</label>
+                                <input type="number" id="system_capacity_kw" step="0.01" min="0" placeholder="उदा. 3.30">
+                            </div>
+                            <div class="form-group">
+                                <label for="deal_amount">कुल डील राशि (Total Deal ₹)</label>
+                                <input type="number" id="deal_amount" step="1" min="0" placeholder="उदा. 185000">
+                            </div>
+                            <div class="form-group">
+                                <label for="advance_amount">टोकन / एडवांस राशि (Advance ₹)</label>
+                                <input type="number" id="advance_amount" step="1" min="0" placeholder="उदा. 25000">
+                            </div>
+                            <div class="form-group">
+                                <label for="payment_type">भुगतान का प्रकार (Payment Type)</label>
+                                <select id="payment_type">
+                                    <option value="direct">सीधा भुगतान (Direct / Cash)</option>
+                                    <option value="finance">Finance / Bank Loan</option>
+                                </select>
+                            </div>
+                            <div id="financeBox" class="form-group full-col" style="display:none; background:#f0fdf4; border:1px solid #bbf7d0; padding:10px; border-radius:6px;">
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label for="finance_provider">Bank / Finance Provider</label>
+                                        <input type="text" id="finance_provider" placeholder="उदा. SBI, Canara Bank, HDFC">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="finance_status">Finance Status</label>
+                                        <select id="finance_status">
+                                            <option value="pending">Pending (आवेदन बाकी)</option>
+                                            <option value="applied">Applied (बैंक में फाइल लगी)</option>
+                                            <option value="approved">Approved (पास हो गई)</option>
+                                            <option value="disbursed">Disbursed (रुपये आ गए)</option>
+                                            <option value="rejected">Rejected (अस्वीकृत)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group full-col">
+                                <div class="checklist-card">
+                                    <strong style="color:var(--primary); font-size:0.85rem;">📄 दस्तावेज़ प्राप्ति चेकलिस्ट (Document Checklist)</strong>
+                                    <p style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">फ़ाइल अपलोड करने की आवश्यकता नहीं है, केवल प्राप्त होने पर टिक करें:</p>
+                                    <div class="checklist-grid" id="checklistContainer"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB 2: PORTAL & DISCOM -->
+                    <div id="tab2" class="tab-content">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="portal_app_number">PM Surya Ghar Portal Application No.</label>
+                                <input type="text" id="portal_app_number" placeholder="उदा. UP-SG-2024-XXXXX">
+                            </div>
+                            <div class="form-group">
+                                <label for="consumer_number">Consumer Account Number (बिजली खाता संख्या)</label>
+                                <input type="text" id="consumer_number" placeholder="10 अंकों का UPPCL बिजली नंबर">
+                            </div>
+                            <div class="form-group">
+                                <label for="sanction_load_kw">मीटर का स्वीकृत लोड (Sanction Load kW)</label>
+                                <input type="number" id="sanction_load_kw" step="0.5" min="0" placeholder="उदा. 2.0 kW">
+                            </div>
+                            <div class="form-group">
+                                <label for="discom_status">DISCOM / बिजली विभाग फाइल स्थिति</label>
+                                <select id="discom_status">
+                                    <option value="pending">जमा करना बाकी (Pending)</option>
+                                    <option value="submitted">जमा हो गई (Submitted)</option>
+                                    <option value="returned">Correction / आपत्ति आई</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="discom_submission_date">DISCOM फाइल जमा करने की तारीख</label>
+                                <input type="date" id="discom_submission_date">
+                            </div>
+                            <div class="form-group">
+                                <label for="discom_reference">DISCOM Reference / पावती संख्या</label>
+                                <input type="text" id="discom_reference" placeholder="पावती या डायरी नंबर">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB 3: INSTALLATION & TEAM -->
+                    <div id="tab3" class="tab-content">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="panel_details">सोलर पैनल्स का विवरण (Panel Brand &amp; Qty)</label>
+                                <input type="text" id="panel_details" placeholder="उदा. Adani 550W TopCon DCR x 6 Pcs">
+                            </div>
+                            <div class="form-group">
+                                <label for="inverter_details">सोलर इन्वर्टर विवरण (Inverter Brand &amp; kW)</label>
+                                <input type="text" id="inverter_details" placeholder="उदा. Growatt 3.3 kW On-Grid">
+                            </div>
+                            <div class="form-group">
+                                <label for="technician_name">इंस्टॉलेशन टीम / टेक्नीशियन का नाम</label>
+                                <input type="text" id="technician_name" placeholder="उदा. विकास कुमार, सौरव यादव">
+                            </div>
+                            <div class="form-group">
+                                <label for="installation_status">इंस्टॉलेशन स्थिति (Installation Status)</label>
+                                <select id="installation_status">
+                                    <option value="pending">बाकी (Pending)</option>
+                                    <option value="in_progress">सामग्री भेजी / काम चालू</option>
+                                    <option value="completed">प्लांट लग गया (Completed)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="installation_date">इंस्टॉलेशन पूरा होने की तारीख</label>
+                                <input type="date" id="installation_date">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB 4: NET METERING -->
+                    <div id="tab4" class="tab-content">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="net_meter_status">नेट मीटर स्थिति (Net Meter Status)</label>
+                                <select id="net_meter_status">
+                                    <option value="pending">बाकी (Pending)</option>
+                                    <option value="in_progress">जेई इंस्पेक्शन / मीटर टेस्टिंग में</option>
+                                    <option value="installed">नेट मीटर लग गया (Installed)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="net_meter_date">नेट मीटर लगने की तारीख</label>
+                                <input type="date" id="net_meter_date">
+                            </div>
+                            <div class="form-group">
+                                <label for="meter_number">नया नेट मीटर नंबर (New Meter Serial No.)</label>
+                                <input type="text" id="meter_number" placeholder="उदा. GP-8492048">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB 5: SUBSIDY & ACCOUNTS -->
+                    <div id="tab5" class="tab-content">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="subsidy_status">सरकारी सब्सिडी स्थिति (Subsidy Status)</label>
+                                <select id="subsidy_status">
+                                    <option value="pending">बाकी (Pending)</option>
+                                    <option value="applied">आवेदन किया गया (Applied)</option>
+                                    <option value="processing">प्रक्रिया में (Processing)</option>
+                                    <option value="received">खाते में प्राप्त हो गई (Received)</option>
+                                    <option value="rejected">अस्वीकृत (Rejected)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="subsidy_amount">प्राप्त / अपेक्षित सब्सिडी राशि (Subsidy ₹)</label>
+                                <input type="number" id="subsidy_amount" step="1" min="0" placeholder="उदा. 78000">
+                            </div>
+                            <div class="form-group">
+                                <label for="subsidy_applied_date">सब्सिडी आवेदन तारीख</label>
+                                <input type="date" id="subsidy_applied_date">
+                            </div>
+                            <div class="form-group">
+                                <label for="subsidy_received_date">सब्सिडी प्राप्त होने की तारीख</label>
+                                <input type="date" id="subsidy_received_date">
+                            </div>
+                            <div class="form-group full-col">
+                                <label for="notes">अतिरिक्त नोट्स / अगला कार्य (Notes &amp; Follow-up)</label>
+                                <textarea id="notes" rows="3" placeholder="कस्टमर से शेष पेमेंट, जेई से फॉलोअप, या अन्य कोई टिप्पणी..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <div>
+                        <button type="button" id="deleteProjectBtn" class="btn" style="background:#fee2e2; color:#b91c1c; display:none;">🗑️ हटाएं</button>
+                    </div>
+                    <div class="modal-footer-right">
+                        <button type="button" id="prevTabBtn" class="btn btn-secondary">◀ पिछला</button>
+                        <button type="button" id="nextTabBtn" class="btn btn-secondary">अगला ▶</button>
+                        <button type="submit" id="saveProjectBtn" class="btn btn-primary">✓ सेव करें</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="solar-tracker.js"></script>
+</body>
+</html>

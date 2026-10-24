@@ -1,4 +1,4 @@
-﻿const body = document.body;
+const body = document.body;
 const lampPullCord = document.getElementById("lampPullCord");
 const usernameInput = document.getElementById("username");
 const passwordInput = document.getElementById("password");
@@ -228,6 +228,7 @@ if (loginForm) {
                 }
                 localStorage.setItem("pari_auth_token", result.token);
                 localStorage.setItem("pari_current_user", JSON.stringify(result.user || {}));
+                localStorage.setItem("pari_last_activity", String(Date.now()));
                 window.location.href = "dashboard.html";
                 return;
             }
@@ -255,4 +256,14 @@ if (loginForm) {
 
 // Initial state: Lamp is OFF by default, login panel hidden until lamp is lit
 setLampState(false, false);
+
+// Check if user was logged out due to inactivity timeout
+try {
+    const logoutReason = sessionStorage.getItem("pari_logout_reason");
+    if (logoutReason) {
+        sessionStorage.removeItem("pari_logout_reason");
+        setLampState(true, true);
+        showError(logoutReason);
+    }
+} catch (e) {}
 

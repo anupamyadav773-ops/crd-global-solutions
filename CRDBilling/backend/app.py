@@ -73,9 +73,9 @@ def load_local_env():
 load_local_env()
 
 app = Flask(__name__)
-app.config["SECRET_KEY"] = os.getenv("CRD_SECRET_KEY") or secrets.token_urlsafe(48)
+app.config["SECRET_KEY"] = os.getenv("CRD_SECRET_KEY") or "crd_global_solutions_super_secret_auth_key_2026"
 AUTH_SERIALIZER = URLSafeTimedSerializer(app.config["SECRET_KEY"], salt="crd-global-solutions-auth")
-AUTH_MAX_AGE_SECONDS = int(os.getenv("CRD_AUTH_MAX_AGE_SECONDS", "86400"))
+AUTH_MAX_AGE_SECONDS = int(os.getenv("CRD_AUTH_MAX_AGE_SECONDS", str(86400 * 7)))  # 7-day token lifespan
 
 # ==========================================
 # BRUTE-FORCE PROTECTION

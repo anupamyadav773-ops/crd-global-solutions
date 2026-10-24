@@ -1,6 +1,8 @@
 (() => {
     const TOKEN_KEY = "pari_auth_token";
     const USER_KEY = "pari_current_user";
+    const ACTIVITY_KEY = "pari_last_activity";
+    const INACTIVITY_TIMEOUT_MS = 60 * 60 * 1000; // 1 Hour (60 minutes)
     const originalFetch = window.fetch.bind(window);
 
     const ALL_SYSTEM_PERMISSIONS = [
@@ -12,11 +14,21 @@
     function clearAuthentication() {
         localStorage.removeItem(TOKEN_KEY);
         localStorage.removeItem(USER_KEY);
+        localStorage.removeItem(ACTIVITY_KEY);
     }
 
-    function redirectToLogin() {
+    function redirectToLogin(reason) {
         clearAuthentication();
-        window.location.href = "/";
+        if (reason) {
+            try { sessionStorage.setItem("pari_logout_reason", reason); } catch (e) {}
+        }
+        window.location.href = "billing-login.html";
+    }
+
+    function recordActivity() {
+        try {
+            localStorage.setItem(ACTIVITY_KEY, String(Date.now()));
+        } catch (e) {}
     }
 
     function getCurrentUser() {
@@ -73,6 +85,7 @@
     window.hasPermission = hasPermission;
     window.isAdmin = isAdmin;
     window.isManager = isManager;
+    window.recordActivity = recordActivity;
     window.logout = function logout() {
         redirectToLogin();
     };
@@ -82,6 +95,45 @@
         redirectToLogin();
         return;
     }
+
+    // Inactivity Check: 1 Hour (60 minutes) Limit
+    const now = Date.now();
+    const lastActivity = Number(localStorage.getItem(ACTIVITY_KEY) || 0);
+
+    if (lastActivity && (now - lastActivity > INACTIVITY_TIMEOUT_MS)) {
+        alert("सुरक्षा कारणों से 1 घंटे से अधिक समय तक कोई गतिविधि (Inactive) न होने पर आपका अकाउंट ऑटो-लॉगआउट कर दिया गया है। कृपया पुनः लॉगिन करें।");
+        redirectToLogin("1 घंटे से अधिक समय तक निष्क्रिय रहने के कारण आपका सत्र समाप्त हो गया है। कृपया पुनः लॉगिन करें।");
+        return;
+    }
+
+    // Update last activity immediately on page load
+    recordActivity();
+
+    // Debounced interaction listener across all user events
+    let activityDebounceTimer = null;
+    function onUserInteraction() {
+        if (activityDebounceTimer) return;
+        activityDebounceTimer = setTimeout(() => {
+            recordActivity();
+            activityDebounceTimer = null;
+        }, 3000);
+    }
+
+    ["mousedown", "keydown", "touchstart", "scroll", "click"].forEach(evt => {
+        window.addEventListener(evt, onUserInteraction, { passive: true });
+    });
+
+    // Check periodically every 20 seconds for inactivity timeout
+    setInterval(() => {
+        const curToken = localStorage.getItem(TOKEN_KEY);
+        if (!curToken) return;
+
+        const curLast = Number(localStorage.getItem(ACTIVITY_KEY) || 0);
+        if (curLast && (Date.now() - curLast > INACTIVITY_TIMEOUT_MS)) {
+            alert("सुरक्षा कारणों से 1 घंटे से अधिक समय तक कोई गतिविधि (Inactive) न होने पर आपका अकाउंट ऑटो-लॉगआउट कर दिया गया है। कृपया पुनः लॉगिन करें।");
+            redirectToLogin("1 घंटे से अधिक समय तक निष्क्रिय रहने के कारण आपका सत्र समाप्त हो गया है। कृपया पुनः लॉगिन करें।");
+        }
+    }, 20000);
 
     // Strict Guard: Technicians cannot access billing software web pages (Mobile App only)
     if (getUserRole().toLowerCase() === "technician") {
@@ -318,6 +370,7 @@
     window.API_BASE_URL = window.API_BASE_URL || _backendBase;
 
     window.fetch = async function authenticatedFetch(input, init = {}) {
+        recordActivity();
         let targetUrl = input;
         const base = window.API_BASE_URL || _backendBase;
         if (typeof targetUrl === "string") {

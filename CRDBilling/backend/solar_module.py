@@ -38,6 +38,47 @@ LEGACY_STAGE_MAP = {
     "subsidy_completed": "track_subsidy"
 }
 
+NEW_COLUMNS_SPEC = [
+    ("email", "ALTER TABLE solar_projects ADD COLUMN email VARCHAR(180) NULL"),
+    ("current_stage", "ALTER TABLE solar_projects ADD COLUMN current_stage VARCHAR(50) NOT NULL DEFAULT 'create_customer'"),
+    ("deal_amount", "ALTER TABLE solar_projects ADD COLUMN deal_amount DECIMAL(12,2) NULL"),
+    ("advance_amount", "ALTER TABLE solar_projects ADD COLUMN advance_amount DECIMAL(12,2) NULL"),
+    ("consumer_number", "ALTER TABLE solar_projects ADD COLUMN consumer_number VARCHAR(100) NULL"),
+    ("sanction_load_kw", "ALTER TABLE solar_projects ADD COLUMN sanction_load_kw DECIMAL(8,2) NULL"),
+    ("portal_app_number", "ALTER TABLE solar_projects ADD COLUMN portal_app_number VARCHAR(100) NULL"),
+    ("portal_date", "ALTER TABLE solar_projects ADD COLUMN portal_date DATE NULL"),
+    ("bank_submission_date", "ALTER TABLE solar_projects ADD COLUMN bank_submission_date DATE NULL"),
+    ("bank_reference", "ALTER TABLE solar_projects ADD COLUMN bank_reference VARCHAR(100) NULL"),
+    ("bank_branch", "ALTER TABLE solar_projects ADD COLUMN bank_branch VARCHAR(180) NULL"),
+    ("inverter_details", "ALTER TABLE solar_projects ADD COLUMN inverter_details VARCHAR(255) NULL"),
+    ("panel_details", "ALTER TABLE solar_projects ADD COLUMN panel_details VARCHAR(255) NULL"),
+    ("technician_name", "ALTER TABLE solar_projects ADD COLUMN technician_name VARCHAR(180) NULL"),
+    ("final_bill_number", "ALTER TABLE solar_projects ADD COLUMN final_bill_number VARCHAR(100) NULL"),
+    ("final_bill_date", "ALTER TABLE solar_projects ADD COLUMN final_bill_date DATE NULL"),
+    ("final_bill_amount", "ALTER TABLE solar_projects ADD COLUMN final_bill_amount DECIMAL(12,2) NULL"),
+    ("dcr_cert_number", "ALTER TABLE solar_projects ADD COLUMN dcr_cert_number VARCHAR(100) NULL"),
+    ("dcr_cert_date", "ALTER TABLE solar_projects ADD COLUMN dcr_cert_date DATE NULL"),
+    ("meter_number", "ALTER TABLE solar_projects ADD COLUMN meter_number VARCHAR(100) NULL"),
+    ("stage_updated_at", "ALTER TABLE solar_projects ADD COLUMN stage_updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+]
+
+def auto_migrate_schema(cur, db):
+    try:
+        cur.execute("SHOW COLUMNS FROM solar_projects")
+        existing_cols = {row["Field"] for row in cur.fetchall()}
+        for col_name, alter_sql in NEW_COLUMNS_SPEC:
+            if col_name not in existing_cols:
+                try:
+                    cur.execute(alter_sql)
+                    db.commit()
+                    existing_cols.add(col_name)
+                except Exception as col_err:
+                    print(f"Notice adding solar column {col_name}:", col_err)
+        return existing_cols
+    except Exception as ex:
+        print("Auto migrate error:", ex)
+        return set()
+
 def ensure_solar_projects_schema(get_db_connection):
     db = cur = None
     try:
@@ -96,42 +137,7 @@ def ensure_solar_projects_schema(get_db_connection):
             )
         """)
         db.commit()
-
-        # Check for any missing columns if table already existed
-        cur.execute("SHOW COLUMNS FROM solar_projects")
-        existing_cols = {row["Field"] for row in cur.fetchall()}
-
-        new_columns = [
-            ("email", "ALTER TABLE solar_projects ADD COLUMN email VARCHAR(180) NULL"),
-            ("current_stage", "ALTER TABLE solar_projects ADD COLUMN current_stage VARCHAR(50) NOT NULL DEFAULT 'create_customer'"),
-            ("deal_amount", "ALTER TABLE solar_projects ADD COLUMN deal_amount DECIMAL(12,2) NULL"),
-            ("advance_amount", "ALTER TABLE solar_projects ADD COLUMN advance_amount DECIMAL(12,2) NULL"),
-            ("consumer_number", "ALTER TABLE solar_projects ADD COLUMN consumer_number VARCHAR(100) NULL"),
-            ("sanction_load_kw", "ALTER TABLE solar_projects ADD COLUMN sanction_load_kw DECIMAL(8,2) NULL"),
-            ("portal_app_number", "ALTER TABLE solar_projects ADD COLUMN portal_app_number VARCHAR(100) NULL"),
-            ("portal_date", "ALTER TABLE solar_projects ADD COLUMN portal_date DATE NULL"),
-            ("bank_submission_date", "ALTER TABLE solar_projects ADD COLUMN bank_submission_date DATE NULL"),
-            ("bank_reference", "ALTER TABLE solar_projects ADD COLUMN bank_reference VARCHAR(100) NULL"),
-            ("bank_branch", "ALTER TABLE solar_projects ADD COLUMN bank_branch VARCHAR(180) NULL"),
-            ("inverter_details", "ALTER TABLE solar_projects ADD COLUMN inverter_details VARCHAR(255) NULL"),
-            ("panel_details", "ALTER TABLE solar_projects ADD COLUMN panel_details VARCHAR(255) NULL"),
-            ("technician_name", "ALTER TABLE solar_projects ADD COLUMN technician_name VARCHAR(180) NULL"),
-            ("final_bill_number", "ALTER TABLE solar_projects ADD COLUMN final_bill_number VARCHAR(100) NULL"),
-            ("final_bill_date", "ALTER TABLE solar_projects ADD COLUMN final_bill_date DATE NULL"),
-            ("final_bill_amount", "ALTER TABLE solar_projects ADD COLUMN final_bill_amount DECIMAL(12,2) NULL"),
-            ("dcr_cert_number", "ALTER TABLE solar_projects ADD COLUMN dcr_cert_number VARCHAR(100) NULL"),
-            ("dcr_cert_date", "ALTER TABLE solar_projects ADD COLUMN dcr_cert_date DATE NULL"),
-            ("meter_number", "ALTER TABLE solar_projects ADD COLUMN meter_number VARCHAR(100) NULL"),
-            ("stage_updated_at", "ALTER TABLE solar_projects ADD COLUMN stage_updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
-        ]
-
-        for col_name, alter_sql in new_columns:
-            if col_name not in existing_cols:
-                try:
-                    cur.execute(alter_sql)
-                    db.commit()
-                except Exception as col_err:
-                    print(f"Notice adding solar column {col_name}:", col_err)
+        auto_migrate_schema(cur, db)
 
     except Exception as e:
         print("Solar schema error:", e)
@@ -201,7 +207,7 @@ def projects():
             return jsonify(success=True, projects=[payload(r) for r in rows])
         except Exception as e:
             print("Solar list error:", e)
-            return jsonify(success=False, message="Solar projects load nahi ho paye."), 500
+            return jsonify(success=False, message="Solar projects load nahi ho paye: " + str(e)), 500
 
     d = request.get_json(silent=True) or {}
     name = str(d.get("customer_name") or "").strip()
@@ -219,68 +225,59 @@ def projects():
     if stage not in STAGE_KEYS:
         stage = "create_customer"
 
-    fields = [
-        "customer_name", "phone", "email", "address", "system_capacity_kw", "current_stage",
-        "deal_amount", "advance_amount", "consumer_number", "sanction_load_kw",
-        "portal_app_number", "portal_date", "payment_type", "finance_provider", "finance_status",
-        "bank_submission_date", "bank_reference", "bank_branch",
-        "checklist_json", "inverter_details", "panel_details", "technician_name",
-        "installation_status", "installation_date",
-        "final_bill_number", "final_bill_date", "final_bill_amount",
-        "dcr_cert_number", "dcr_cert_date",
-        "discom_status", "discom_submission_date", "discom_reference",
-        "net_meter_status", "net_meter_date", "meter_number",
-        "subsidy_status", "subsidy_applied_date", "subsidy_received_date", "subsidy_amount",
-        "notes", "created_by"
+    # Make sure all columns exist
+    existing_cols = auto_migrate_schema(g.cursor, g.db)
+
+    field_data = [
+        ("customer_name", name),
+        ("phone", d.get("phone") or None),
+        ("email", d.get("email") or None),
+        ("address", d.get("address") or None),
+        ("system_capacity_kw", clean_float(d.get("system_capacity_kw"))),
+        ("current_stage", stage),
+        ("deal_amount", clean_float(d.get("deal_amount"))),
+        ("advance_amount", clean_float(d.get("advance_amount"))),
+        ("consumer_number", d.get("consumer_number") or None),
+        ("sanction_load_kw", clean_float(d.get("sanction_load_kw"))),
+        ("portal_app_number", d.get("portal_app_number") or None),
+        ("portal_date", clean_date(d.get("portal_date"))),
+        ("payment_type", payment),
+        ("finance_provider", (d.get("finance_provider") or None) if payment == "finance" else None),
+        ("finance_status", (d.get("finance_status") or "pending") if payment == "finance" else "not_applicable"),
+        ("bank_submission_date", clean_date(d.get("bank_submission_date"))),
+        ("bank_reference", d.get("bank_reference") or None),
+        ("bank_branch", d.get("bank_branch") or None),
+        ("checklist_json", json.dumps(d.get("checklist") or {}, ensure_ascii=False)),
+        ("inverter_details", d.get("inverter_details") or None),
+        ("panel_details", d.get("panel_details") or None),
+        ("technician_name", d.get("technician_name") or None),
+        ("installation_status", d.get("installation_status") or "pending"),
+        ("installation_date", clean_date(d.get("installation_date"))),
+        ("final_bill_number", d.get("final_bill_number") or None),
+        ("final_bill_date", clean_date(d.get("final_bill_date"))),
+        ("final_bill_amount", clean_float(d.get("final_bill_amount"))),
+        ("dcr_cert_number", d.get("dcr_cert_number") or None),
+        ("dcr_cert_date", clean_date(d.get("dcr_cert_date"))),
+        ("discom_status", d.get("discom_status") or "pending"),
+        ("discom_submission_date", clean_date(d.get("discom_submission_date"))),
+        ("discom_reference", d.get("discom_reference") or None),
+        ("net_meter_status", d.get("net_meter_status") or "pending"),
+        ("net_meter_date", clean_date(d.get("net_meter_date"))),
+        ("meter_number", d.get("meter_number") or None),
+        ("subsidy_status", d.get("subsidy_status") or "pending"),
+        ("subsidy_applied_date", clean_date(d.get("subsidy_applied_date"))),
+        ("subsidy_received_date", clean_date(d.get("subsidy_received_date"))),
+        ("subsidy_amount", clean_float(d.get("subsidy_amount"))),
+        ("notes", d.get("notes") or None),
+        ("created_by", getattr(g, "user_id", None))
     ]
 
-    vals = [
-        name,
-        d.get("phone") or None,
-        d.get("email") or None,
-        d.get("address") or None,
-        clean_float(d.get("system_capacity_kw")),
-        stage,
-        clean_float(d.get("deal_amount")),
-        clean_float(d.get("advance_amount")),
-        d.get("consumer_number") or None,
-        clean_float(d.get("sanction_load_kw")),
-        d.get("portal_app_number") or None,
-        clean_date(d.get("portal_date")),
-        payment,
-        (d.get("finance_provider") or None) if payment == "finance" else None,
-        (d.get("finance_status") or "pending") if payment == "finance" else "not_applicable",
-        clean_date(d.get("bank_submission_date")),
-        d.get("bank_reference") or None,
-        d.get("bank_branch") or None,
-        json.dumps(d.get("checklist") or {}, ensure_ascii=False),
-        d.get("inverter_details") or None,
-        d.get("panel_details") or None,
-        d.get("technician_name") or None,
-        d.get("installation_status") or "pending",
-        clean_date(d.get("installation_date")),
-        d.get("final_bill_number") or None,
-        clean_date(d.get("final_bill_date")),
-        clean_float(d.get("final_bill_amount")),
-        d.get("dcr_cert_number") or None,
-        clean_date(d.get("dcr_cert_date")),
-        d.get("discom_status") or "pending",
-        clean_date(d.get("discom_submission_date")),
-        d.get("discom_reference") or None,
-        d.get("net_meter_status") or "pending",
-        clean_date(d.get("net_meter_date")),
-        d.get("meter_number") or None,
-        d.get("subsidy_status") or "pending",
-        clean_date(d.get("subsidy_applied_date")),
-        clean_date(d.get("subsidy_received_date")),
-        clean_float(d.get("subsidy_amount")),
-        d.get("notes") or None,
-        getattr(g, "user_id", None)
-    ]
+    use_fields = [f for f, v in field_data if not existing_cols or f in existing_cols]
+    use_vals = [v for f, v in field_data if not existing_cols or f in existing_cols]
 
     try:
-        sql = f"INSERT INTO solar_projects ({','.join(fields)}) VALUES ({','.join(['%s']*len(fields))})"
-        g.cursor.execute(sql, tuple(vals))
+        sql = f"INSERT INTO solar_projects ({','.join(use_fields)}) VALUES ({','.join(['%s']*len(use_fields))})"
+        g.cursor.execute(sql, tuple(use_vals))
         pid = g.cursor.lastrowid
         code = f"SOL-{str(pid).zfill(5)}"
         g.cursor.execute("UPDATE solar_projects SET project_code = %s WHERE id = %s", (code, pid))
@@ -292,7 +289,7 @@ def projects():
         try: g.db.rollback()
         except Exception: pass
         print("Solar create error:", e)
-        return jsonify(success=False, message="Solar project save nahi ho paya."), 500
+        return jsonify(success=False, message="Solar project save nahi ho paya: " + str(e)), 500
 
 @solar_bp.route("/solar-projects/<int:pid>", methods=["GET", "PUT", "DELETE", "OPTIONS"])
 def project(pid):
@@ -331,67 +328,58 @@ def project(pid):
     if stage not in STAGE_KEYS:
         stage = "create_customer"
 
-    vals = [
-        name,
-        d.get("phone") or None,
-        d.get("email") or None,
-        d.get("address") or None,
-        clean_float(d.get("system_capacity_kw")),
-        stage,
-        clean_float(d.get("deal_amount")),
-        clean_float(d.get("advance_amount")),
-        d.get("consumer_number") or None,
-        clean_float(d.get("sanction_load_kw")),
-        d.get("portal_app_number") or None,
-        clean_date(d.get("portal_date")),
-        payment,
-        (d.get("finance_provider") or None) if payment == "finance" else None,
-        (d.get("finance_status") or "pending") if payment == "finance" else "not_applicable",
-        clean_date(d.get("bank_submission_date")),
-        d.get("bank_reference") or None,
-        d.get("bank_branch") or None,
-        json.dumps(d.get("checklist") or {}, ensure_ascii=False),
-        d.get("inverter_details") or None,
-        d.get("panel_details") or None,
-        d.get("technician_name") or None,
-        d.get("installation_status") or "pending",
-        clean_date(d.get("installation_date")),
-        d.get("final_bill_number") or None,
-        clean_date(d.get("final_bill_date")),
-        clean_float(d.get("final_bill_amount")),
-        d.get("dcr_cert_number") or None,
-        clean_date(d.get("dcr_cert_date")),
-        d.get("discom_status") or "pending",
-        clean_date(d.get("discom_submission_date")),
-        d.get("discom_reference") or None,
-        d.get("net_meter_status") or "pending",
-        clean_date(d.get("net_meter_date")),
-        d.get("meter_number") or None,
-        d.get("subsidy_status") or "pending",
-        clean_date(d.get("subsidy_applied_date")),
-        clean_date(d.get("subsidy_received_date")),
-        clean_float(d.get("subsidy_amount")),
-        d.get("notes") or None,
-        pid
+    existing_cols = auto_migrate_schema(g.cursor, g.db)
+
+    field_data = [
+        ("customer_name", name),
+        ("phone", d.get("phone") or None),
+        ("email", d.get("email") or None),
+        ("address", d.get("address") or None),
+        ("system_capacity_kw", clean_float(d.get("system_capacity_kw"))),
+        ("current_stage", stage),
+        ("deal_amount", clean_float(d.get("deal_amount"))),
+        ("advance_amount", clean_float(d.get("advance_amount"))),
+        ("consumer_number", d.get("consumer_number") or None),
+        ("sanction_load_kw", clean_float(d.get("sanction_load_kw"))),
+        ("portal_app_number", d.get("portal_app_number") or None),
+        ("portal_date", clean_date(d.get("portal_date"))),
+        ("payment_type", payment),
+        ("finance_provider", (d.get("finance_provider") or None) if payment == "finance" else None),
+        ("finance_status", (d.get("finance_status") or "pending") if payment == "finance" else "not_applicable"),
+        ("bank_submission_date", clean_date(d.get("bank_submission_date"))),
+        ("bank_reference", d.get("bank_reference") or None),
+        ("bank_branch", d.get("bank_branch") or None),
+        ("checklist_json", json.dumps(d.get("checklist") or {}, ensure_ascii=False)),
+        ("inverter_details", d.get("inverter_details") or None),
+        ("panel_details", d.get("panel_details") or None),
+        ("technician_name", d.get("technician_name") or None),
+        ("installation_status", d.get("installation_status") or "pending"),
+        ("installation_date", clean_date(d.get("installation_date"))),
+        ("final_bill_number", d.get("final_bill_number") or None),
+        ("final_bill_date", clean_date(d.get("final_bill_date"))),
+        ("final_bill_amount", clean_float(d.get("final_bill_amount"))),
+        ("dcr_cert_number", d.get("dcr_cert_number") or None),
+        ("dcr_cert_date", clean_date(d.get("dcr_cert_date"))),
+        ("discom_status", d.get("discom_status") or "pending"),
+        ("discom_submission_date", clean_date(d.get("discom_submission_date"))),
+        ("discom_reference", d.get("discom_reference") or None),
+        ("net_meter_status", d.get("net_meter_status") or "pending"),
+        ("net_meter_date", clean_date(d.get("net_meter_date"))),
+        ("meter_number", d.get("meter_number") or None),
+        ("subsidy_status", d.get("subsidy_status") or "pending"),
+        ("subsidy_applied_date", clean_date(d.get("subsidy_applied_date"))),
+        ("subsidy_received_date", clean_date(d.get("subsidy_received_date"))),
+        ("subsidy_amount", clean_float(d.get("subsidy_amount"))),
+        ("notes", d.get("notes") or None)
     ]
 
+    use_pairs = [(f, v) for f, v in field_data if not existing_cols or f in existing_cols]
+    set_clause = ", ".join([f"{f}=%s" for f, v in use_pairs])
+    use_vals = [v for f, v in use_pairs] + [pid]
+
     try:
-        cols = """
-            customer_name=%s, phone=%s, email=%s, address=%s, system_capacity_kw=%s, current_stage=%s,
-            deal_amount=%s, advance_amount=%s, consumer_number=%s, sanction_load_kw=%s,
-            portal_app_number=%s, portal_date=%s, payment_type=%s, finance_provider=%s, finance_status=%s,
-            bank_submission_date=%s, bank_reference=%s, bank_branch=%s,
-            checklist_json=%s, inverter_details=%s, panel_details=%s, technician_name=%s,
-            installation_status=%s, installation_date=%s,
-            final_bill_number=%s, final_bill_date=%s, final_bill_amount=%s,
-            dcr_cert_number=%s, dcr_cert_date=%s,
-            discom_status=%s, discom_submission_date=%s, discom_reference=%s,
-            net_meter_status=%s, net_meter_date=%s, meter_number=%s,
-            subsidy_status=%s, subsidy_applied_date=%s, subsidy_received_date=%s, subsidy_amount=%s,
-            notes=%s, stage_updated_at=CURRENT_TIMESTAMP
-        """
-        sql = f"UPDATE solar_projects SET {cols} WHERE id=%s"
-        g.cursor.execute(sql, tuple(vals))
+        sql = f"UPDATE solar_projects SET {set_clause}, stage_updated_at=CURRENT_TIMESTAMP WHERE id=%s"
+        g.cursor.execute(sql, tuple(use_vals))
         g.db.commit()
 
         g.cursor.execute("SELECT * FROM solar_projects WHERE id = %s", (pid,))
@@ -400,7 +388,7 @@ def project(pid):
         try: g.db.rollback()
         except Exception: pass
         print("Solar update error:", e)
-        return jsonify(success=False, message="Solar project update nahi ho paya."), 500
+        return jsonify(success=False, message="Solar project update nahi ho paya: " + str(e)), 500
 
 @solar_bp.route("/solar-projects/<int:pid>/stage", methods=["POST", "OPTIONS"])
 def update_stage(pid):
@@ -455,4 +443,4 @@ def solar_dashboard():
         return jsonify(success=True, stats=stats, stages=STAGE_LABELS)
     except Exception as e:
         print("Solar dashboard error:", e)
-        return jsonify(success=False, message="Dashboard load nahi hua."), 500
+        return jsonify(success=False, message="Dashboard load nahi hua: " + str(e)), 500

@@ -74,18 +74,46 @@ function getDaysInStage(dateStr) {
     }
 }
 
+function getApiBase() {
+    if (window.API_BASE_URL) return window.API_BASE_URL;
+    const isLocal = typeof window !== "undefined" && (
+        window.location.hostname === "localhost" ||
+        window.location.hostname === "127.0.0.1" ||
+        window.location.protocol === "file:"
+    );
+    return isLocal ? "http://127.0.0.1:5000" : "https://crdbilling-api.onrender.com";
+}
+
 // API Fetch Helper
 async function apiCall(endpoint, options = {}) {
-    const token = localStorage.getItem("token") || "";
+    const base = getApiBase();
+    const token = localStorage.getItem("pari_auth_token") || localStorage.getItem("token") || "";
     const headers = {
         "Content-Type": "application/json",
+        "Accept": "application/json",
         ...(token ? { "Authorization": "Bearer " + token } : {}),
         ...(options.headers || {})
     };
-    const res = await fetch(API + endpoint, { ...options, headers });
-    const data = await res.json();
+    const url = endpoint.startsWith("http") ? endpoint : `${base}${endpoint}`;
+
+    let res;
+    try {
+        res = await fetch(url, { ...options, headers });
+    } catch (netErr) {
+        throw new Error("सर्वर से संपर्क नहीं हो पाया। कृपया नेटवर्क या बैकएंड जांचें: " + netErr.message);
+    }
+
+    const text = await res.text();
+    let data;
+    try {
+        data = text ? JSON.parse(text) : {};
+    } catch (parseErr) {
+        console.error("Non-JSON Server Response:", text);
+        throw new Error(`सर्वर से अमान्य उत्तर (Status ${res.status}): ${text ? text.slice(0, 140) : "खाली उत्तर"}`);
+    }
+
     if (!res.ok || data.success === false) {
-        throw new Error(data.message || "Request failed");
+        throw new Error(data.message || `अनुरोध असफल रहा (Status ${res.status})`);
     }
     return data;
 }

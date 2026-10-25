@@ -198,6 +198,45 @@ def openapi_spec():
                         "200": { "description": "List of sales invoices" }
                     }
                 }
+            },
+            "/api/ai/financial": {
+                "get": {
+                    "summary": "Financial Overview, Profit/Loss & Cash Flow",
+                    "description": "Fetch complete business financial metrics: daily/monthly sales revenue, purchases, operating expenses, estimated net profit/loss, customer receivables (dues), vendor payables, and payment method collections.",
+                    "operationId": "getFinancialData",
+                    "responses": {
+                        "200": { "description": "Real-time financial and profit & loss report" }
+                    }
+                }
+            },
+            "/api/ai/inventory": {
+                "get": {
+                    "summary": "Inventory Stock Valuation & Items",
+                    "description": "Fetch real-time inventory statistics, total stock units, asset valuation in INR, low-stock warnings, out-of-stock items, and search products.",
+                    "operationId": "getInventoryData",
+                    "parameters": [
+                        { "name": "q", "in": "query", "schema": { "type": "string" }, "description": "Search product name, brand, model, or barcode" },
+                        { "name": "category", "in": "query", "schema": { "type": "string" }, "description": "Filter by category" },
+                        { "name": "status", "in": "query", "schema": { "type": "string" }, "description": "Filter status: low_stock, out_of_stock, in_stock" }
+                    ],
+                    "responses": {
+                        "200": { "description": "Real-time inventory valuation and stock levels" }
+                    }
+                }
+            },
+            "/api/ai/portal": {
+                "get": {
+                    "summary": "PM Surya Ghar & Service Portal Data",
+                    "description": "Fetch PM Surya Ghar national portal applications, consumer numbers, bank loan/finance status, net-metering DISCOM status, subsidy tracking, and field service complaints.",
+                    "operationId": "getPortalData",
+                    "parameters": [
+                        { "name": "q", "in": "query", "schema": { "type": "string" }, "description": "Search customer name, mobile, portal application number, consumer number" },
+                        { "name": "stage", "in": "query", "schema": { "type": "string" }, "description": "Filter by solar stage key" }
+                    ],
+                    "responses": {
+                        "200": { "description": "Solar and Service Portal pipeline status" }
+                    }
+                }
             }
         }
     }
@@ -283,8 +322,10 @@ def ai_summary():
         return jsonify({"success": False, "message": str(e)}), 500
 
 
-# Products & Inventory Stock Search
+# Products & Inventory Stock Search (handles /api/ai/products, /api/ai/inventory, /api/ai/stock)
 @ai_bp.route("/api/ai/products", methods=["GET"])
+@ai_bp.route("/api/ai/inventory", methods=["GET"])
+@ai_bp.route("/api/ai/stock", methods=["GET"])
 @require_ai_api_key
 def ai_products():
     try:
@@ -326,9 +367,31 @@ def ai_products():
                 "is_in_stock": float(r.get("stock") or 0) > 0
             })
 
+        # High-level inventory valuation & stats
+        g.cursor.execute(
+            """SELECT
+                COUNT(*) AS total_skus,
+                COALESCE(SUM(stock), 0) AS total_units,
+                COALESCE(SUM(stock * purchase_price), 0) AS total_stock_valuation,
+                COALESCE(SUM(CASE WHEN stock <= min_stock AND stock > 0 THEN 1 ELSE 0 END), 0) AS low_stock_count,
+                COALESCE(SUM(CASE WHEN stock <= 0 THEN 1 ELSE 0 END), 0) AS out_of_stock_count
+               FROM products
+               WHERE status = 'Active' AND item_type != 'Service'"""
+        )
+        inv_stats = g.cursor.fetchone() or {}
+
         return jsonify({
             "success": True,
+            "timestamp": datetime.now().isoformat(),
+            "inventory_summary": {
+                "total_skus": int(inv_stats.get("total_skus") or 0),
+                "total_stock_units": float(inv_stats.get("total_units") or 0),
+                "total_inventory_valuation_inr": float(inv_stats.get("total_stock_valuation") or 0),
+                "low_stock_items_count": int(inv_stats.get("low_stock_count") or 0),
+                "out_of_stock_items_count": int(inv_stats.get("out_of_stock_count") or 0)
+            },
             "total_found": len(results),
+            "inventory": results,
             "products": results
         })
     except Exception as e:
@@ -489,6 +552,274 @@ def ai_sales():
             "date": dt,
             "total_invoices": len(results),
             "sales": results
+        })
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+# =====================================================================
+# FINANCIAL & PROFIT/LOSS ENDPOINT
+# =====================================================================
+@ai_bp.route("/api/ai/financial", methods=["GET"])
+@ai_bp.route("/api/ai/finance", methods=["GET"])
+@ai_bp.route("/api/ai/financials", methods=["GET"])
+@require_ai_api_key
+def ai_financial():
+    try:
+        today_str = datetime.now().strftime("%Y-%m-%d")
+        month_prefix = datetime.now().strftime("%Y-%m-") + "%"
+
+        # 1. Sales Revenue (Today, Month, All Time)
+        g.cursor.execute(
+            """SELECT
+                COALESCE(SUM(CASE WHEN invoice_date = %s THEN grand_total ELSE 0 END), 0) AS today_sales,
+                COALESCE(SUM(CASE WHEN invoice_date = %s THEN paid_amount ELSE 0 END), 0) AS today_collected,
+                COALESCE(SUM(CASE WHEN invoice_date LIKE %s THEN grand_total ELSE 0 END), 0) AS month_sales,
+                COALESCE(SUM(CASE WHEN invoice_date LIKE %s THEN paid_amount ELSE 0 END), 0) AS month_collected,
+                COALESCE(SUM(grand_total), 0) AS total_sales,
+                COALESCE(SUM(paid_amount), 0) AS total_collected
+               FROM sales_invoices
+               WHERE (document_type != 'Quotation' OR document_type IS NULL)""",
+            (today_str, today_str, month_prefix, month_prefix)
+        )
+        sales_row = g.cursor.fetchone() or {}
+
+        # 2. Purchases (Today, Month, All Time)
+        g.cursor.execute(
+            """SELECT
+                COALESCE(SUM(CASE WHEN purchase_date = %s THEN grand_total ELSE 0 END), 0) AS today_purchases,
+                COALESCE(SUM(CASE WHEN purchase_date LIKE %s THEN grand_total ELSE 0 END), 0) AS month_purchases,
+                COALESCE(SUM(grand_total), 0) AS total_purchases
+               FROM purchases""",
+            (today_str, month_prefix)
+        )
+        purch_row = g.cursor.fetchone() or {}
+
+        # 3. Expenses (Today, Month, All Time)
+        g.cursor.execute(
+            """SELECT
+                COALESCE(SUM(CASE WHEN expense_date = %s THEN amount ELSE 0 END), 0) AS today_expenses,
+                COALESCE(SUM(CASE WHEN expense_date LIKE %s THEN amount ELSE 0 END), 0) AS month_expenses,
+                COALESCE(SUM(amount), 0) AS total_expenses
+               FROM expenses""",
+            (today_str, month_prefix)
+        )
+        exp_row = g.cursor.fetchone() or {}
+
+        # 4. Receivables (Customer Outstanding Balance)
+        g.cursor.execute(
+            """SELECT COALESCE(SUM(balance), 0) AS total_receivables, COUNT(*) as customers_with_due
+               FROM customers WHERE balance > 0 AND status = 'Active'"""
+        )
+        rec_row = g.cursor.fetchone() or {}
+
+        # 5. Payables (Supplier dues if suppliers table exists)
+        supplier_payables = 0.0
+        try:
+            g.cursor.execute("""SELECT COALESCE(SUM(balance), 0) AS total_payables FROM suppliers WHERE status = 'Active'""")
+            sup_row = g.cursor.fetchone()
+            if sup_row:
+                supplier_payables = float(sup_row.get("total_payables") or 0)
+        except Exception:
+            pass
+
+        # 6. Payment Modes Distribution (This month)
+        payment_modes = {}
+        try:
+            g.cursor.execute(
+                """SELECT COALESCE(payment_method, 'Cash') AS mode, COALESCE(SUM(paid_amount), 0) AS total
+                   FROM sales_invoices
+                   WHERE invoice_date LIKE %s AND (document_type != 'Quotation' OR document_type IS NULL)
+                   GROUP BY payment_method""",
+                (month_prefix,)
+            )
+            for pm in (g.cursor.fetchall() or []):
+                payment_modes[pm["mode"]] = float(pm["total"])
+        except Exception:
+            pass
+
+        # 7. Net Profit estimation (Month Sales - (Month Purchases + Month Expenses))
+        m_sales = float(sales_row.get("month_sales") or 0)
+        m_purch = float(purch_row.get("month_purchases") or 0)
+        m_exp = float(exp_row.get("month_expenses") or 0)
+        est_net_profit = round(m_sales - (m_purch + m_exp), 2)
+
+        # 8. Solar Deal & Financials
+        solar_fin = {"total_deals_amount": 0.0, "total_advance_collected": 0.0, "pending_deal_amount": 0.0}
+        try:
+            g.cursor.execute(
+                """SELECT
+                    COALESCE(SUM(deal_amount), 0) AS total_deals,
+                    COALESCE(SUM(advance_amount), 0) AS total_advance
+                   FROM solar_projects"""
+            )
+            s_row = g.cursor.fetchone()
+            if s_row:
+                tot_deals = float(s_row.get("total_deals") or 0)
+                tot_adv = float(s_row.get("total_advance") or 0)
+                solar_fin = {
+                    "total_deals_amount": tot_deals,
+                    "total_advance_collected": tot_adv,
+                    "pending_deal_amount": max(0.0, tot_deals - tot_adv)
+                }
+        except Exception:
+            pass
+
+        return jsonify({
+            "success": True,
+            "timestamp": datetime.now().isoformat(),
+            "business_name": "CRD Global Solutions",
+            "today_financials": {
+                "sales_revenue": float(sales_row.get("today_sales") or 0),
+                "cash_collected": float(sales_row.get("today_collected") or 0),
+                "purchases": float(purch_row.get("today_purchases") or 0),
+                "expenses": float(exp_row.get("today_expenses") or 0),
+                "today_net": round(float(sales_row.get("today_sales") or 0) - (float(purch_row.get("today_purchases") or 0) + float(exp_row.get("today_expenses") or 0)), 2)
+            },
+            "monthly_financials": {
+                "month": datetime.now().strftime("%B %Y"),
+                "sales_revenue": m_sales,
+                "amount_collected": float(sales_row.get("month_collected") or 0),
+                "purchases_cost": m_purch,
+                "operational_expenses": m_exp,
+                "estimated_net_profit": est_net_profit,
+                "payment_modes_breakdown": payment_modes
+            },
+            "balance_sheet_summary": {
+                "accounts_receivable_customer_dues": float(rec_row.get("total_receivables") or 0),
+                "customers_owing_count": int(rec_row.get("customers_with_due") or 0),
+                "accounts_payable_vendor_dues": supplier_payables
+            },
+            "solar_project_finances": solar_fin
+        })
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+# =====================================================================
+# PORTAL ENDPOINT (PM SURYA GHAR & SERVICE PORTAL DATA)
+# =====================================================================
+@ai_bp.route("/api/ai/portal", methods=["GET"])
+@ai_bp.route("/api/ai/portal-data", methods=["GET"])
+@ai_bp.route("/api/ai/solar-portal", methods=["GET"])
+@require_ai_api_key
+def ai_portal():
+    try:
+        q = (request.args.get("q") or request.args.get("query") or "").strip()
+        stage_filter = (request.args.get("stage") or "").strip().lower()
+        limit = min(int(request.args.get("limit") or 30), 100)
+
+        stage_names = {
+            "create_customer": "1. Customer Onboarding",
+            "collect_docs": "2. Document Collection",
+            "pm_suryaghar": "3. PM Surya Ghar Portal Application",
+            "finance_online": "4. Finance Online (Loan)",
+            "bank_submission": "5. Bank Document Submission",
+            "installation": "6. Plant Installation",
+            "final_bill": "7. Final Invoice Generation",
+            "dcr_certificate": "8. DCR Certificate",
+            "discom_submission": "9. DISCOM Net-Metering Submission",
+            "track_subsidy": "10. Subsidy Disbursement Tracking"
+        }
+
+        # 1. Portal Pipeline Summary
+        g.cursor.execute(
+            """SELECT
+                COUNT(*) AS total_files,
+                COALESCE(SUM(CASE WHEN portal_app_number IS NOT NULL AND portal_app_number != '' THEN 1 ELSE 0 END), 0) AS online_portal_applied,
+                COALESCE(SUM(CASE WHEN payment_type = 'finance' THEN 1 ELSE 0 END), 0) AS finance_loan_files,
+                COALESCE(SUM(CASE WHEN current_stage = 'track_subsidy' THEN 1 ELSE 0 END), 0) AS subsidy_pending_files,
+                COALESCE(SUM(deal_amount), 0) AS total_deal_value
+               FROM solar_projects"""
+        )
+        p_stats = g.cursor.fetchone() or {}
+
+        # 2. Stage Counts Breakdown
+        g.cursor.execute("""SELECT current_stage, COUNT(*) as count FROM solar_projects GROUP BY current_stage""")
+        stage_counts = {r["current_stage"]: int(r["count"]) for r in (g.cursor.fetchall() or [])}
+
+        # 3. Technician Field Service Portal Summary
+        tech_portal = {"active_complaints": 0, "in_progress_jobs": 0, "completed_today": 0}
+        try:
+            today_str = datetime.now().strftime("%Y-%m-%d")
+            g.cursor.execute(
+                """SELECT
+                    COALESCE(SUM(CASE WHEN status NOT IN ('Completed', 'Delivered', 'Cancelled') THEN 1 ELSE 0 END), 0) AS active_complaints,
+                    COALESCE(SUM(CASE WHEN status = 'In Progress' THEN 1 ELSE 0 END), 0) AS in_progress,
+                    COALESCE(SUM(CASE WHEN status IN ('Completed', 'Delivered') AND DATE(updated_at) = %s THEN 1 ELSE 0 END), 0) AS completed_today
+                   FROM service_entries""",
+                (today_str,)
+            )
+            t_row = g.cursor.fetchone()
+            if t_row:
+                tech_portal = {
+                    "active_complaints": int(t_row.get("active_complaints") or 0),
+                    "in_progress_jobs": int(t_row.get("in_progress") or 0),
+                    "completed_today": int(t_row.get("completed_today") or 0)
+                }
+        except Exception:
+            pass
+
+        # 4. Filtered Projects List
+        sql = """SELECT id, project_number, customer_name, customer_mobile, consumer_number,
+                        portal_app_number, portal_date, system_capacity_kw, deal_amount, advance_amount,
+                        payment_type, finance_provider, finance_status, bank_submission_date,
+                        installation_status, final_bill_number, dcr_cert_status, discom_status,
+                        subsidy_status, current_stage, updated_at
+                 FROM solar_projects WHERE 1=1"""
+        params = []
+
+        if q:
+            sql += """ AND (customer_name LIKE %s OR customer_mobile LIKE %s OR project_number LIKE %s OR portal_app_number LIKE %s OR consumer_number LIKE %s)"""
+            like_val = f"%{q}%"
+            params.extend([like_val, like_val, like_val, like_val, like_val])
+
+        if stage_filter:
+            sql += """ AND current_stage = %s"""
+            params.append(stage_filter)
+
+        sql += """ ORDER BY updated_at DESC LIMIT %s"""
+        params.append(limit)
+
+        g.cursor.execute(sql, tuple(params))
+        proj_rows = g.cursor.fetchall() or []
+
+        projects = []
+        for pr in proj_rows:
+            st_key = pr.get("current_stage")
+            projects.append({
+                "project_id": pr["id"],
+                "project_number": pr.get("project_number"),
+                "customer_name": pr.get("customer_name"),
+                "mobile": pr.get("customer_mobile"),
+                "consumer_number": pr.get("consumer_number"),
+                "portal_app_number": pr.get("portal_app_number") or "Not Applied",
+                "portal_date": str(pr["portal_date"]) if pr.get("portal_date") else None,
+                "system_capacity_kw": float(pr.get("system_capacity_kw") or 0),
+                "deal_amount": float(pr.get("deal_amount") or 0),
+                "advance_collected": float(pr.get("advance_amount") or 0),
+                "payment_type": pr.get("payment_type"),
+                "finance_provider": pr.get("finance_provider"),
+                "finance_status": pr.get("finance_status"),
+                "current_stage_key": st_key,
+                "current_stage_name": stage_names.get(st_key, st_key),
+                "subsidy_status": pr.get("subsidy_status")
+            })
+
+        return jsonify({
+            "success": True,
+            "timestamp": datetime.now().isoformat(),
+            "solar_portal_summary": {
+                "total_files": int(p_stats.get("total_files") or 0),
+                "online_portal_applications": int(p_stats.get("online_portal_applied") or 0),
+                "finance_loan_cases": int(p_stats.get("finance_loan_files") or 0),
+                "subsidy_pipeline_cases": int(p_stats.get("subsidy_pending_files") or 0),
+                "total_project_deal_value_inr": float(p_stats.get("total_deal_value") or 0),
+                "stages_breakdown": stage_counts
+            },
+            "technician_portal_summary": tech_portal,
+            "count": len(projects),
+            "projects": projects
         })
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500

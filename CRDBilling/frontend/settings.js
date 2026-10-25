@@ -1310,6 +1310,9 @@ function renderAiAssistantSection() {
                     </div>
                     <div style="font-size: 13px; color: #334155; line-height: 1.6;">
                         प्रत्येक रिक्वेस्ट में Header भेजें: <span class="ai-code-inline">X-API-Key: crd_ai_live_...</span><br>
+                        • <span class="ai-code-inline">GET /api/ai/financial</span> : वित्तीय आंकड़े, दैनिक/मासिक बिक्री, लाभ/हानि, खर्च, ग्राहक उधारी (Receivables) व भुगतान<br>
+                        • <span class="ai-code-inline">GET /api/ai/inventory</span> : लाइव इन्वेंट्री स्टॉक वैल्यूएशन, कुल यूनिट्स, कम स्टॉक और आउट-ऑफ-स्टॉक लिस्ट<br>
+                        • <span class="ai-code-inline">GET /api/ai/portal</span> : PM सूर्य घर पोर्टल आवेदन, फाइनेंस स्थिति, सब्सिडी ट्रैकर व सर्विस जॉब्स<br>
                         • <span class="ai-code-inline">GET /api/ai/summary</span> : दैनिक/मासिक बिक्री, एक्टिव ग्राहक, कम स्टॉक, सोलर प्रोजेक्ट्स समरी<br>
                         • <span class="ai-code-inline">GET /api/ai/products?query=...</span> : प्रोडक्ट नाम, मॉडल, ब्रांड व स्टॉक मात्रा खोजें<br>
                         • <span class="ai-code-inline">GET /api/ai/customers?query=...</span> : ग्राहक का पता, मोबाइल, कुल बकाया (Balance Due)<br>

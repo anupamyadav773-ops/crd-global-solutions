@@ -171,6 +171,11 @@ const settingsConfig = [
             { key: 'last_update', label: 'Last Update', type: 'text' },
             { key: 'environment', label: 'Environment', type: 'text' }
         ]
+    },
+    {
+        id: 'ai-assistant',
+        name: '🤖 AI Assistant & API Keys',
+        fields: []
     }
 ];
 
@@ -600,6 +605,10 @@ function initImageUploaders(container) {
 
 function renderActiveCategory() {
     const category = settingsConfig.find((item) => item.id === state.activeTab) || settingsConfig[0];
+    if (category.id === 'ai-assistant') {
+        renderAiAssistantSection();
+        return;
+    }
     const values = state.values[category.id] || {};
     contentEl.innerHTML = renderFormFields(category, values);
 
@@ -1114,3 +1123,456 @@ window.addEventListener('DOMContentLoaded', async () => {
     await fetchSettings();
 });
 
+
+
+/* ==========================================
+   AI ASSISTANT & API KEY MANAGEMENT
+   ========================================== */
+
+function getPublicApiBaseUrl() {
+    if (window.API_BASE_URL && window.API_BASE_URL !== 'API_BASE_URL') {
+        return window.API_BASE_URL.replace(/\/+$/, '');
+    }
+    if (typeof getApiBase === 'function') {
+        const b = getApiBase();
+        if (b && b !== 'API_BASE_URL') return b.replace(/\/+$/, '');
+    }
+    return 'https://crdbilling-api.onrender.com';
+}
+
+function renderAiAssistantSection() {
+    const publicBase = getPublicApiBaseUrl();
+    const openApiUrl = `${publicBase}/api/ai/openapi.json`;
+
+    contentEl.innerHTML = `
+        <div class="ai-assistant-wrapper">
+            <!-- Header Card -->
+            <div class="ai-card">
+                <div class="ai-card-header">
+                    <div class="ai-card-title">
+                        <span style="font-size: 22px;">🤖</span> AI Assistant & API Keys Integration
+                    </div>
+                    <span class="ai-status-badge ai-status-active">● Live AI Engine</span>
+                </div>
+                <p style="color: #64748b; font-size: 14px; margin-bottom: 18px; line-height: 1.5;">
+                    यहाँ से आप <strong>ChatGPT Custom GPT</strong>, <strong>WhatsApp AI Bot</strong>, <strong>Claude</strong> या किसी भी बाहरी AI Assistant के लिए सुरक्षित API Key जनरेट कर सकते हैं। इसके माध्यम से AI असिस्टेंट आपके बिलिंग सॉफ्टवेयर से लाइव स्टॉक, कस्टमर उधारी (Balance Dues), दैनिक बिक्री और सोलर फाइल स्टेटस की जानकारी सीधे प्राप्त कर सकता है।
+                </p>
+
+                <!-- Generate New Key Section -->
+                <div style="background: #f8fafc; border: 1.5px dashed #cbd5e1; border-radius: 10px; padding: 18px;">
+                    <div style="font-size: 14.5px; font-weight: 700; color: #1e293b; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                        <span>🔑</span> नई AI API Key बनाएं (Generate API Key)
+                    </div>
+                    <div class="ai-generator-form">
+                        <input
+                            type="text"
+                            id="aiKeyNameInput"
+                            class="ai-input"
+                            placeholder="Key का नाम लिखें (उदा. ChatGPT Custom GPT, WhatsApp AI Bot, Automation)"
+                            maxlength="100"
+                        />
+                        <button type="button" class="ai-btn-primary" id="btnCreateAiKey">
+                            <span>✨</span> API Key बनाएं
+                        </button>
+                    </div>
+
+                    <!-- Newly Generated Key Alert Box (Hidden by default) -->
+                    <div id="aiNewKeyAlert" class="ai-key-alert-box" style="display: none;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="color: #15803d; font-weight: 700; font-size: 14px;">
+                                🎉 आपकी नई AI API Key सफलतापूर्वक जनरेट हो गई है!
+                            </span>
+                            <span style="font-size: 12px; color: #b91c1c; font-weight: 600;">
+                                ⚠️ यह Key केवल एक बार दिखाई देगी
+                            </span>
+                        </div>
+                        <div class="ai-key-code-box">
+                            <span id="aiNewKeyDisplay" class="ai-key-code"></span>
+                            <button type="button" class="ai-btn-primary" id="btnCopyNewKey" style="padding: 6px 14px; font-size: 12.5px;">
+                                📋 Copy Key
+                            </button>
+                        </div>
+                        <p style="font-size: 12px; color: #166534; margin: 0;">
+                            💡 <strong>सुरक्षा सूचना:</strong> इस Key को तुरंत कॉपी करके अपने ChatGPT Custom GPT Actions या AI Bot में सुरक्षित सेव कर लें। सुरक्षा के लिए यह पूरी Key दोबारा नहीं दिखाई जाएगी।
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 1-Click ChatGPT Actions / OpenAPI 3.0 Box -->
+            <div class="ai-card">
+                <div class="ai-card-header">
+                    <div class="ai-card-title">
+                        <span>🌐</span> 1-Click ChatGPT Actions Import (OpenAPI 3.0 Schema)
+                    </div>
+                </div>
+                <p style="color: #64748b; font-size: 13.5px; margin-bottom: 12px;">
+                    OpenAI ChatGPT Custom GPT में Actions बनाते समय '<strong>Import from URL</strong>' में नीचे दिया गया OpenAPI लिंक पेस्ट करें:
+                </p>
+                <div style="display: flex; gap: 10px; align-items: center; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 14px;">
+                    <input
+                        type="text"
+                        id="aiOpenApiUrlInput"
+                        class="ai-input"
+                        readonly
+                        value="${openApiUrl}"
+                        style="background: transparent; border: none; font-family: monospace; font-size: 13px; color: #0f172a; padding: 0;"
+                    />
+                    <button type="button" class="ai-btn-secondary" id="btnCopyOpenApiUrl">
+                        📋 Copy OpenAPI Link
+                    </button>
+                    <a href="${openApiUrl}" target="_blank" class="ai-btn-secondary" style="text-decoration: none;">
+                        ↗ View Schema
+                    </a>
+                </div>
+            </div>
+
+            <!-- Active Keys Table Card -->
+            <div class="ai-card">
+                <div class="ai-card-header">
+                    <div class="ai-card-title">
+                        <span>📋</span> आपकी एक्टिव AI API Keys (Active Keys)
+                    </div>
+                    <button type="button" class="ai-btn-secondary" id="btnRefreshAiKeys">
+                        🔄 Refresh
+                    </button>
+                </div>
+                <div class="ai-table-responsive">
+                    <table class="ai-table">
+                        <thead>
+                            <tr>
+                                <th>Key का नाम (Name)</th>
+                                <th>Key Prefix</th>
+                                <th>बनाई गई तारीख (Created)</th>
+                                <th>अंतिम उपयोग (Last Used)</th>
+                                <th>स्थिति (Status)</th>
+                                <th style="text-align: right;">एक्शन (Actions)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="aiKeysTableBody">
+                            <tr>
+                                <td colspan="6" style="text-align: center; color: #64748b; padding: 24px;">
+                                    ⏳ API Keys लोड हो रही हैं...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Integration Documentation & Hindi Guide -->
+            <div class="ai-card">
+                <div class="ai-card-header">
+                    <div class="ai-card-title">
+                        <span>📖</span> ChatGPT Custom GPT और WhatsApp Bot कनेक्ट करने का तरीका
+                    </div>
+                </div>
+                <div class="ai-guide-box">
+                    <div style="font-weight: 700; color: #1e293b; margin-bottom: 12px; font-size: 14.5px;">
+                        🔹 ChatGPT Custom GPT में Action कैसे जोड़ें:
+                    </div>
+                    <div class="ai-guide-step">
+                        <span class="ai-step-num">1</span>
+                        <div><strong>OpenAI ChatGPT खोलें:</strong> ChatGPT में <em>Explore GPTs</em> पर क्लिक करें और ऊपर दाईं ओर <em>+ Create</em> बटन दबाएं।</div>
+                    </div>
+                    <div class="ai-guide-step">
+                        <span class="ai-step-num">2</span>
+                        <div><strong>Configure Tab:</strong> अपने GPT का नाम (उदा. <em>CRD Global Smart Billing Assistant</em>) और निर्देश (Instructions) लिखें।</div>
+                    </div>
+                    <div class="ai-guide-step">
+                        <span class="ai-step-num">3</span>
+                        <div><strong>Create New Action:</strong> नीचे स्क्रॉल करें और <em>Actions -> Create new action</em> पर क्लिक करें।</div>
+                    </div>
+                    <div class="ai-guide-step">
+                        <span class="ai-step-num">4</span>
+                        <div><strong>Import Schema:</strong> <em>Import from URL</em> बॉक्स में ऊपर दिया गया OpenAPI लिंक पेस्ट करें और <em>Import</em> पर क्लिक करें। सारे 5 एंडपॉइंट्स ऑटोमैटिक लोड हो जाएंगे।</div>
+                    </div>
+                    <div class="ai-guide-step">
+                        <span class="ai-step-num">5</span>
+                        <div><strong>Authentication सेट करें:</strong> <em>Authentication</em> के गियर आइकन पर क्लिक करें -> <strong>API Key</strong> चुनें -> Auth Type: <strong>Custom</strong> -> Custom Header Name: <span class="ai-code-inline">X-API-Key</span> लिखें -> अपनी जनरेट की हुई API Key पेस्ट करें और Save कर दें।</div>
+                    </div>
+                    <div class="ai-guide-step">
+                        <span class="ai-step-num">6</span>
+                        <div><strong>तैयार है!</strong> अब आप ChatGPT से सीधे पूछ सकते हैं:
+                            <ul style="margin-top: 6px; padding-left: 20px; color: #475569;">
+                                <li><em>"आज की कुल बिक्री और बिलों की संख्या बताओ"</em></li>
+                                <li><em>"हमारे पास 540W Mono Perc सोलर पैनल का कितना स्टॉक उपलब्ध है?"</em></li>
+                                <li><em>"कस्टमर 'सुरेश जी' का कितना बकाया पेमेंट (due balance) बाकी है?"</em></li>
+                                <li><em>"प्रोजेक्ट 'CRD-SOLAR-001' किस स्टेज पर अटका हुआ है?"</em></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="ai-guide-box" style="margin-top: 14px; background: #f1f5f9;">
+                    <div style="font-weight: 700; color: #1e293b; margin-bottom: 10px; font-size: 14px;">
+                        🔹 बाहरी प्रोग्राम (Python, Node.js, WhatsApp Bot) के लिए Endpoints:
+                    </div>
+                    <div style="font-size: 13px; color: #334155; line-height: 1.6;">
+                        प्रत्येक रिक्वेस्ट में Header भेजें: <span class="ai-code-inline">X-API-Key: crd_ai_live_...</span><br>
+                        • <span class="ai-code-inline">GET /api/ai/summary</span> : दैनिक/मासिक बिक्री, एक्टिव ग्राहक, कम स्टॉक, सोलर प्रोजेक्ट्स समरी<br>
+                        • <span class="ai-code-inline">GET /api/ai/products?query=...</span> : प्रोडक्ट नाम, मॉडल, ब्रांड व स्टॉक मात्रा खोजें<br>
+                        • <span class="ai-code-inline">GET /api/ai/customers?query=...</span> : ग्राहक का पता, मोबाइल, कुल बकाया (Balance Due)<br>
+                        • <span class="ai-code-inline">GET /api/ai/solar?query=...</span> : 10-स्टेज सोलर प्रोजेक्ट फाइल ट्रैकिंग व करंट स्टेटस<br>
+                        • <span class="ai-code-inline">GET /api/ai/sales?from_date=...</span> : हाल ही के सेल्स इनवॉइस व पेमेंट रिकॉर्ड्स
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    initAiAssistantListeners();
+    loadAiKeysTable();
+}
+
+function initAiAssistantListeners() {
+    const btnCreate = document.getElementById('btnCreateAiKey');
+    const inputName = document.getElementById('aiKeyNameInput');
+    const btnCopyOpenApi = document.getElementById('btnCopyOpenApiUrl');
+    const btnCopyNewKey = document.getElementById('btnCopyNewKey');
+    const btnRefresh = document.getElementById('btnRefreshAiKeys');
+
+    if (btnCreate) {
+        btnCreate.onclick = handleCreateAiKey;
+    }
+    if (inputName) {
+        inputName.onkeydown = (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                handleCreateAiKey();
+            }
+        };
+    }
+    if (btnCopyOpenApi) {
+        btnCopyOpenApi.onclick = () => {
+            const input = document.getElementById('aiOpenApiUrlInput');
+            if (input) copyTextToClipboard(input.value, btnCopyOpenApi);
+        };
+    }
+    if (btnCopyNewKey) {
+        btnCopyNewKey.onclick = () => {
+            const span = document.getElementById('aiNewKeyDisplay');
+            if (span) copyTextToClipboard(span.textContent, btnCopyNewKey);
+        };
+    }
+    if (btnRefresh) {
+        btnRefresh.onclick = () => loadAiKeysTable();
+    }
+}
+
+async function loadAiKeysTable() {
+    const tbody = document.getElementById('aiKeysTableBody');
+    if (!tbody) return;
+
+    try {
+        const response = await fetch(`${API_BASE}/api/admin/api-keys`);
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" style="text-align: center; color: #dc2626; padding: 20px;">
+                        ⚠️ API Keys लोड करने में समस्या: ${escapeHtml(result.message || 'Server error')}
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        const keys = result.api_keys || [];
+        if (keys.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" style="text-align: center; color: #64748b; padding: 24px;">
+                        💡 अभी तक कोई API Key नहीं बनाई गई है। ऊपर 'API Key बनाएं' बटन से अपनी पहली Key जनरेट करें।
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        tbody.innerHTML = keys.map((k) => {
+            const isActive = Number(k.is_active) === 1;
+            const statusBadge = isActive
+                ? '<span class="ai-status-badge ai-status-active">सक्रिय (Active)</span>'
+                : '<span class="ai-status-badge ai-status-inactive">बंद (Disabled)</span>';
+
+            const toggleBtnText = isActive ? '⏸️ Deactivate' : '▶️ Activate';
+            const createdText = k.created_at ? new Date(k.created_at).toLocaleString('hi-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '-';
+            const lastUsedText = k.last_used_at ? new Date(k.last_used_at).toLocaleString('hi-IN', { dateStyle: 'medium', timeStyle: 'short' }) : 'Never';
+
+            return `
+                <tr>
+                    <td style="font-weight: 600; color: #0f172a;">
+                        ${escapeHtml(k.key_name || 'AI Assistant Key')}
+                    </td>
+                    <td>
+                        <code style="background: #f1f5f9; padding: 3px 6px; border-radius: 4px; font-size: 12.5px;">
+                            ${escapeHtml(k.api_key_prefix || '')}...
+                        </code>
+                    </td>
+                    <td style="font-size: 12.5px; color: #64748b;">${createdText}</td>
+                    <td style="font-size: 12.5px; color: #64748b;">${lastUsedText}</td>
+                    <td>${statusBadge}</td>
+                    <td style="text-align: right; white-space: nowrap;">
+                        <button
+                            type="button"
+                            class="ai-btn-secondary"
+                            style="margin-right: 6px;"
+                            onclick="handleToggleAiKey(${k.id})"
+                        >
+                            ${toggleBtnText}
+                        </button>
+                        <button
+                            type="button"
+                            class="ai-btn-danger"
+                            onclick="handleDeleteAiKey(${k.id}, '${escapeHtml(k.key_name || '').replace(/'/g, "\\'")}')"
+                        >
+                            🗑️ Delete
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+    } catch (err) {
+        console.error('Error loading API keys:', err);
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" style="text-align: center; color: #dc2626; padding: 20px;">
+                    ⚠️ नेटवर्क या सर्वर त्रुटि: ${escapeHtml(err.message || 'Error')}
+                </td>
+            </tr>
+        `;
+    }
+}
+
+async function handleCreateAiKey() {
+    const input = document.getElementById('aiKeyNameInput');
+    const keyName = (input ? input.value : '').trim();
+    if (!keyName) {
+        alert('कृपया API Key का कोई नाम या उद्देश्य लिखें (उदा. ChatGPT Custom GPT)');
+        if (input) input.focus();
+        return;
+    }
+
+    const btnCreate = document.getElementById('btnCreateAiKey');
+    const originalText = btnCreate ? btnCreate.innerHTML : '';
+    if (btnCreate) {
+        btnCreate.disabled = true;
+        btnCreate.innerHTML = '⏳ जनरेट हो रही है...';
+    }
+
+    try {
+        const response = await fetch(`${API_BASE}/api/admin/api-keys`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ key_name: keyName })
+        });
+
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+            alert('API Key बनाने में त्रुटि: ' + (result.message || 'Server error'));
+            return;
+        }
+
+        if (input) input.value = '';
+
+        // Show alert box with raw key
+        const alertBox = document.getElementById('aiNewKeyAlert');
+        const displaySpan = document.getElementById('aiNewKeyDisplay');
+        if (alertBox && displaySpan) {
+            displaySpan.textContent = result.raw_key;
+            alertBox.style.display = 'flex';
+        }
+
+        await loadAiKeysTable();
+
+    } catch (err) {
+        console.error('Failed to create key:', err);
+        alert('API Key बनाने में समस्या: ' + err.message);
+    } finally {
+        if (btnCreate) {
+            btnCreate.disabled = false;
+            btnCreate.innerHTML = originalText;
+        }
+    }
+}
+
+async function handleToggleAiKey(keyId) {
+    try {
+        const response = await fetch(`${API_BASE}/api/admin/api-keys/${keyId}/toggle`, {
+            method: 'POST'
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+            alert('Key स्थिति बदलने में त्रुटि: ' + (result.message || 'Error'));
+            return;
+        }
+        await loadAiKeysTable();
+    } catch (err) {
+        alert('त्रुटि: ' + err.message);
+    }
+}
+
+async function handleDeleteAiKey(keyId, keyName) {
+    const conf = confirm(`क्या आप वाकई '${keyName}' API Key को हमेशा के लिए डिलीट (Revoke) करना चाहते हैं?\n\nइसके बाद इस Key से कनेक्टेड AI Assistant काम नहीं कर सकेगा।`);
+    if (!conf) return;
+
+    try {
+        const response = await fetch(`${API_BASE}/api/admin/api-keys/${keyId}`, {
+            method: 'DELETE'
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+            alert('Key डिलीट करने में त्रुटि: ' + (result.message || 'Error'));
+            return;
+        }
+        await loadAiKeysTable();
+    } catch (err) {
+        alert('त्रुटि: ' + err.message);
+    }
+}
+
+function copyTextToClipboard(text, btnElement) {
+    if (!text) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+            flashCopiedState(btnElement);
+        }).catch(() => {
+            fallbackCopy(text, btnElement);
+        });
+    } else {
+        fallbackCopy(text, btnElement);
+    }
+}
+
+function fallbackCopy(text, btnElement) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+        document.execCommand('copy');
+        flashCopiedState(btnElement);
+    } catch (e) {
+        alert('कॉपी नहीं हो सका, कृपया मैन्युअली कॉपी करें: ' + text);
+    } finally {
+        document.body.removeChild(ta);
+    }
+}
+
+function flashCopiedState(btnElement) {
+    if (!btnElement) return;
+    const oldText = btnElement.innerHTML;
+    btnElement.innerHTML = '✅ Copied!';
+    btnElement.style.borderColor = '#16a34a';
+    btnElement.style.color = '#16a34a';
+    setTimeout(() => {
+        btnElement.innerHTML = oldText;
+        btnElement.style.borderColor = '';
+        btnElement.style.color = '';
+    }, 2000);
+}

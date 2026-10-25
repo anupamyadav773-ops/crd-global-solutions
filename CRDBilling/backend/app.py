@@ -107,7 +107,7 @@ allowed_origins.extend([
 CORS(
     app,
     resources={r"/*": {"origins": allowed_origins}},
-    allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
+    allow_headers=["Content-Type", "Authorization", "X-Requested-With", "X-API-Key"],
     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     expose_headers=["Content-Disposition"]
 )
@@ -192,7 +192,7 @@ def open_db():
         origin = request.headers.get("Origin") or "*"
         response.headers["Access-Control-Allow-Origin"] = origin
         response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
-        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With, X-API-Key"
         response.headers["Access-Control-Max-Age"] = "86400"
         return response
 
@@ -700,6 +700,7 @@ def require_authenticated_api_request():
         or request.path.startswith("/frontend/")
         or request.path.startswith("/tech")
         or request.path.startswith("/_next/")
+        or request.path.startswith("/api/ai/")
         or (request.method == "GET" and request.path in {"/settings/business-profile", "/settings/service", "/settings/print-display", "/settings/quotation-billing", "/settings/invoice-billing"})
     ):
         return None
@@ -764,7 +765,7 @@ def add_no_cache_headers(response):
     if origin and "Access-Control-Allow-Origin" not in response.headers:
         response.headers["Access-Control-Allow-Origin"] = origin
         response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
-        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With, X-API-Key"
         response.headers["Access-Control-Allow-Credentials"] = "true"
 
     return response
@@ -1510,6 +1511,13 @@ except ImportError:
     from solar_module import solar_bp, ensure_solar_projects_schema
 ensure_solar_projects_schema(get_db_connection)
 app.register_blueprint(solar_bp)
+
+try:
+    from backend.ai_assistant_module import ai_bp, ensure_api_keys_schema
+except ImportError:
+    from ai_assistant_module import ai_bp, ensure_api_keys_schema
+ensure_api_keys_schema(get_db_connection)
+app.register_blueprint(ai_bp)
 
 # ==========================================
 # HOME & STATIC ROUTE (Handled by serve_website_home)

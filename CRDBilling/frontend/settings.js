@@ -1379,7 +1379,7 @@ async function loadAiKeysTable() {
             return;
         }
 
-        const keys = result.api_keys || [];
+        const keys = result.keys || result.api_keys || result.data || [];
         if (keys.length === 0) {
             tbody.innerHTML = `
                 <tr>
@@ -1467,7 +1467,7 @@ async function handleCreateAiKey() {
         const response = await fetch(`${API_BASE}/api/admin/api-keys`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ key_name: keyName })
+            body: JSON.stringify({ key_name: keyName, name: keyName })
         });
 
         const result = await response.json();
@@ -1478,12 +1478,15 @@ async function handleCreateAiKey() {
 
         if (input) input.value = '';
 
+        const generatedKey = result.api_key || result.raw_key || result.key || (result.key_info && (result.key_info.api_key || result.key_info.raw_key)) || '';
+
         // Show alert box with raw key
         const alertBox = document.getElementById('aiNewKeyAlert');
         const displaySpan = document.getElementById('aiNewKeyDisplay');
         if (alertBox && displaySpan) {
-            displaySpan.textContent = result.raw_key;
+            displaySpan.textContent = generatedKey;
             alertBox.style.display = 'flex';
+            try { alertBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch(e) {}
         }
 
         await loadAiKeysTable();
@@ -1576,3 +1579,8 @@ function flashCopiedState(btnElement) {
         btnElement.style.color = '';
     }, 2000);
 }
+
+window.handleCreateAiKey = handleCreateAiKey;
+window.handleToggleAiKey = handleToggleAiKey;
+window.handleDeleteAiKey = handleDeleteAiKey;
+window.loadAiKeysTable = loadAiKeysTable;

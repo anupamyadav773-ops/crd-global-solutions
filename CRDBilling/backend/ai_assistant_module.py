@@ -502,28 +502,73 @@ def ai_sales():
 @ai_bp.route("/api/admin/api-keys", methods=["GET"])
 def list_api_keys():
     try:
+        g.cursor.execute("""
+            CREATE TABLE IF NOT EXISTS api_keys (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                key_name VARCHAR(120) NOT NULL,
+                api_key_hash VARCHAR(255) NOT NULL UNIQUE,
+                api_key_prefix VARCHAR(40) NOT NULL,
+                raw_key_display VARCHAR(120) NULL,
+                is_active TINYINT(1) NOT NULL DEFAULT 1,
+                last_used_at TIMESTAMP NULL,
+                created_by INT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_api_key_hash(api_key_hash)
+            )
+        """)
+        g.db.commit()
+    except Exception as e:
+        print("Schema verify error:", e)
+
+    try:
         g.cursor.execute("SELECT id, key_name, api_key_prefix, raw_key_display, is_active, last_used_at, created_at FROM api_keys ORDER BY id DESC")
-        rows = g.cursor.fetchall()
+        rows = g.cursor.fetchall() or []
         for r in rows:
             if r.get("last_used_at"):
                 r["last_used_at"] = r["last_used_at"].isoformat()
             if r.get("created_at"):
                 r["created_at"] = r["created_at"].isoformat()
-        return jsonify(success=True, keys=rows)
+        return jsonify(
+            success=True,
+            keys=rows,
+            api_keys=rows,
+            data=rows
+        )
     except Exception as e:
-        return jsonify(success=False, message=str(e)), 500
+        return jsonify(success=False, message=str(e), keys=[], api_keys=[]), 500
 
 # Create new API key
 @ai_bp.route("/api/admin/api-keys", methods=["POST"])
 def create_api_key():
+    try:
+        g.cursor.execute("""
+            CREATE TABLE IF NOT EXISTS api_keys (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                key_name VARCHAR(120) NOT NULL,
+                api_key_hash VARCHAR(255) NOT NULL UNIQUE,
+                api_key_prefix VARCHAR(40) NOT NULL,
+                raw_key_display VARCHAR(120) NULL,
+                is_active TINYINT(1) NOT NULL DEFAULT 1,
+                last_used_at TIMESTAMP NULL,
+                created_by INT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_api_key_hash(api_key_hash)
+            )
+        """)
+        g.db.commit()
+    except Exception as e:
+        print("Schema verify error:", e)
+
     data = request.get_json(silent=True) or {}
-    name = (data.get("name") or "AI Assistant Integration").strip()
+    name = (data.get("key_name") or data.get("name") or "AI Assistant Integration").strip()
 
     # Generate a cryptographically secure random key
     # Format: crd_ai_live_ + 32 hex chars
     raw_key = f"crd_ai_live_{secrets.token_hex(16)}"
     k_hash = hash_key(raw_key)
-    prefix = raw_key[:16] + "..." + raw_key[-4:]
+    prefix = raw_key[:18]
 
     try:
         g.cursor.execute(
@@ -538,9 +583,12 @@ def create_api_key():
             "success": True,
             "message": "AI API Key सफलतापूर्वक जनरेट हो गई। कृपया इसे कॉपी करके सुरक्षित रख लें, यह दोबारा नहीं दिखेगी।",
             "api_key": raw_key,
+            "raw_key": raw_key,
+            "key": raw_key,
             "key_info": {
                 "id": key_id,
                 "name": name,
+                "key_name": name,
                 "prefix": prefix,
                 "created_at": datetime.now().isoformat()
             }

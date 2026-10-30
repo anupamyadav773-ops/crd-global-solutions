@@ -559,20 +559,10 @@ async function printCustomerReceipt(paymentId) {
                     </tbody>
                 </table>
 
-                <!-- AMOUNT IN WORDS & BALANCE BOX -->
-                <div style="background:#f0fdf4; border:1.5px solid #86efac; border-radius:6px; padding:12px; margin-bottom:14px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-                        <div style="flex:1; min-width:240px;">
-                            <div style="font-size:11px; text-transform:uppercase; color:#166534; font-weight:700;">Amount Received In Words (शब्दों में):</div>
-                            <div style="font-size:13px; font-weight:bold; color:#14532d; margin-top:2px;">${escapeHtml(amountInWords(amt))}</div>
-                        </div>
-                        <div style="text-align:right;">
-                            <div style="font-size:11px; text-transform:uppercase; color:#64748b; font-weight:600;">Remaining Balance Due (शेष बकाया):</div>
-                            <div style="font-size:15px; font-weight:bold; color:${remainingDue > 0 ? '#dc2626' : '#16a34a'}; margin-top:2px;">
-                                ₹ ${remainingDue.toFixed(2)}
-                            </div>
-                        </div>
-                    </div>
+                <!-- AMOUNT IN WORDS -->
+                <div style="background:#f0fdf4; border:1.5px solid #86efac; border-radius:6px; padding:12px 14px; margin-bottom:14px;">
+                    <div style="font-size:11px; text-transform:uppercase; color:#166534; font-weight:700; letter-spacing:0.5px;">Amount Received In Words (शब्दों में):</div>
+                    <div style="font-size:13.5px; font-weight:bold; color:#14532d; margin-top:3px;">${escapeHtml(amountInWords(amt))}</div>
                 </div>
 
                 <!-- SIGNATURES & FOOTER -->

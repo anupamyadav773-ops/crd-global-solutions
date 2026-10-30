@@ -8435,7 +8435,13 @@ def add_sale():
                     "Quantity सही नहीं है"
                 )
 
-            if product_record.get("item_type") == "Service":
+            is_service_item = (
+                str(product_record.get("item_type") or "").strip().lower() == "service"
+                or str(product_record.get("unit") or "").strip().lower() in ["service", "job", "visit"]
+                or str(product_record.get("category") or "").strip().lower() in ["service", "services"]
+            )
+
+            if is_service_item:
                 serial_values = []
                 serial_number = None
             else:
@@ -8506,9 +8512,9 @@ def add_sale():
                 conversion_factor = 1.0
                 base_quantity = round(quantity, 4)
 
-            if document_type != "Quotation":
+            if document_type != "Quotation" and not is_service_item:
                 # ----------------------------------
-                # CHECK STOCK
+                # CHECK STOCK (Bypassed for Services)
                 # ----------------------------------
 
                 g.cursor.execute(
@@ -8585,7 +8591,7 @@ def add_sale():
                 # DECREASE STOCK
                 # ----------------------------------
 
-                if product_record.get("item_type") != "Service":
+                if not is_service_item:
                     g.cursor.execute(
                         """
                         UPDATE products
@@ -8954,7 +8960,12 @@ def update_sale(invoice_id):
             if not product_record:
                 raise ValueError("Product not found.")
 
-            item_type = (product_record.get("item_type") or "Product").strip()
+            is_service_item = (
+                str(product_record.get("item_type") or "").strip().lower() == "service"
+                or str(product_record.get("unit") or "").strip().lower() in ["service", "job", "visit"]
+                or str(product_record.get("category") or "").strip().lower() in ["service", "services"]
+            )
+            item_type = "Service" if is_service_item else (product_record.get("item_type") or "Product").strip()
             quantity = float(item.get("quantity", 0) or 0)
             if quantity <= 0:
                 raise ValueError("Quantity must be greater than zero.")

@@ -302,19 +302,36 @@ function renderLedgerPayments(payments) {
     if (!tbody) return;
 
     if (!payments || payments.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:15px; color:#888;">No payment receipts found.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:15px; color:#888;">No payment receipts found.</td></tr>';
         return;
     }
 
-    tbody.innerHTML = payments.map(p => `
-        <tr>
-            <td style="padding:8px; border:1px solid #eee;"><strong>${escapeHtml(p.receipt_number || "-")}</strong></td>
-            <td style="padding:8px; border:1px solid #eee;">${escapeHtml(p.payment_date || "-")}</td>
-            <td style="padding:8px; border:1px solid #eee; font-weight:bold; color:#16a34a;">₹ ${Number(p.amount || 0).toFixed(2)}</td>
-            <td style="padding:8px; border:1px solid #eee;">${escapeHtml(p.payment_method || "Cash")}</td>
-            <td style="padding:8px; border:1px solid #eee;">${escapeHtml(p.reference_no || p.invoice_number ? `Inv: ${p.invoice_number}` : "-")}</td>
-        </tr>
-    `).join("");
+    tbody.innerHTML = payments.map(p => {
+        const amt = Number(p.amount || 0);
+        const rcpNo = p.receipt_number || "-";
+        const refNote = p.reference_no ? p.reference_no : (p.invoice_number ? `Inv: ${p.invoice_number}` : "-");
+
+        return `
+            <tr>
+                <td style="padding:8px; border:1px solid #eee;"><strong style="color:#0284c7;">${escapeHtml(rcpNo)}</strong></td>
+                <td style="padding:8px; border:1px solid #eee;">${escapeHtml(p.payment_date || "-")}</td>
+                <td style="padding:8px; border:1px solid #eee; font-weight:bold; color:#16a34a;">₹ ${amt.toFixed(2)}</td>
+                <td style="padding:8px; border:1px solid #eee;">${escapeHtml(p.payment_method || "Cash")}</td>
+                <td style="padding:8px; border:1px solid #eee;">${escapeHtml(refNote)}</td>
+                <td style="padding:6px 8px; border:1px solid #eee; text-align:center; white-space:nowrap;">
+                    <button type="button" class="btn-rcp btn-rcp-print" onclick="printCustomerReceipt(${p.id})" title="Print Receipt Slip (रसीद प्रिंट करें)">
+                        🖨️ Print
+                    </button>
+                    <button type="button" class="btn-rcp btn-rcp-edit" onclick="openEditPaymentModal(${p.id})" title="Edit Receipt (रसीद संपादित करें)">
+                        ✏️ Edit
+                    </button>
+                    <button type="button" class="btn-rcp btn-rcp-delete" onclick="deleteCustomerPayment(${p.id}, '${escapeHtml(rcpNo)}', ${amt})" title="Delete Receipt (रसीद हटाएं)">
+                        🗑️ Delete
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join("");
 }
 
 async function submitCustomerPayment() {
@@ -353,11 +370,15 @@ async function submitCustomerPayment() {
             return;
         }
 
-        alert(`✅ Payment Recorded Successfully!\nReceipt No: ${result.receipt_number || "-"}\nAmount: ₹ ${amount.toFixed(2)}`);
+        const wantPrint = confirm(`✅ Payment Recorded Successfully!\nReceipt No: ${result.receipt_number || "-"}\nAmount: ₹ ${amount.toFixed(2)}\n\nक्या आप इस भुगतान रसीद का प्रिंट निकालना चाहते हैं?`);
 
         // Refresh ledger and customer list
-        openCustomerLedger(currentLedgerCustomerId);
+        await openCustomerLedger(currentLedgerCustomerId);
         loadCustomers();
+
+        if (wantPrint && result.payment_id) {
+            printCustomerReceipt(result.payment_id);
+        }
 
     } catch (err) {
         console.error("Payment submit error:", err);
@@ -386,3 +407,365 @@ function showMessage(message) {
 // ==========================================
 
 loadCustomers();
+
+// ==========================================
+// PAYMENT RECEIPT PRINT, EDIT & DELETE HELPERS
+// ==========================================
+
+function amountInWords(num) {
+    num = Math.round(Number(num || 0) * 100) / 100;
+    if (isNaN(num) || num <= 0) return "Rupees Zero Only";
+
+    const a = [
+        "", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten",
+        "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"
+    ];
+    const b = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
+
+    function convertTwoDigits(n) {
+        if (n < 20) return a[n];
+        const tens = Math.floor(n / 10);
+        const rem = n % 10;
+        return b[tens] + (rem ? " " + a[rem] : "");
+    }
+
+    function convertThreeDigits(n) {
+        const hundreds = Math.floor(n / 100);
+        const rem = n % 100;
+        let str = "";
+        if (hundreds) str += a[hundreds] + " Hundred";
+        if (rem) str += (str ? " " : "") + convertTwoDigits(rem);
+        return str;
+    }
+
+    const wholePart = Math.floor(num);
+    const decimalPart = Math.round((num - wholePart) * 100);
+
+    const crore = Math.floor(wholePart / 10000000);
+    const lakh = Math.floor((wholePart % 10000000) / 100000);
+    const thousand = Math.floor((wholePart % 100000) / 1000);
+    const rem = wholePart % 1000;
+
+    let res = "";
+    if (crore) res += convertTwoDigits(crore) + " Crore ";
+    if (lakh) res += convertTwoDigits(lakh) + " Lakh ";
+    if (thousand) res += convertTwoDigits(thousand) + " Thousand ";
+    if (rem) res += convertThreeDigits(rem);
+
+    res = (res.trim() || "Zero");
+    let out = "Rupees " + res;
+    if (decimalPart > 0) {
+        out += " and " + convertTwoDigits(decimalPart) + " Paise";
+    }
+    out += " Only";
+    return out;
+}
+
+async function printCustomerReceipt(paymentId) {
+    try {
+        const res = await fetch(`${API_BASE_URL}/customer-payments/${paymentId}`);
+        const data = await res.json();
+        if (!data.success || !data.payment) {
+            alert(data.message || "रसीद का विवरण लोड नहीं हो सका।");
+            return;
+        }
+
+        const p = data.payment;
+        const c = data.customer || {};
+        const b = data.business || {};
+        const inv = data.invoice;
+        const amt = Number(p.amount || 0);
+
+        const printArea = document.getElementById("receiptPrintArea");
+        if (!printArea) return;
+
+        const bizName = escapeHtml(b.company_name || "CRD Global Solutions");
+        const bizTagline = b.tagline ? `<div style="font-size:12px; color:#475569; font-weight:600; margin-top:2px;">${escapeHtml(b.tagline)}</div>` : "";
+        const bizAddress = [b.address, b.city, b.state, b.pincode].filter(Boolean).join(", ");
+        const bizContact = [
+            b.mobile ? `Phone: ${b.mobile}` : "",
+            b.email ? `Email: ${b.email}` : "",
+            b.gstin ? `GSTIN: ${b.gstin}` : ""
+        ].filter(Boolean).join(" | ");
+
+        const custAddress = c.address ? escapeHtml(c.address) : "N/A";
+        const custPhone = c.mobile ? escapeHtml(c.mobile) : "-";
+        const custGst = c.gstin ? ` | GSTIN: ${escapeHtml(c.gstin)}` : "";
+        const remainingDue = Number(c.outstanding_balance || 0);
+
+        printArea.innerHTML = `
+            <div style="font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color:#0f172a; max-width:640px; margin:0 auto; padding:20px; border:1.5px solid #cbd5e1; border-radius:8px; background:#fff; position:relative;">
+                
+                <!-- BUSINESS HEADER -->
+                <div style="text-align:center; border-bottom:2px solid #0f172a; padding-bottom:12px; margin-bottom:14px;">
+                    <h2 style="margin:0; font-size:22px; color:#0f172a; text-transform:uppercase; letter-spacing:0.5px;">${bizName}</h2>
+                    ${bizTagline}
+                    ${bizAddress ? `<div style="font-size:12px; color:#64748b; margin-top:3px;">${escapeHtml(bizAddress)}</div>` : ""}
+                    ${bizContact ? `<div style="font-size:12px; color:#64748b; margin-top:2px;">${escapeHtml(bizContact)}</div>` : ""}
+                    <div style="margin-top:8px;">
+                        <span style="background:#0f172a; color:#fff; font-size:11.5px; font-weight:700; padding:3px 14px; border-radius:20px; text-transform:uppercase; letter-spacing:0.8px;">
+                            Payment Receipt / भुगतान पावती रसीद
+                        </span>
+                    </div>
+                </div>
+
+                <!-- RECEIPT META GRID -->
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:12px; font-size:12.5px; margin-bottom:14px; line-height:1.5;">
+                    <div>
+                        <div style="color:#64748b;">Receipt No.:</div>
+                        <div style="font-size:15px; font-weight:bold; color:#0284c7;">${escapeHtml(p.receipt_number || "-")}</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="color:#64748b;">Date:</div>
+                        <div style="font-size:14px; font-weight:bold; color:#1e293b;">${escapeHtml(p.payment_date || "-")}</div>
+                    </div>
+                    <div style="grid-column:span 2; border-top:1px dashed #cbd5e1; padding-top:8px;">
+                        <span style="color:#64748b;">Received With Thanks From:</span>
+                        <div style="font-size:15px; font-weight:bold; color:#0f172a; margin-top:2px;">${escapeHtml(c.customer_name || "Customer")}</div>
+                        <div style="font-size:12px; color:#475569;">Contact: ${custPhone}${custGst}</div>
+                        ${c.address ? `<div style="font-size:12px; color:#475569;">Address: ${custAddress}</div>` : ""}
+                    </div>
+                </div>
+
+                <!-- PAYMENT DETAILS TABLE -->
+                <table style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom:14px;">
+                    <thead>
+                        <tr style="background:#f1f5f9; text-align:left;">
+                            <th style="padding:8px 10px; border:1px solid #cbd5e1;">Description / Mode</th>
+                            <th style="padding:8px 10px; border:1px solid #cbd5e1;">Ref / Invoice Details</th>
+                            <th style="padding:8px 10px; border:1px solid #cbd5e1; text-align:right;">Amount Received</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="padding:10px; border:1px solid #cbd5e1; vertical-align:top;">
+                                <strong>Payment via ${escapeHtml(p.payment_method || "Cash")}</strong>
+                                ${p.notes ? `<div style="font-size:11.5px; color:#64748b; margin-top:4px;">Note: ${escapeHtml(p.notes)}</div>` : ""}
+                            </td>
+                            <td style="padding:10px; border:1px solid #cbd5e1; vertical-align:top;">
+                                ${inv ? `<div>Linked Inv: <strong>${escapeHtml(inv.invoice_number)}</strong></div>` : `<div>Account: <strong>General Dues Clearance</strong></div>`}
+                                ${p.reference_no ? `<div style="font-size:11.5px; color:#64748b; margin-top:2px;">Txn Ref: ${escapeHtml(p.reference_no)}</div>` : ""}
+                            </td>
+                            <td style="padding:10px; border:1px solid #cbd5e1; text-align:right; font-size:16px; font-weight:bold; color:#16a34a; vertical-align:top;">
+                                ₹ ${amt.toFixed(2)}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- AMOUNT IN WORDS & BALANCE BOX -->
+                <div style="background:#f0fdf4; border:1.5px solid #86efac; border-radius:6px; padding:12px; margin-bottom:14px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                        <div>
+                            <div style="font-size:11px; text-transform:uppercase; color:#166534; font-weight:700;">Amount Received In Words:</div>
+                            <div style="font-size:13px; font-weight:bold; color:#14532d; margin-top:2px;">${escapeHtml(amountInWords(amt))}</div>
+                        </div>
+                        <div style="text-align:right;">
+                            <div style="font-size:11px; text-transform:uppercase; color:#64748b; font-weight:600;">Customer Remaining Balance:</div>
+                            <div style="font-size:14px; font-weight:bold; color:${remainingDue > 0 ? '#dc2626' : '#16a34a'}; margin-top:2px;">
+                                ₹ ${remainingDue.toFixed(2)}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SIGNATURES & TERMS -->
+                <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-top:40px; padding-top:10px; font-size:12px; color:#475569;">
+                    <div style="text-align:center;">
+                        <div style="border-top:1px dashed #94a3b8; width:160px; margin-bottom:4px;"></div>
+                        Customer's Signature
+                    </div>
+                    <div style="text-align:center;">
+                        <div style="font-weight:700; color:#0f172a; margin-bottom:30px;">For ${bizName}</div>
+                        <div style="border-top:1px dashed #94a3b8; width:180px; margin-bottom:4px;"></div>
+                        Authorized Signatory
+                    </div>
+                </div>
+
+                <div style="text-align:center; font-size:11px; color:#94a3b8; margin-top:24px; border-top:1px solid #f1f5f9; padding-top:6px;">
+                    * This is a computer generated payment receipt voucher. Thank you for your business! *
+                </div>
+            </div>
+        `;
+
+        const modal = document.getElementById("receiptPrintModal");
+        if (modal) {
+            modal.style.display = "flex";
+            modal.classList.remove("hidden");
+        }
+
+    } catch (err) {
+        console.error("Print receipt error:", err);
+        alert("रसीद लोड करने में समस्या हुई: " + err.message);
+    }
+}
+
+function triggerReceiptPrint() {
+    window.print();
+}
+
+function closeReceiptPrintModal() {
+    const modal = document.getElementById("receiptPrintModal");
+    if (modal) {
+        modal.style.display = "none";
+        modal.classList.add("hidden");
+    }
+}
+
+async function openEditPaymentModal(paymentId) {
+    try {
+        const res = await fetch(`${API_BASE_URL}/customer-payments/${paymentId}`);
+        const data = await res.json();
+        if (!data.success || !data.payment) {
+            alert(data.message || "रसीद का विवरण लोड नहीं हो सका।");
+            return;
+        }
+
+        const p = data.payment;
+        document.getElementById("editPaymentId").value = p.id;
+        document.getElementById("editReceiptNoDisplay").textContent = p.receipt_number || "-";
+        document.getElementById("editPayDate").value = p.payment_date || "";
+        document.getElementById("editPayAmount").value = Number(p.amount || 0).toFixed(2);
+        document.getElementById("editPayMethod").value = p.payment_method || "Cash";
+        document.getElementById("editPayRefNo").value = p.reference_no || "";
+        document.getElementById("editPayNotes").value = p.notes || "";
+
+        // Populate invoices dropdown in edit modal
+        const invSelect = document.getElementById("editPayInvoiceId");
+        if (invSelect) {
+            invSelect.innerHTML = '<option value="">General / On-Account Due (सभी बकाये में से कटे)</option>';
+            const invoices = (currentLedgerData && currentLedgerData.invoices) ? currentLedgerData.invoices : [];
+            invoices.forEach(inv => {
+                const opt = document.createElement("option");
+                opt.value = inv.id;
+                opt.textContent = `${inv.invoice_number} (Total: ₹${Number(inv.grand_total).toFixed(2)})`;
+                if (p.invoice_id && Number(p.invoice_id) === Number(inv.id)) {
+                    opt.selected = true;
+                }
+                invSelect.appendChild(opt);
+            });
+            if (p.invoice_id && !invoices.some(inv => Number(inv.id) === Number(p.invoice_id)) && p.invoice_number) {
+                const opt = document.createElement("option");
+                opt.value = p.invoice_id;
+                opt.textContent = `${p.invoice_number}`;
+                opt.selected = true;
+                invSelect.appendChild(opt);
+            }
+        }
+
+        const modal = document.getElementById("editPaymentModal");
+        if (modal) {
+            modal.style.display = "flex";
+            modal.classList.remove("hidden");
+        }
+
+    } catch (err) {
+        console.error("Open edit payment error:", err);
+        alert("विवरण लोड करने में समस्या: " + err.message);
+    }
+}
+
+function closeEditPaymentModal() {
+    const modal = document.getElementById("editPaymentModal");
+    if (modal) {
+        modal.style.display = "none";
+        modal.classList.add("hidden");
+    }
+}
+
+async function submitEditPayment(event) {
+    if (event) event.preventDefault();
+
+    const paymentId = document.getElementById("editPaymentId").value;
+    if (!paymentId) return;
+
+    const amount = parseFloat(document.getElementById("editPayAmount").value);
+    if (isNaN(amount) || amount <= 0) {
+        alert("⚠️ कृपया 0 से अधिक मान्य राशि दर्ज करें।");
+        return;
+    }
+
+    const payload = {
+        amount: amount,
+        payment_date: document.getElementById("editPayDate").value,
+        payment_method: document.getElementById("editPayMethod").value,
+        reference_no: document.getElementById("editPayRefNo").value.trim(),
+        notes: document.getElementById("editPayNotes").value.trim(),
+        invoice_id: document.getElementById("editPayInvoiceId").value || null
+    };
+
+    const btn = document.getElementById("btnSaveEditPayment");
+    const origText = btn ? btn.innerHTML : "";
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = "⏳ सहेज रहे हैं...";
+    }
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/customer-payments/${paymentId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+        const result = await res.json();
+        if (!result.success) {
+            alert(result.message || "रसीद अपडेट करने में समस्या हुई।");
+            return;
+        }
+
+        alert("✅ भुगतान रसीद सफलतापूर्वक अपडेट हो गई!");
+        closeEditPaymentModal();
+
+        // Refresh ledger & customer list
+        if (currentLedgerCustomerId) {
+            await openCustomerLedger(currentLedgerCustomerId);
+        }
+        loadCustomers();
+
+    } catch (err) {
+        console.error("Submit edit payment error:", err);
+        alert("अपडेट करने में समस्या: " + err.message);
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = origText;
+        }
+    }
+}
+
+async function deleteCustomerPayment(paymentId, receiptNumber, amount) {
+    const conf = confirm(`क्या आप रसीद सं. "${receiptNumber}" (₹ ${Number(amount).toFixed(2)}) को हमेशा के लिए डिलीट करना चाहते हैं?\n\n⚠️ चेतावनी: डिलीट करने पर यह भुगतान लेजर से हट जाएगा और कस्टमर का बकाया बढ़ जाएगा।`);
+    if (!conf) return;
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/customer-payments/${paymentId}`, {
+            method: "DELETE"
+        });
+        const result = await res.json();
+        if (!result.success) {
+            alert(result.message || "रसीद हटाने में समस्या हुई।");
+            return;
+        }
+
+        alert("✅ भुगतान रसीद सफलतापूर्वक हटा दी गई!");
+
+        // Refresh ledger & customer list
+        if (currentLedgerCustomerId) {
+            await openCustomerLedger(currentLedgerCustomerId);
+        }
+        loadCustomers();
+
+    } catch (err) {
+        console.error("Delete payment error:", err);
+        alert("रसीद हटाने में समस्या: " + err.message);
+    }
+}
+
+// Window global exports
+window.printCustomerReceipt = printCustomerReceipt;
+window.triggerReceiptPrint = triggerReceiptPrint;
+window.closeReceiptPrintModal = closeReceiptPrintModal;
+window.openEditPaymentModal = openEditPaymentModal;
+window.closeEditPaymentModal = closeEditPaymentModal;
+window.submitEditPayment = submitEditPayment;
+window.deleteCustomerPayment = deleteCustomerPayment;

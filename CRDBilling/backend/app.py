@@ -10064,6 +10064,218 @@ def add_customer_payment(customer_id):
         return jsonify({"success": False, "message": str(e)}), 500
 
 
+@app.route("/customer-payments/<int:payment_id>", methods=["GET"])
+@app.route("/customers/payments/<int:payment_id>", methods=["GET"])
+def get_customer_payment_detail(payment_id):
+    try:
+        g.cursor.execute(
+            """
+            SELECT cp.*, si.invoice_number, si.grand_total as invoice_grand_total, si.paid_amount as invoice_paid_amount
+            FROM customer_payments cp
+            LEFT JOIN sales_invoices si ON si.id = cp.invoice_id
+            WHERE cp.id = %s LIMIT 1
+            """,
+            (payment_id,)
+        )
+        payment = g.cursor.fetchone()
+        if not payment:
+            return jsonify({"success": False, "message": "भुगतान रसीद नहीं मिली"}), 404
+
+        payment["payment_date"] = normalize_date_string(payment.get("payment_date"))
+        payment["amount"] = float(payment.get("amount") or 0)
+        payment["created_at"] = str(payment.get("created_at") or "")
+
+        # Customer details
+        g.cursor.execute("SELECT * FROM customers WHERE id = %s LIMIT 1", (payment["customer_id"],))
+        customer = g.cursor.fetchone() or {}
+
+        # Business profile
+        g.cursor.execute("SELECT setting_key, setting_value FROM settings WHERE category IN ('business-profile', 'print-display')")
+        b_settings = {row["setting_key"]: row["setting_value"] for row in g.cursor.fetchall()}
+
+        # Compute current outstanding balance of customer
+        g.cursor.execute(
+            """
+            SELECT
+                ROUND(
+                    COALESCE(c.opening_balance, 0.0)
+                    + COALESCE(inv.total_due, 0.0)
+                    - COALESCE(pay.direct_paid, 0.0),
+                    2
+                ) AS outstanding_balance
+            FROM customers c
+            LEFT JOIN (
+                SELECT customer_id, SUM(GREATEST(0, grand_total - COALESCE(paid_amount, 0))) AS total_due
+                FROM sales_invoices
+                WHERE (document_type IS NULL OR document_type != 'Quotation') AND customer_id = %s
+                GROUP BY customer_id
+            ) inv ON inv.customer_id = c.id
+            LEFT JOIN (
+                SELECT customer_id, SUM(amount) AS direct_paid
+                FROM customer_payments
+                WHERE invoice_id IS NULL AND customer_id = %s
+                GROUP BY customer_id
+            ) pay ON pay.customer_id = c.id
+            WHERE c.id = %s LIMIT 1
+            """,
+            (payment["customer_id"], payment["customer_id"], payment["customer_id"])
+        )
+        bal_row = g.cursor.fetchone()
+        outstanding_balance = float(bal_row["outstanding_balance"] or 0) if bal_row else 0.0
+
+        return jsonify({
+            "success": True,
+            "payment": payment,
+            "customer": {
+                "id": customer.get("id"),
+                "customer_name": customer.get("customer_name") or "Valued Customer",
+                "mobile": customer.get("mobile") or "",
+                "email": customer.get("email") or "",
+                "address": customer.get("address") or "",
+                "gstin": customer.get("gstin") or "",
+                "outstanding_balance": outstanding_balance
+            },
+            "business": {
+                "company_name": b_settings.get("company_name") or "CRD Global Solutions",
+                "tagline": b_settings.get("tagline") or "Solar Solutions",
+                "owner_name": b_settings.get("owner_name") or "",
+                "mobile": b_settings.get("mobile") or "",
+                "email": b_settings.get("email") or "",
+                "address": b_settings.get("address") or "",
+                "city": b_settings.get("city") or "",
+                "state": b_settings.get("state") or "",
+                "pincode": b_settings.get("pincode") or "",
+                "gstin": b_settings.get("gstin") or "",
+                "pan": b_settings.get("pan") or "",
+                "logo": b_settings.get("company_logo") or b_settings.get("business_logo") or ""
+            }
+        })
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route("/customer-payments/<int:payment_id>", methods=["PUT", "OPTIONS"])
+@app.route("/customers/payments/<int:payment_id>", methods=["PUT", "OPTIONS"])
+def update_customer_payment(payment_id):
+    if request.method == "OPTIONS":
+        return "", 200
+
+    data = request.get_json() or {}
+    new_amount = float(data.get("amount", 0) or 0)
+    payment_method = data.get("payment_method") or data.get("payment_mode") or "Cash"
+    reference_no = data.get("reference_no", "")
+    notes = data.get("notes", "")
+    payment_date = data.get("payment_date") or datetime.now().strftime("%Y-%m-%d")
+    new_invoice_id = data.get("invoice_id")
+    if new_invoice_id:
+        try: new_invoice_id = int(new_invoice_id)
+        except Exception: new_invoice_id = None
+    else:
+        new_invoice_id = None
+
+    if new_amount <= 0:
+        return jsonify({"success": False, "message": "मान्य राशि (Amount > 0) दर्ज करें"}), 400
+
+    try:
+        g.cursor.execute("SELECT * FROM customer_payments WHERE id = %s LIMIT 1", (payment_id,))
+        payment = g.cursor.fetchone()
+        if not payment:
+            return jsonify({"success": False, "message": "भुगतान रसीद नहीं मिली"}), 404
+
+        old_amount = float(payment["amount"] or 0)
+        old_invoice_id = payment.get("invoice_id")
+
+        # Invoice adjustments if invoice was linked
+        if old_invoice_id == new_invoice_id and old_invoice_id is not None:
+            diff = new_amount - old_amount
+            g.cursor.execute("SELECT grand_total, paid_amount FROM sales_invoices WHERE id = %s", (old_invoice_id,))
+            inv = g.cursor.fetchone()
+            if inv:
+                new_paid = max(0.0, float(inv["paid_amount"] or 0) + diff)
+                new_status = "Paid" if new_paid >= float(inv["grand_total"] or 0) else ("Partial" if new_paid > 0 else "Unpaid")
+                g.cursor.execute(
+                    "UPDATE sales_invoices SET paid_amount = %s, payment_status = %s WHERE id = %s",
+                    (new_paid, new_status, old_invoice_id)
+                )
+        else:
+            if old_invoice_id:
+                g.cursor.execute("SELECT grand_total, paid_amount FROM sales_invoices WHERE id = %s", (old_invoice_id,))
+                old_inv = g.cursor.fetchone()
+                if old_inv:
+                    new_paid = max(0.0, float(old_inv["paid_amount"] or 0) - old_amount)
+                    new_status = "Paid" if new_paid >= float(old_inv["grand_total"] or 0) else ("Partial" if new_paid > 0 else "Unpaid")
+                    g.cursor.execute(
+                        "UPDATE sales_invoices SET paid_amount = %s, payment_status = %s WHERE id = %s",
+                        (new_paid, new_status, old_invoice_id)
+                    )
+            if new_invoice_id:
+                g.cursor.execute("SELECT grand_total, paid_amount FROM sales_invoices WHERE id = %s", (new_invoice_id,))
+                new_inv = g.cursor.fetchone()
+                if new_inv:
+                    new_paid = float(new_inv["paid_amount"] or 0) + new_amount
+                    new_status = "Paid" if new_paid >= float(new_inv["grand_total"] or 0) else "Partial"
+                    g.cursor.execute(
+                        "UPDATE sales_invoices SET paid_amount = %s, payment_status = %s WHERE id = %s",
+                        (new_paid, new_status, new_invoice_id)
+                    )
+
+        g.cursor.execute(
+            """
+            UPDATE customer_payments
+            SET payment_date = %s, amount = %s, payment_method = %s, reference_no = %s, notes = %s, invoice_id = %s
+            WHERE id = %s
+            """,
+            (payment_date, new_amount, payment_method, reference_no, notes, new_invoice_id, payment_id)
+        )
+        g.db.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "भुगतान रसीद सफलतापूर्वक अपडेट हो गई।"
+        })
+    except Exception as e:
+        g.db.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route("/customer-payments/<int:payment_id>", methods=["DELETE", "OPTIONS"])
+@app.route("/customers/payments/<int:payment_id>", methods=["DELETE", "OPTIONS"])
+def delete_customer_payment(payment_id):
+    if request.method == "OPTIONS":
+        return "", 200
+
+    try:
+        g.cursor.execute("SELECT * FROM customer_payments WHERE id = %s LIMIT 1", (payment_id,))
+        payment = g.cursor.fetchone()
+        if not payment:
+            return jsonify({"success": False, "message": "भुगतान रसीद नहीं मिली"}), 404
+
+        invoice_id = payment.get("invoice_id")
+        amount = float(payment.get("amount") or 0)
+
+        if invoice_id:
+            g.cursor.execute("SELECT grand_total, paid_amount FROM sales_invoices WHERE id = %s", (invoice_id,))
+            inv = g.cursor.fetchone()
+            if inv:
+                new_paid = max(0.0, float(inv["paid_amount"] or 0) - amount)
+                new_status = "Paid" if new_paid >= float(inv["grand_total"] or 0) else ("Partial" if new_paid > 0 else "Unpaid")
+                g.cursor.execute(
+                    "UPDATE sales_invoices SET paid_amount = %s, payment_status = %s WHERE id = %s",
+                    (new_paid, new_status, invoice_id)
+                )
+
+        g.cursor.execute("DELETE FROM customer_payments WHERE id = %s", (payment_id,))
+        g.db.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "भुगतान रसीद सफलतापूर्वक हटा दी गई।"
+        })
+    except Exception as e:
+        g.db.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
 @app.route("/customers/<int:customer_id>/ledger", methods=["GET"])
 def get_customer_ledger(customer_id):
     try:

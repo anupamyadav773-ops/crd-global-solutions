@@ -288,24 +288,41 @@ tbody tr:hover {
 }
 
 @media print {
-    body * {
-        visibility: hidden !important;
+    @page {
+        size: A4 portrait;
+        margin: 10mm 12mm;
     }
-    #receiptPrintModal, #receiptPrintModal * {
-        visibility: visible !important;
-    }
-    #receiptPrintModal {
-        position: fixed !important;
-        left: 0 !important;
-        top: 0 !important;
+    html, body {
+        background: #ffffff !important;
+        color: #000000 !important;
+        margin: 0 !important;
+        padding: 0 !important;
         width: 100% !important;
         height: auto !important;
+        overflow: visible !important;
+    }
+    .sidebar,
+    .page-header,
+    .search-filter-card,
+    .table-card,
+    .customer-table,
+    #ledgerModal,
+    #editPaymentModal,
+    .no-print {
+        display: none !important;
+    }
+    #receiptPrintModal {
+        position: static !important;
+        display: block !important;
         background: #ffffff !important;
         padding: 0 !important;
         margin: 0 !important;
         box-shadow: none !important;
-        display: block !important;
-        z-index: 999999 !important;
+        width: 100% !important;
+        height: auto !important;
+        overflow: visible !important;
+        inset: auto !important;
+        z-index: auto !important;
     }
     #receiptPrintModal > div {
         max-width: 100% !important;
@@ -314,11 +331,16 @@ tbody tr:hover {
         padding: 0 !important;
         margin: 0 !important;
         border: none !important;
+        overflow: visible !important;
     }
     #receiptPrintContainer {
-        padding: 4mm !important;
+        padding: 0 !important;
+        margin: 0 auto !important;
+        width: 100% !important;
+        overflow: visible !important;
     }
-    .no-print {
-        display: none !important;
+    .receipt-voucher-card {
+        border: 1.5px solid #0f172a !important;
+        page-break-inside: avoid !important;
     }
 }

@@ -17,6 +17,7 @@ const settingsConfig = [
             { key: 'gstin', label: 'GSTIN', type: 'text' },
             { key: 'pan', label: 'PAN', type: 'text' },
             { key: 'company_logo', label: 'Company Logo (कंपनी लोगो)', type: 'image-upload', hint: 'बिल/इनवॉइस के शीर्ष पर प्रिंट होगा (PNG, JPG, SVG)' },
+            { key: 'authorized_signature', label: 'Authorized Signature (अधिकृत हस्ताक्षर)', type: 'image-upload', hint: 'सभी टैक्स इनवॉइस, कोटेशन व रसीदों पर "Authorised Signatory" के ऊपर स्वतः प्रिंट होगा (PNG, JPG)' },
             {
                 type: 'section-header',
                 label: '🏦 Bank Account & UPI Details (बैंक खाता एवं UPI विवरण)',
@@ -138,6 +139,7 @@ const settingsConfig = [
         name: 'Print & Display',
         fields: [
             { key: 'business_logo', label: 'Business Logo (कंपनी लोगो)', type: 'image-upload', hint: 'प्रिंट लेआउट में उपयोग होने वाला लोगो' },
+            { key: 'authorized_signature', label: 'Authorized Signature (अधिकृत हस्ताक्षर)', type: 'image-upload', hint: 'सभी बिल, कोटेशन व रसीद प्रिंट पर डिजिटल हस्ताक्षर के रूप में प्रिंट होगा' },
             { key: 'paper_size', label: 'Paper Size', type: 'select', options: ['A4', 'A5', 'Thermal'] },
             { key: 'show_gst_details', label: 'Show GST Details', type: 'toggle' },
             { key: 'show_company_address', label: 'Show Company Address', type: 'toggle' },
@@ -475,7 +477,7 @@ async function processImageFile(file, targetKey, container, uploadBtn, removeBtn
     }
 
     try {
-        const maxDim = (targetKey === 'company_logo' || targetKey === 'business_logo') ? 800 : 600;
+        const maxDim = (targetKey === 'company_logo' || targetKey === 'business_logo' || targetKey === 'authorized_signature' || targetKey === 'business_signature') ? 800 : 600;
         const dataUrl = await optimizeImageFile(file, maxDim);
 
         applyImageValue(container, targetKey, dataUrl, uploadBtn, removeBtn);
@@ -540,9 +542,14 @@ function initImageUploaders(container) {
             urlBtn.onclick = (e) => {
                 e.stopPropagation();
                 const existingVal = container.querySelector(`#field-${targetKey}`)?.value || '';
-                const promptMsg = (targetKey === 'company_logo' || targetKey === 'business_logo')
-                    ? 'कंपनी लोगो का इमेज लिंक (URL या Data URL) पेस्ट करें:'
-                    : 'UPI QR कोड का इमेज लिंक (URL या Data URL) पेस्ट करें:';
+                let promptMsg = 'इमेज लिंक (URL या Data URL) पेस्ट करें:';
+                if (targetKey === 'company_logo' || targetKey === 'business_logo') {
+                    promptMsg = 'कंपनी लोगो का इमेज लिंक (URL या Data URL) पेस्ट करें:';
+                } else if (targetKey === 'authorized_signature' || targetKey === 'business_signature') {
+                    promptMsg = 'अधिकृत हस्ताक्षर (Signature) का इमेज लिंक (URL या Data URL) पेस्ट करें:';
+                } else if (targetKey === 'upi_qr_code') {
+                    promptMsg = 'UPI QR कोड का इमेज लिंक (URL या Data URL) पेस्ट करें:';
+                }
                 const entered = prompt(promptMsg, existingVal.startsWith('http') ? existingVal : '');
                 if (entered !== null) {
                     const trimmed = entered.trim();
@@ -949,6 +956,13 @@ async function fetchSettings() {
                 mapped['business-profile']['company_logo'] = mapped['print-display']['business_logo'];
             }
 
+            // Sync signature between business-profile and print-display
+            if (mapped['business-profile']['authorized_signature'] && !mapped['print-display']['authorized_signature']) {
+                mapped['print-display']['authorized_signature'] = mapped['business-profile']['authorized_signature'];
+            } else if (mapped['print-display']['authorized_signature'] && !mapped['business-profile']['authorized_signature']) {
+                mapped['business-profile']['authorized_signature'] = mapped['print-display']['authorized_signature'];
+            }
+
             // Sync quotation terms across business-profile, invoice-billing, and quotation-billing
             const qTerms = (mapped['business-profile'] && mapped['business-profile']['quotation_terms'])
                 || (mapped['quotation-billing'] && mapped['quotation-billing']['quotation_terms'])
@@ -1029,6 +1043,10 @@ async function saveCategory(categoryId) {
                 if (!state.values['print-display']) state.values['print-display'] = {};
                 state.values['print-display']['business_logo'] = updatedBiz.company_logo;
             }
+            if (updatedBiz.authorized_signature !== undefined) {
+                if (!state.values['print-display']) state.values['print-display'] = {};
+                state.values['print-display']['authorized_signature'] = updatedBiz.authorized_signature;
+            }
 
             localStorage.setItem('companySettings', JSON.stringify(updatedBiz));
             localStorage.setItem('companySettings_lastSync', String(Date.now()));
@@ -1043,6 +1061,9 @@ async function saveCategory(categoryId) {
                 try { existingBiz = JSON.parse(localStorage.getItem('companySettings') || '{}'); } catch (e) {}
                 state.values['business-profile'] = { ...existingBiz, ...(state.values['business-profile'] || {}) };
                 state.values['business-profile']['company_logo'] = updatedPrint.business_logo;
+                if (updatedPrint.authorized_signature !== undefined) {
+                    state.values['business-profile']['authorized_signature'] = updatedPrint.authorized_signature;
+                }
                 const updatedBiz = state.values['business-profile'];
                 localStorage.setItem('companySettings', JSON.stringify(updatedBiz));
                 localStorage.setItem('companySettings_lastSync', String(Date.now()));

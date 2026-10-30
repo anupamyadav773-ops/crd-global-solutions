@@ -493,6 +493,9 @@ async function printCustomerReceipt(paymentId) {
         const custPhone = c.mobile ? escapeHtml(c.mobile) : "-";
         const custGst = c.gstin ? ` | GSTIN: ${escapeHtml(c.gstin)}` : "";
         const remainingDue = Number(c.outstanding_balance || 0);
+        let storedBiz = {};
+        try { storedBiz = JSON.parse(localStorage.getItem('companySettings') || '{}'); } catch (e) {}
+        const bizSignature = b.authorized_signature || b.business_signature || b.signature || storedBiz.authorized_signature || storedBiz.business_signature || "";
 
         printArea.innerHTML = `
             <div class="receipt-voucher-card" style="font-family:'Segoe UI', Tahoma, Arial, sans-serif; color:#0f172a; width:100%; max-width:640px; margin:0 auto; padding:20px 22px; border:1.5px solid #334155; border-radius:8px; background:#ffffff; box-sizing:border-box; overflow:hidden;">
@@ -574,7 +577,8 @@ async function printCustomerReceipt(paymentId) {
                             Customer's Signature
                         </td>
                         <td style="width:50%; vertical-align:bottom; text-align:right; padding-right:6px; border:none; white-space:normal; box-sizing:border-box;">
-                            <div style="font-weight:700; color:#0f172a; margin-bottom:28px;">For ${bizName}</div>
+                            <div style="font-weight:700; color:#0f172a; margin-bottom:2px;">For ${bizName}</div>
+                            ${bizSignature ? `<div style="text-align:right; margin:2px 0;"><img src="${escapeHtml(bizSignature)}" alt="Signature" style="max-height:48px; max-width:140px; object-fit:contain; display:inline-block;" /></div>` : `<div style="height:30px;"></div>`}
                             <div style="border-top:1px dashed #94a3b8; width:160px; margin-left:auto; margin-bottom:4px;"></div>
                             Authorized Signatory
                         </td>

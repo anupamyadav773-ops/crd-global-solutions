@@ -100,6 +100,7 @@ function _resolveBiz(businessProfile) {
     var gstin = b.gstin || b.gst_number || '';
     var state = b.state || '';
     var logo = b.company_logo || b.logo || b.business_logo || '';
+    var signature = b.authorized_signature || b.business_signature || b.signature || '';
     var bankName = b.bank_name || '';
     var accountName = b.account_name || '';
     var bankAcc = b.bank_account_no || b.account_no || '';
@@ -127,6 +128,7 @@ function _resolveBiz(businessProfile) {
         gstin: gstin,
         state: state,
         logo: logo,
+        signature: signature,
         bank_name: bankName,
         account_name: accountName,
         bank_account_no: bankAcc,
@@ -460,7 +462,8 @@ function _renderModernTemplate(d, biz, isQuotation) {
                 '</div>' +
                 '<div class="signatory-box">' +
                     '<div style="font-size:10px; color:#64748b;">For ' + _esc(biz.name) + '</div>' +
-                    '<div class="sign-line">Authorised Signatory</div>' +
+                    (biz.signature ? '<div style="margin:2px 0;"><img src="' + _esc(biz.signature) + '" alt="Signature" style="max-height:48px; max-width:140px; object-fit:contain; display:block; margin-left:auto;" /></div>' : '') +
+                    '<div class="sign-line"' + (biz.signature ? ' style="margin-top:4px;"' : '') + '>Authorised Signatory</div>' +
                 '</div>' +
             '</div>' +
         '</div>' +
@@ -560,7 +563,8 @@ function _renderClassicTemplate(d, biz, isQuotation) {
                 '</div>' +
                 '<div style="text-align:right; font-size:10px;">' +
                     '<div>For <strong>' + _esc(biz.name) + '</strong></div>' +
-                    '<div style="margin-top:24px; border-top:1px solid #0f172a; display:inline-block; padding-top:2px; width:140px; text-align:center;">Authorised Signatory</div>' +
+                    (biz.signature ? '<div style="margin:2px 0;"><img src="' + _esc(biz.signature) + '" alt="Signature" style="max-height:45px; max-width:130px; object-fit:contain; display:inline-block;" /></div>' : '') +
+                    '<div style="' + (biz.signature ? 'margin-top:4px;' : 'margin-top:24px;') + ' border-top:1px solid #0f172a; display:inline-block; padding-top:2px; width:140px; text-align:center;">Authorised Signatory</div>' +
                 '</div>' +
             '</div>' +
         '</div>' +
@@ -655,7 +659,9 @@ function _renderMinimalTemplate(d, biz, isQuotation) {
                     '<div>' + (biz.bank_name || biz.bank_account_no || biz.upi_id ? [biz.bank_name ? 'Bank: ' + _esc(biz.bank_name) : '', biz.bank_account_no ? 'A/C: ' + _esc(biz.bank_account_no) : '', biz.bank_ifsc ? 'IFSC: ' + _esc(biz.bank_ifsc) : '', biz.upi_id ? 'UPI: ' + _esc(biz.upi_id) : ''].filter(Boolean).join(' | ') : '') + '</div>' +
                 '</div>' +
                 '<div style="text-align:right; font-size:10px; color:#64748b;">' +
-                    'Authorised Signatory' +
+                    '<div style="font-size:9.5px; margin-bottom:2px;">For ' + _esc(biz.name) + '</div>' +
+                    (biz.signature ? '<div style="margin-bottom:2px;"><img src="' + _esc(biz.signature) + '" alt="Signature" style="max-height:40px; max-width:120px; object-fit:contain; display:inline-block;" /></div>' : '') +
+                    '<div style="' + (biz.signature ? 'border-top:1px dashed #94a3b8; padding-top:2px; display:inline-block; min-width:120px;' : '') + '">Authorised Signatory</div>' +
                 '</div>' +
             '</div>' +
         '</div>' +

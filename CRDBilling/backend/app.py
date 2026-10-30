@@ -1807,6 +1807,36 @@ def save_settings_by_category(category):
                         "INSERT INTO settings (category, setting_key, setting_value) VALUES ('business-profile', 'company_logo', %s)",
                         (normalized_value,)
                     )
+            # Keep authorized_signature synchronized between business-profile and print-display
+            if category == "business-profile" and str(key) == "authorized_signature":
+                g.cursor.execute(
+                    "SELECT id FROM settings WHERE category = 'print-display' AND setting_key = 'authorized_signature' LIMIT 1"
+                )
+                if g.cursor.fetchone():
+                    g.cursor.execute(
+                        "UPDATE settings SET setting_value = %s, updated_at = CURRENT_TIMESTAMP WHERE category = 'print-display' AND setting_key = 'authorized_signature'",
+                        (normalized_value,)
+                    )
+                else:
+                    g.cursor.execute(
+                        "INSERT INTO settings (category, setting_key, setting_value) VALUES ('print-display', 'authorized_signature', %s)",
+                        (normalized_value,)
+                    )
+            elif category == "print-display" and str(key) == "authorized_signature":
+                g.cursor.execute(
+                    "SELECT id FROM settings WHERE category = 'business-profile' AND setting_key = 'authorized_signature' LIMIT 1"
+                )
+                if g.cursor.fetchone():
+                    g.cursor.execute(
+                        "UPDATE settings SET setting_value = %s, updated_at = CURRENT_TIMESTAMP WHERE category = 'business-profile' AND setting_key = 'authorized_signature'",
+                        (normalized_value,)
+                    )
+                else:
+                    g.cursor.execute(
+                        "INSERT INTO settings (category, setting_key, setting_value) VALUES ('business-profile', 'authorized_signature', %s)",
+                        (normalized_value,)
+                    )
+
             # Keep quotation_terms synchronized across business-profile, invoice-billing, and quotation-billing
             if str(key) == "quotation_terms":
                 for target_cat in ["business-profile", "invoice-billing", "quotation-billing"]:
@@ -10180,7 +10210,8 @@ def get_customer_payment_detail(payment_id):
                 "pincode": b_settings.get("pincode") or "",
                 "gstin": b_settings.get("gstin") or "",
                 "pan": b_settings.get("pan") or "",
-                "logo": b_settings.get("company_logo") or b_settings.get("business_logo") or ""
+                "logo": b_settings.get("company_logo") or b_settings.get("business_logo") or "",
+                "authorized_signature": b_settings.get("authorized_signature") or b_settings.get("business_signature") or ""
             }
         })
     except Exception as e:

@@ -10123,9 +10123,31 @@ def get_customer_payment_detail(payment_id):
         bal_row = g.cursor.fetchone()
         outstanding_balance = float(bal_row["outstanding_balance"] or 0) if bal_row else 0.0
 
+        # Linked invoice info
+        invoice_obj = None
+        if payment.get("invoice_id"):
+            g.cursor.execute("SELECT id, invoice_number, grand_total, paid_amount FROM sales_invoices WHERE id = %s LIMIT 1", (payment["invoice_id"],))
+            inv_row = g.cursor.fetchone()
+            if inv_row:
+                invoice_obj = {
+                    "id": inv_row["id"],
+                    "invoice_number": inv_row["invoice_number"],
+                    "grand_total": float(inv_row["grand_total"] or 0),
+                    "paid_amount": float(inv_row["paid_amount"] or 0)
+                }
+                payment["invoice_number"] = inv_row["invoice_number"]
+        elif payment.get("invoice_number"):
+            invoice_obj = {
+                "id": payment.get("invoice_id"),
+                "invoice_number": payment.get("invoice_number"),
+                "grand_total": float(payment.get("invoice_grand_total") or 0) if payment.get("invoice_grand_total") is not None else None,
+                "paid_amount": float(payment.get("invoice_paid_amount") or 0) if payment.get("invoice_paid_amount") is not None else None
+            }
+
         return jsonify({
             "success": True,
             "payment": payment,
+            "invoice": invoice_obj,
             "customer": {
                 "id": customer.get("id"),
                 "customer_name": customer.get("customer_name") or "Valued Customer",

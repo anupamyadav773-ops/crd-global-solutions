@@ -204,11 +204,11 @@ async function openCustomerLedger(customerId) {
         const invSelect = document.getElementById("payInvoiceId");
         if (invSelect) {
             invSelect.innerHTML = '<option value="">General / On-Account Due (सभी बकाये में से कटे)</option>';
-            const dueInvoices = (data.invoices || []).filter(inv => Number(inv.due_amount || 0) > 0.01);
-            dueInvoices.forEach(inv => {
+            (data.invoices || []).forEach(inv => {
                 const opt = document.createElement("option");
                 opt.value = inv.id;
-                opt.textContent = `${inv.invoice_number} (Due: ₹${Number(inv.due_amount).toFixed(2)})`;
+                const due = Number(inv.due_amount || 0);
+                opt.textContent = `${inv.invoice_number} (Total: ₹${Number(inv.grand_total || 0).toFixed(2)}${due > 0 ? `, Due: ₹${due.toFixed(2)}` : ' - Paid'})`;
                 invSelect.appendChild(opt);
             });
         }
@@ -473,7 +473,8 @@ async function printCustomerReceipt(paymentId) {
         const p = data.payment;
         const c = data.customer || {};
         const b = data.business || {};
-        const inv = data.invoice;
+        const inv = data.invoice || (p.invoice_number ? { id: p.invoice_id, invoice_number: p.invoice_number } : null);
+        const invNumber = (inv && inv.invoice_number) ? inv.invoice_number : (p.invoice_number || "");
         const amt = Number(p.amount || 0);
 
         const printArea = document.getElementById("receiptPrintArea");
@@ -549,7 +550,7 @@ async function printCustomerReceipt(paymentId) {
                                 ${p.notes ? `<div style="font-size:11.5px; color:#64748b; margin-top:4px;">Note: ${escapeHtml(p.notes)}</div>` : ""}
                             </td>
                             <td style="padding:10px; border:1px solid #cbd5e1; vertical-align:top; white-space:normal; word-break:break-word; box-sizing:border-box;">
-                                ${inv ? `<div>Linked Inv: <strong>${escapeHtml(inv.invoice_number)}</strong></div>` : `<div>Account: <strong>General Dues Clearance</strong></div>`}
+                                ${invNumber ? `<div>Linked Invoice: <strong style="color:#0284c7; font-size:13.5px;">${escapeHtml(invNumber)}</strong></div>` : `<div>Account: <strong>General Dues Clearance</strong></div>`}
                                 ${p.reference_no ? `<div style="font-size:11.5px; color:#64748b; margin-top:2px;">Txn Ref: <strong>${escapeHtml(p.reference_no)}</strong></div>` : ""}
                             </td>
                             <td style="padding:10px; border:1px solid #cbd5e1; text-align:right; font-size:16px; font-weight:bold; color:#16a34a; vertical-align:top; white-space:normal; word-break:break-word; box-sizing:border-box;">
@@ -713,7 +714,20 @@ async function openEditPaymentModal(paymentId) {
         const invSelect = document.getElementById("editPayInvoiceId");
         if (invSelect) {
             invSelect.innerHTML = '<option value="">General / On-Account Due (सभी बकाये में से कटे)</option>';
-            const invoices = (currentLedgerData && currentLedgerData.invoices) ? currentLedgerData.invoices : [];
+            let invoices = (currentLedgerData && currentLedgerData.invoices) ? currentLedgerData.invoices : [];
+            if (!invoices || invoices.length === 0) {
+                try {
+                    const lRes = await fetch(`${API_BASE_URL}/customers/${p.customer_id}/ledger`);
+                    const lData = await lRes.json();
+                    if (lData.success && lData.invoices) {
+                        invoices = lData.invoices;
+                        if (!currentLedgerData) currentLedgerData = {};
+                        currentLedgerData.invoices = invoices;
+                    }
+                } catch (e) {
+                    console.warn("Could not load invoices for customer edit:", e);
+                }
+            }
             invoices.forEach(inv => {
                 const opt = document.createElement("option");
                 opt.value = inv.id;
@@ -723,10 +737,11 @@ async function openEditPaymentModal(paymentId) {
                 }
                 invSelect.appendChild(opt);
             });
-            if (p.invoice_id && !invoices.some(inv => Number(inv.id) === Number(p.invoice_id)) && p.invoice_number) {
+            const invNum = p.invoice_number || (data.invoice && data.invoice.invoice_number);
+            if (p.invoice_id && !invoices.some(inv => Number(inv.id) === Number(p.invoice_id)) && invNum) {
                 const opt = document.createElement("option");
                 opt.value = p.invoice_id;
-                opt.textContent = `${p.invoice_number}`;
+                opt.textContent = `${invNum}`;
                 opt.selected = true;
                 invSelect.appendChild(opt);
             }

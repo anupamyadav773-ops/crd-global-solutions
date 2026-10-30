@@ -494,7 +494,7 @@ async function printCustomerReceipt(paymentId) {
         const remainingDue = Number(c.outstanding_balance || 0);
 
         printArea.innerHTML = `
-            <div class="receipt-voucher-card" style="font-family:'Segoe UI', Tahoma, Arial, sans-serif; color:#0f172a; width:100%; max-width:680px; margin:0 auto; padding:20px 24px; border:1.5px solid #334155; border-radius:8px; background:#ffffff; box-sizing:border-box;">
+            <div class="receipt-voucher-card" style="font-family:'Segoe UI', Tahoma, Arial, sans-serif; color:#0f172a; width:100%; max-width:640px; margin:0 auto; padding:20px 22px; border:1.5px solid #334155; border-radius:8px; background:#ffffff; box-sizing:border-box; overflow:hidden;">
                 
                 <!-- BUSINESS HEADER -->
                 <div style="text-align:center; border-bottom:2px solid #0f172a; padding-bottom:10px; margin-bottom:12px;">
@@ -510,20 +510,20 @@ async function printCustomerReceipt(paymentId) {
                 </div>
 
                 <!-- RECEIPT META GRID -->
-                <table style="width:100%; border-collapse:collapse; margin-bottom:12px; font-size:12.5px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px;">
+                <table style="width:100%; min-width:0 !important; max-width:100%; table-layout:fixed; border-collapse:collapse; margin-bottom:12px; font-size:12.5px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; box-sizing:border-box;">
                     <tr>
-                        <td style="padding:8px 12px; width:50%; vertical-align:top; border-right:1px solid #e2e8f0;">
-                            <span style="color:#64748b; font-size:11.5px; text-transform:uppercase;">Receipt No.:</span><br>
-                            <strong style="font-size:15px; color:#0284c7;">${escapeHtml(p.receipt_number || "-")}</strong>
+                        <td style="padding:8px 12px; width:50%; vertical-align:top; border-right:1px solid #e2e8f0; border-bottom:none; white-space:normal; word-break:break-word; box-sizing:border-box;">
+                            <span style="color:#64748b; font-size:11px; text-transform:uppercase; font-weight:600;">Receipt No.:</span><br>
+                            <strong style="font-size:14.5px; color:#0284c7;">${escapeHtml(p.receipt_number || "-")}</strong>
                         </td>
-                        <td style="padding:8px 12px; width:50%; vertical-align:top; text-align:right;">
-                            <span style="color:#64748b; font-size:11.5px; text-transform:uppercase;">Payment Date:</span><br>
+                        <td style="padding:8px 12px; width:50%; vertical-align:top; text-align:right; border-bottom:none; white-space:normal; word-break:break-word; box-sizing:border-box;">
+                            <span style="color:#64748b; font-size:11px; text-transform:uppercase; font-weight:600;">Payment Date:</span><br>
                             <strong style="font-size:14px; color:#1e293b;">${escapeHtml(p.payment_date || "-")}</strong>
                         </td>
                     </tr>
                     <tr>
-                        <td colspan="2" style="padding:10px 12px; border-top:1px dashed #cbd5e1;">
-                            <span style="color:#64748b; font-size:11.5px; text-transform:uppercase;">Received With Thanks From (ग्राहक का नाम):</span><br>
+                        <td colspan="2" style="padding:10px 12px; border-top:1px dashed #cbd5e1; border-bottom:none; white-space:normal; word-break:break-word; box-sizing:border-box;">
+                            <span style="color:#64748b; font-size:11px; text-transform:uppercase; font-weight:600;">Received With Thanks From (ग्राहक का नाम):</span><br>
                             <strong style="font-size:15px; color:#0f172a;">${escapeHtml(c.customer_name || "Customer")}</strong>
                             <div style="font-size:12px; color:#475569; margin-top:2px;">
                                 <strong>Phone:</strong> ${custPhone} ${custGst}
@@ -534,25 +534,25 @@ async function printCustomerReceipt(paymentId) {
                 </table>
 
                 <!-- PAYMENT DETAILS TABLE -->
-                <table style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom:12px;">
+                <table style="width:100%; min-width:0 !important; max-width:100%; table-layout:fixed; border-collapse:collapse; font-size:13px; margin-bottom:12px; box-sizing:border-box;">
                     <thead>
                         <tr style="background:#f1f5f9; text-align:left;">
-                            <th style="padding:8px 10px; border:1px solid #cbd5e1;">Payment Mode &amp; Notes</th>
-                            <th style="padding:8px 10px; border:1px solid #cbd5e1;">Reference / Bill Link</th>
-                            <th style="padding:8px 10px; border:1px solid #cbd5e1; text-align:right; width:150px;">Amount Received</th>
+                            <th style="padding:8px 10px; border:1px solid #cbd5e1; width:45%; white-space:normal; color:#0f172a; font-weight:700; box-sizing:border-box;">Payment Mode &amp; Notes</th>
+                            <th style="padding:8px 10px; border:1px solid #cbd5e1; width:30%; white-space:normal; color:#0f172a; font-weight:700; box-sizing:border-box;">Reference / Bill Link</th>
+                            <th style="padding:8px 10px; border:1px solid #cbd5e1; text-align:right; width:25%; white-space:normal; color:#0f172a; font-weight:700; box-sizing:border-box;">Amount Received</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
-                            <td style="padding:10px; border:1px solid #cbd5e1; vertical-align:top;">
+                            <td style="padding:10px; border:1px solid #cbd5e1; vertical-align:top; white-space:normal; word-break:break-word; box-sizing:border-box;">
                                 <strong>Payment via ${escapeHtml(p.payment_method || "Cash")}</strong>
                                 ${p.notes ? `<div style="font-size:11.5px; color:#64748b; margin-top:4px;">Note: ${escapeHtml(p.notes)}</div>` : ""}
                             </td>
-                            <td style="padding:10px; border:1px solid #cbd5e1; vertical-align:top;">
+                            <td style="padding:10px; border:1px solid #cbd5e1; vertical-align:top; white-space:normal; word-break:break-word; box-sizing:border-box;">
                                 ${inv ? `<div>Linked Inv: <strong>${escapeHtml(inv.invoice_number)}</strong></div>` : `<div>Account: <strong>General Dues Clearance</strong></div>`}
                                 ${p.reference_no ? `<div style="font-size:11.5px; color:#64748b; margin-top:2px;">Txn Ref: <strong>${escapeHtml(p.reference_no)}</strong></div>` : ""}
                             </td>
-                            <td style="padding:10px; border:1px solid #cbd5e1; text-align:right; font-size:16px; font-weight:bold; color:#16a34a; vertical-align:top;">
+                            <td style="padding:10px; border:1px solid #cbd5e1; text-align:right; font-size:16px; font-weight:bold; color:#16a34a; vertical-align:top; white-space:normal; word-break:break-word; box-sizing:border-box;">
                                 ₹ ${amt.toFixed(2)}
                             </td>
                         </tr>
@@ -560,27 +560,27 @@ async function printCustomerReceipt(paymentId) {
                 </table>
 
                 <!-- AMOUNT IN WORDS -->
-                <div style="background:#f0fdf4; border:1.5px solid #86efac; border-radius:6px; padding:12px 14px; margin-bottom:14px;">
+                <div style="background:#f0fdf4; border:1.5px solid #86efac; border-radius:6px; padding:10px 14px; margin-bottom:14px; box-sizing:border-box;">
                     <div style="font-size:11px; text-transform:uppercase; color:#166534; font-weight:700; letter-spacing:0.5px;">Amount Received In Words (शब्दों में):</div>
-                    <div style="font-size:13.5px; font-weight:bold; color:#14532d; margin-top:3px;">${escapeHtml(amountInWords(amt))}</div>
+                    <div style="font-size:13.5px; font-weight:bold; color:#14532d; margin-top:3px; word-break:break-word;">${escapeHtml(amountInWords(amt))}</div>
                 </div>
 
                 <!-- SIGNATURES & FOOTER -->
-                <table style="width:100%; border-collapse:collapse; margin-top:35px; font-size:12px; color:#475569;">
+                <table style="width:100%; min-width:0 !important; max-width:100%; table-layout:fixed; border-collapse:collapse; margin-top:30px; font-size:12px; color:#475569; box-sizing:border-box;">
                     <tr>
-                        <td style="width:50%; vertical-align:bottom; text-align:left; padding-left:10px;">
-                            <div style="border-top:1px dashed #94a3b8; width:160px; margin-bottom:4px;"></div>
+                        <td style="width:50%; vertical-align:bottom; text-align:left; padding-left:6px; border:none; white-space:normal; box-sizing:border-box;">
+                            <div style="border-top:1px dashed #94a3b8; width:150px; margin-bottom:4px;"></div>
                             Customer's Signature
                         </td>
-                        <td style="width:50%; vertical-align:bottom; text-align:right; padding-right:10px;">
+                        <td style="width:50%; vertical-align:bottom; text-align:right; padding-right:6px; border:none; white-space:normal; box-sizing:border-box;">
                             <div style="font-weight:700; color:#0f172a; margin-bottom:28px;">For ${bizName}</div>
-                            <div style="border-top:1px dashed #94a3b8; width:170px; margin-left:auto; margin-bottom:4px;"></div>
+                            <div style="border-top:1px dashed #94a3b8; width:160px; margin-left:auto; margin-bottom:4px;"></div>
                             Authorized Signatory
                         </td>
                     </tr>
                 </table>
 
-                <div style="text-align:center; font-size:10.5px; color:#94a3b8; margin-top:20px; border-top:1px solid #f1f5f9; padding-top:6px;">
+                <div style="text-align:center; font-size:10.5px; color:#94a3b8; margin-top:18px; border-top:1px solid #f1f5f9; padding-top:6px;">
                     * This is a computer-generated receipt voucher. Thank you for your business! *
                 </div>
             </div>
@@ -602,7 +602,6 @@ function triggerReceiptPrint() {
     const printArea = document.getElementById("receiptPrintArea");
     if (!printArea) return;
 
-    // Use an invisible isolated iframe for flawless printing without modal or background interference
     let iframe = document.getElementById("receiptPrintIframe");
     if (!iframe) {
         iframe = document.createElement("iframe");
@@ -641,15 +640,28 @@ function triggerReceiptPrint() {
                     padding: 0;
                     margin: 0;
                 }
+                table {
+                    width: 100% !important;
+                    min-width: 0 !important;
+                    max-width: 100% !important;
+                    table-layout: fixed !important;
+                    border-collapse: collapse !important;
+                }
+                th, td {
+                    white-space: normal !important;
+                    word-break: break-word !important;
+                    box-sizing: border-box !important;
+                }
                 .receipt-voucher-card {
                     width: 100% !important;
                     max-width: 100% !important;
                     margin: 0 auto !important;
                     border: 1.5px solid #0f172a !important;
                     border-radius: 8px !important;
-                    padding: 18px 22px !important;
+                    padding: 16px 20px !important;
                     background: #ffffff !important;
                     box-sizing: border-box !important;
+                    overflow: hidden !important;
                 }
             </style>
         </head>

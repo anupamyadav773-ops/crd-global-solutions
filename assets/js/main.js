@@ -7,15 +7,30 @@
 
 // 1. Data Loader & State Management (Loads default or localStorage data)
 function getSiteData() {
+  const defaultData = window.CRD_SITE_DATA;
   const saved = localStorage.getItem('CRD_CUSTOM_DATA');
   if (saved) {
     try {
-      return JSON.parse(saved);
+      const parsed = JSON.parse(saved);
+      // Auto-heal broken Unsplash URLs & legacy numeric pricing from previous localStorage sessions
+      if (parsed.products && defaultData && defaultData.products) {
+        parsed.products.forEach((p, idx) => {
+          if (defaultData.products[idx]) {
+            if (!p.image || p.image.includes('unsplash.com/photo-1509391365360-2e959784a276') || p.image.includes('unsplash.com/photo-1508873696983-2df5293cb395') || p.image.includes('unsplash.com/photo-1558441719-8b489c63f732')) {
+              p.image = defaultData.products[idx].image;
+            }
+            if (p.price && p.price.startsWith('₹')) {
+              p.price = defaultData.products[idx].price || 'Ask Price';
+            }
+          }
+        });
+      }
+      return parsed;
     } catch (e) {
       console.warn("Could not parse saved custom data, reverting to defaults", e);
     }
   }
-  return window.CRD_SITE_DATA;
+  return defaultData;
 }
 
 function saveSiteData(newData) {
@@ -143,7 +158,7 @@ function renderQuickCategories(cats) {
   container.innerHTML = cats.map(cat => `
     <a href="${cat.link || '#solutions'}" class="cat-card-item">
       <div class="cat-card-img-wrap">
-        <img src="${cat.image}" alt="${cat.title}" loading="lazy" />
+        <img src="${cat.image}" alt="${cat.title}" loading="lazy" onerror="this.onerror=null; this.src='assets/images/products/solar-panel.jpg';" />
       </div>
       <div class="cat-card-content">
         <div class="cat-card-title">${cat.title}</div>
@@ -174,13 +189,13 @@ function renderProducts(products, c) {
   container.innerHTML = products.map(p => `
     <div class="product-item-card">
       <div class="prod-img-box">
-        <img src="${p.image}" alt="${p.name}" loading="lazy" />
+        <img src="${p.image}" alt="${p.name}" loading="lazy" onerror="this.onerror=null; this.src='assets/images/products/solar-panel.jpg';" />
       </div>
       <div class="prod-info-box">
         <div class="prod-name-title">${p.name}</div>
         <div class="prod-brand-tag">${p.brand}</div>
-        <div class="prod-price-tag">${p.price}</div>
-        <button class="btn-enquire-card" onclick="enquireProduct('${p.name}', '${p.whatsappMsg}')">
+        <div class="prod-price-tag">${p.price || 'Ask Price'}</div>
+        <button class="btn-enquire-card" onclick="enquireProduct('${p.name}', '${p.whatsappMsg || ''}')">
           Enquire Now
         </button>
       </div>
@@ -243,7 +258,7 @@ function renderProjects(projects) {
   container.innerHTML = projects.map(p => `
     <div class="project-card-item">
       <div class="proj-img-wrap">
-        <img src="${p.image}" alt="${p.title}" loading="lazy" />
+        <img src="${p.image}" alt="${p.title}" loading="lazy" onerror="this.onerror=null; this.src='assets/images/products/solar-panel.jpg';" />
       </div>
       <div class="proj-info-col">
         <div class="proj-title-txt">${p.title}</div>

@@ -53,7 +53,7 @@ const CRD_SITE_DATA = {
       title: "Rooftop Solar",
       subtitle: "For Home",
       icon: "home",
-      image: "https://images.unsplash.com/photo-1508873696983-2df5293cb395?auto=format&fit=crop&w=600&q=80",
+      image: "assets/images/products/solar-panel.jpg",
       link: "#solutions"
     },
     {
@@ -69,7 +69,7 @@ const CRD_SITE_DATA = {
       title: "Solar Water Pump",
       subtitle: "For Agriculture",
       icon: "droplets",
-      image: "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=600&q=80",
+      image: "assets/images/products/solar-water-pump.jpg",
       link: "#solutions"
     },
     {
@@ -77,7 +77,7 @@ const CRD_SITE_DATA = {
       title: "Solar Street Light",
       subtitle: "For Streets & Societies",
       icon: "sun",
-      image: "https://images.unsplash.com/photo-1509391365360-2e959784a276?auto=format&fit=crop&w=600&q=80",
+      image: "assets/images/products/solar-street-light.jpg",
       link: "#solutions"
     },
     {
@@ -85,7 +85,7 @@ const CRD_SITE_DATA = {
       title: "Solar Inverters",
       subtitle: "& Batteries",
       icon: "battery-charging",
-      image: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=80",
+      image: "assets/images/products/solar-inverter.jpg",
       link: "#products"
     },
     {
@@ -154,55 +154,55 @@ const CRD_SITE_DATA = {
       id: "prod-1",
       name: "550W Solar Panel (Top Brands)",
       brand: "Waaree / Adani / Tata",
-      price: "₹14,000",
-      image: "https://images.unsplash.com/photo-1509391365360-2e959784a276?auto=format&fit=crop&w=500&q=80",
+      price: "Ask Price",
+      image: "assets/images/products/solar-panel.jpg",
       badge: "High Efficiency Mono PERC",
-      whatsappMsg: "Hello CRD Global Solutions, I am interested in 550W Solar Panels."
+      whatsappMsg: "Hello CRD Global Solutions, I want to ask price for 550W Solar Panels."
     },
     {
       id: "prod-2",
       name: "Solar Inverter (3kW - 50kW)",
       brand: "Grid-Tied & Hybrid",
-      price: "₹28,500",
-      image: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=500&q=80",
+      price: "Ask Price",
+      image: "assets/images/products/solar-inverter.jpg",
       badge: "Smart MPPT Tracking",
-      whatsappMsg: "Hello CRD Global Solutions, I want quotation for Solar Inverter."
+      whatsappMsg: "Hello CRD Global Solutions, I want to ask price for Solar Inverter."
     },
     {
       id: "prod-3",
       name: "Solar Battery (150Ah - 250Ah)",
       brand: "Tubular & Lithium-ion",
-      price: "₹18,000",
-      image: "https://images.unsplash.com/photo-1558441719-8b489c63f732?auto=format&fit=crop&w=500&q=80",
+      price: "Ask Price",
+      image: "assets/images/products/solar-battery.jpg",
       badge: "Deep Cycle Long Life",
-      whatsappMsg: "Hello CRD Global Solutions, I need details on Solar Battery."
+      whatsappMsg: "Hello CRD Global Solutions, I want to ask price for Solar Battery."
     },
     {
       id: "prod-4",
       name: "Solar Water Pump (3HP - 20HP)",
       brand: "Complete Pump Set + Panels",
-      price: "₹1,25,000",
-      image: "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=500&q=80",
+      price: "Ask Price",
+      image: "assets/images/products/solar-water-pump.jpg",
       badge: "Agricultural Grade",
-      whatsappMsg: "Hello CRD Global Solutions, I am interested in Solar Water Pump for farming."
+      whatsappMsg: "Hello CRD Global Solutions, I want to ask price for Solar Water Pump for farming."
     },
     {
       id: "prod-5",
       name: "Solar Street Light (40W - 120W)",
       brand: "All-in-One Automatic",
-      price: "₹12,500",
-      image: "https://images.unsplash.com/photo-1508873696983-2df5293cb395?auto=format&fit=crop&w=500&q=80",
+      price: "Ask Price",
+      image: "assets/images/products/solar-street-light.jpg",
       badge: "Motion Sensor + Dusk to Dawn",
-      whatsappMsg: "Hello CRD Global Solutions, I want details for Solar Street Lights."
+      whatsappMsg: "Hello CRD Global Solutions, I want to ask price for Solar Street Lights."
     },
     {
       id: "prod-6",
       name: "Solar Panel Structure (GI / Aluminium)",
       brand: "Standard & Elevated Design",
-      price: "₹2,800",
-      image: "https://images.unsplash.com/photo-1509391365360-2e959784a276?auto=format&fit=crop&w=500&q=80",
+      price: "Ask Price",
+      image: "assets/images/products/solar-structure.jpg",
       badge: "Heavy Duty Rust Proof",
-      whatsappMsg: "Hello CRD Global Solutions, I need quotation for Solar Structures."
+      whatsappMsg: "Hello CRD Global Solutions, I want to ask price for Solar Structures."
     }
   ],
 
@@ -267,7 +267,7 @@ const CRD_SITE_DATA = {
       title: "Residential Solar Project",
       location: "Etawah",
       capacity: "5 kW On-Grid",
-      image: "https://images.unsplash.com/photo-1508873696983-2df5293cb395?auto=format&fit=crop&w=600&q=80",
+      image: "assets/images/products/solar-panel.jpg",
       tag: "Home Rooftop"
     },
     {
@@ -283,7 +283,7 @@ const CRD_SITE_DATA = {
       title: "Solar Water Pump Project",
       location: "Agriculture Belt, UP",
       capacity: "7.5 HP Submersible",
-      image: "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=600&q=80",
+      image: "assets/images/products/solar-water-pump.jpg",
       tag: "Agricultural Tube-well"
     },
     {
@@ -291,7 +291,7 @@ const CRD_SITE_DATA = {
       title: "Solar Street Light Project",
       location: "Rural Area / Gram Panchayat",
       capacity: "60W LED Integrated",
-      image: "https://images.unsplash.com/photo-1509391365360-2e959784a276?auto=format&fit=crop&w=600&q=80",
+      image: "assets/images/products/solar-street-light.jpg",
       tag: "Gram Panchayat & Colony"
     },
     {
@@ -299,7 +299,7 @@ const CRD_SITE_DATA = {
       title: "Industrial Solar Project",
       location: "Industrial Corridor",
       capacity: "50 kW Rooftop",
-      image: "https://images.unsplash.com/photo-1509391365360-2e959784a276?auto=format&fit=crop&w=600&q=80",
+      image: "assets/images/products/solar-structure.jpg",
       tag: "Factory & Mill"
     },
     {
@@ -336,7 +336,7 @@ const CRD_SITE_DATA = {
   about: {
     heading: "About CRD Global Solutions",
     text: "CRD Global Solutions is a trusted local provider of clean energy and solar power systems in Uttar Pradesh. We specialize in rooftop solar for homes, commercial establishments, agricultural solar water pumps, and solar street lights. Our mission is to make clean and affordable energy accessible to every household, business, and farmer with honest consultation, transparent pricing, and dependable after-sales maintenance.",
-    image: "https://images.unsplash.com/photo-1509391365360-2e959784a276?auto=format&fit=crop&w=600&q=80"
+    image: "assets/images/products/solar-panel.jpg"
   }
 };
 

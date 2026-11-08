@@ -1307,9 +1307,7 @@ def sync_document_sequence(category, next_key, prefix_key, fallback_prefix, doc_
 
 
 
-ensure_expenses_table()
-ensure_expense_audit_table()
-ensure_users_table()
+# Note: Expense, User, and Setting schemas are verified asynchronously in init_all_schemas()
 
 
 def ensure_settings_table():
@@ -1495,29 +1493,43 @@ def get_role_permissions(role_name):
     return ["dashboard", "sales", "customers", "products", "services"]
 
 
-ensure_roles_schema()
-ensure_settings_table()
-ensure_product_schema()
-ensure_service_schema()
-ensure_sales_schema()
-ensure_stock_locations_schema()
-ensure_technician_employee_schema(get_db_connection)
 app.register_blueprint(technician_bp)
-
 
 try:
     from backend.solar_module import solar_bp, ensure_solar_projects_schema
 except ImportError:
     from solar_module import solar_bp, ensure_solar_projects_schema
-ensure_solar_projects_schema(get_db_connection)
 app.register_blueprint(solar_bp)
 
 try:
     from backend.ai_assistant_module import ai_bp, ensure_api_keys_schema
 except ImportError:
     from ai_assistant_module import ai_bp, ensure_api_keys_schema
-ensure_api_keys_schema(get_db_connection)
 app.register_blueprint(ai_bp)
+
+
+def init_all_schemas():
+    """Run all schema and table migrations in background thread to avoid blocking server boot."""
+    try:
+        ensure_expenses_table()
+        ensure_expense_audit_table()
+        ensure_users_table()
+        ensure_roles_schema()
+        ensure_settings_table()
+        ensure_product_schema()
+        ensure_service_schema()
+        ensure_sales_schema()
+        ensure_stock_locations_schema()
+        ensure_technician_employee_schema(get_db_connection)
+        ensure_solar_projects_schema(get_db_connection)
+        ensure_api_keys_schema(get_db_connection)
+        print("Database schemas verified successfully in background.")
+    except Exception as err:
+        print(f"Schema verification note: {err}")
+
+
+# Launch non-blocking schema check so Flask/Gunicorn starts instantaneously
+threading.Thread(target=init_all_schemas, daemon=True).start()
 
 # ==========================================
 # HOME & STATIC ROUTE (Handled by serve_website_home)

@@ -9398,6 +9398,32 @@ def add_sale():
             discount,
             default_tax_inclusive=doc_tax_incl
         )
+
+        if document_type != "Quotation":
+            if payment_method == "Credit":
+                payment_status = "Unpaid"
+                paid_amount = 0.0
+                split_details = None
+            elif payment_method == "Split" or split_details:
+                payment_method = "Split"
+                split_dict = {}
+                if split_details:
+                    try:
+                        split_dict = json.loads(split_details) if isinstance(split_details, str) else split_details
+                    except Exception:
+                        split_dict = {}
+                total_from_details = sum(float(v or 0) for v in split_dict.values()) if split_dict else 0.0
+                split_sum = max(cash_amount + upi_amount + card_amount + bank_amount, total_from_details)
+                paid_amount = split_sum
+                if paid_amount >= grand_total and grand_total > 0:
+                    payment_status = "Paid"
+                else:
+                    payment_status = "Partial"
+            else:
+                payment_status = "Paid"
+                paid_amount = grand_total
+                split_details = None
+
         payment_status, paid_amount = normalize_sale_payment(
             grand_total,
             payment_status,
@@ -10046,7 +10072,11 @@ def update_sale(invoice_id):
             split_details = split_details_raw.strip()
 
         if not is_quotation:
-            if payment_method == "Split" or split_details:
+            if payment_method == "Credit":
+                payment_status = "Unpaid"
+                paid_amount = 0.0
+                split_details = None
+            elif payment_method == "Split" or split_details:
                 payment_method = "Split"
                 split_dict = {}
                 if split_details:
@@ -10056,23 +10086,15 @@ def update_sale(invoice_id):
                         split_dict = {}
                 total_from_details = sum(float(v or 0) for v in split_dict.values()) if split_dict else 0.0
                 split_sum = max(cash_amount + upi_amount + card_amount + bank_amount, total_from_details)
-                if split_sum > 0:
-                    paid_amount = split_sum
+                paid_amount = split_sum
+                if paid_amount >= grand_total and grand_total > 0:
+                    payment_status = "Paid"
+                else:
+                    payment_status = "Partial"
             else:
-                split_sum = cash_amount + upi_amount + card_amount + bank_amount
-                if split_sum > 0:
-                    paid_amount = split_sum
-                    modes_used = sum([1 for m in [cash_amount, upi_amount, card_amount, bank_amount] if m > 0])
-                    if modes_used > 1:
-                        payment_method = "Split"
-                    elif cash_amount > 0:
-                        payment_method = "Cash"
-                    elif upi_amount > 0:
-                        payment_method = "UPI"
-                    elif card_amount > 0:
-                        payment_method = "Card"
-                    elif bank_amount > 0:
-                        payment_method = "Bank Transfer"
+                payment_status = "Paid"
+                paid_amount = grand_total
+                split_details = None
 
         payment_status, paid_amount = normalize_sale_payment(
             grand_total,

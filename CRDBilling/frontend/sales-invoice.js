@@ -1690,26 +1690,9 @@ function calculateInvoice() {
         if (igstBreakdownRow) igstBreakdownRow.style.display = "none";
     }
 
-    // Update Partial Payment / Balance Due UI
-    const payStatusEl = document.getElementById("payment_status");
-    const paidAmountEl = document.getElementById("paid_amount");
-    const balanceDueDisplay = document.getElementById("balance_due_display");
-    const currentStatus = payStatusEl ? payStatusEl.value : "Paid";
-
-    if (currentStatus === "Paid") {
-        if (paidAmountEl) paidAmountEl.value = grandTotal.toFixed(2);
-        if (balanceDueDisplay) balanceDueDisplay.value = "₹ 0.00";
-    } else if (currentStatus === "Partial") {
-        const currentPaid = parseFloat(paidAmountEl?.value || 0) || 0;
-        const bal = Math.max(0, grandTotal - currentPaid);
-        if (balanceDueDisplay) balanceDueDisplay.value = "₹ " + bal.toFixed(2);
-    } else { // Unpaid or Pending
-        if (paidAmountEl) paidAmountEl.value = "0";
-        if (balanceDueDisplay) balanceDueDisplay.value = "₹ " + grandTotal.toFixed(2);
-    }
-
-    if (typeof updateSplitAmounts === "function") {
-        updateSplitAmounts();
+    // Auto-sync Payment Status & Amounts based on Payment Method
+    if (typeof autoSetPaymentStatusByMethod === "function") {
+        autoSetPaymentStatusByMethod();
     }
 }
 
@@ -1813,6 +1796,49 @@ function updateSplitAmounts() {
     }
 }
 
+function autoSetPaymentStatusByMethod() {
+    const paymentMethodEl = document.getElementById("payment_method");
+    const paymentStatusEl = document.getElementById("payment_status");
+    const splitPaymentBox = document.getElementById("splitPaymentBox");
+    const paidAmountInput = document.getElementById("paid_amount");
+    const balanceDueDisplay = document.getElementById("balance_due_display");
+    const paidAmountGroup = document.getElementById("paidAmountGroup");
+    const balanceDueGroup = document.getElementById("balanceDueGroup");
+    const paymentStatusGroup = document.getElementById("paymentStatusGroup");
+    const grandTotal = typeof getGrandTotal === "function" ? getGrandTotal() : 0;
+
+    if (paymentStatusGroup) {
+        paymentStatusGroup.style.display = "none";
+    }
+
+    const method = paymentMethodEl ? paymentMethodEl.value : "Cash";
+
+    if (method === "Credit") {
+        if (paymentStatusEl) paymentStatusEl.value = "Unpaid";
+        if (splitPaymentBox) splitPaymentBox.style.display = "none";
+        if (paidAmountGroup) paidAmountGroup.style.display = "none";
+        if (balanceDueGroup) balanceDueGroup.style.display = "none";
+        if (paidAmountInput) paidAmountInput.value = "0";
+        if (balanceDueDisplay) balanceDueDisplay.value = "₹ " + grandTotal.toFixed(2);
+    } else if (method === "Split") {
+        if (paymentStatusEl) paymentStatusEl.value = "Partial";
+        if (splitPaymentBox) splitPaymentBox.style.display = "block";
+        if (paidAmountGroup) paidAmountGroup.style.display = "none";
+        if (balanceDueGroup) balanceDueGroup.style.display = "none";
+        if (typeof updateSplitAmounts === "function") {
+            updateSplitAmounts();
+        }
+    } else {
+        // Direct Account (Cash, Bank, UPI, etc.) -> Auto Paid
+        if (paymentStatusEl) paymentStatusEl.value = "Paid";
+        if (splitPaymentBox) splitPaymentBox.style.display = "none";
+        if (paidAmountGroup) paidAmountGroup.style.display = "none";
+        if (balanceDueGroup) balanceDueGroup.style.display = "none";
+        if (paidAmountInput) paidAmountInput.value = grandTotal.toFixed(2);
+        if (balanceDueDisplay) balanceDueDisplay.value = "₹ 0.00";
+    }
+}
+
 function initPaymentControls() {
     const paymentMethodEl = document.getElementById("payment_method");
     const paymentStatusEl = document.getElementById("payment_status");
@@ -1873,10 +1899,7 @@ function initPaymentControls() {
 
     if (paymentMethodEl) {
         paymentMethodEl.addEventListener("change", function() {
-            if (splitPaymentBox) {
-                splitPaymentBox.style.display = paymentMethodEl.value === "Split" ? "block" : "none";
-            }
-            updateSplitAmounts();
+            autoSetPaymentStatusByMethod();
         });
     }
 
@@ -2199,10 +2222,13 @@ function buildPreviewDraft() {
     const discount = Number(document.getElementById("discount").value || 0);
     const grandTotal = Math.max(subtotal + taxAmount - discount, 0);
 
-    const payStatus = document.getElementById("payment_status")?.value || "Paid";
     const payMethod = document.getElementById("payment_method")?.value || "Cash";
+    let payStatus = "Paid";
     let draftPaid = 0;
-    if (payMethod === "Split") {
+    if (payMethod === "Credit") {
+        payStatus = "Unpaid";
+        draftPaid = 0;
+    } else if (payMethod === "Split") {
         const splitInputs = document.querySelectorAll(".split-account-input");
         if (splitInputs && splitInputs.length > 0) {
             splitInputs.forEach(inp => { draftPaid += (parseFloat(inp.value || 0) || 0); });
@@ -2585,7 +2611,15 @@ async function saveInvoice() {
             isQuotation ? "Estimate" : document.getElementById("payment_method").value,
 
         payment_status:
-            isQuotation ? "Unpaid" : document.getElementById("payment_status").value,
+            isQuotation ? "Unpaid" : (() => {
+                const method = document.getElementById("payment_method").value;
+                if (method === "Credit") return "Unpaid";
+                if (method === "Split") {
+                    const statusEl = document.getElementById("payment_status");
+                    return statusEl?.value || "Partial";
+                }
+                return "Paid";
+            })(),
 
         paid_amount:
             isQuotation ? 0 : (() => {
@@ -3794,6 +3828,8 @@ async function loadActivePaymentAccounts() {
         } else if (defaultVal) {
             paymentMethodEl.value = defaultVal;
         }
+
+        autoSetPaymentStatusByMethod();
     } catch (e) {
         console.warn("Could not load dynamic accounts for sales:", e);
     }

@@ -10,6 +10,26 @@ const resetFilters = document.getElementById("resetFilters");
 
 let allPurchases = [];
 
+const purchasePager = typeof createPagination === "function" ? createPagination({
+    pageSizeSelectId: "pageSizeSelect",
+    paginationInfoId: "paginationInfo",
+    paginationControlsId: "paginationControls",
+    defaultPageSize: 10,
+    onPageChange: function(page, size) {
+        renderPurchaseRows();
+    }
+}) : null;
+
+function renderPurchaseRows() {
+    if (purchasePager) {
+        const pageSlice = purchasePager.getSlice(allPurchases);
+        renderPurchases(pageSlice);
+        purchasePager.render(allPurchases.length);
+    } else {
+        renderPurchases(allPurchases);
+    }
+}
+
 function money(value) {
     return "₹ " + Number(value || 0).toLocaleString("en-IN", {
         minimumFractionDigits: 2,
@@ -106,12 +126,14 @@ async function loadPurchases() {
 
         if (!result.success) {
             allPurchases = [];
-            renderPurchases([]);
+            if (purchasePager) purchasePager.resetPage();
+            renderPurchaseRows();
             return;
         }
 
         allPurchases = result.purchases || [];
-        renderPurchases(allPurchases);
+        if (purchasePager) purchasePager.resetPage();
+        renderPurchaseRows();
     } catch (error) {
         console.error("Purchases list load error:", error);
         purchaseTableBody.innerHTML = '<tr><td colspan="10" class="empty-message">Unable to load purchase invoices.</td></tr>';

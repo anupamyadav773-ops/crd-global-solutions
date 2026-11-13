@@ -10,6 +10,26 @@ const applyFiltersBtn = document.getElementById("applyFilters");
 const resetFiltersBtn = document.getElementById("resetFilters");
 
 let allExpenses = [];
+
+const expensePager = typeof createPagination === "function" ? createPagination({
+    pageSizeSelectId: "pageSizeSelect",
+    paginationInfoId: "paginationInfo",
+    paginationControlsId: "paginationControls",
+    defaultPageSize: 10,
+    onPageChange: function(page, size) {
+        renderExpenseRows();
+    }
+}) : null;
+
+function renderExpenseRows() {
+    if (expensePager) {
+        const pageSlice = expensePager.getSlice(allExpenses);
+        displayExpenses(pageSlice);
+        expensePager.render(allExpenses.length);
+    } else {
+        displayExpenses(allExpenses);
+    }
+}
 const currentUser = JSON.parse(localStorage.getItem("pari_current_user") || "{}");
 const canManageExpenses = ["Admin", "Manager"].includes((currentUser.role || "").trim());
 
@@ -151,7 +171,8 @@ async function loadExpenses() {
 
         allExpenses = result.expenses || [];
         renderSummaryCards(allExpenses);
-        displayExpenses(allExpenses);
+        if (expensePager) expensePager.resetPage();
+        renderExpenseRows();
     } catch (error) {
         console.error("Expense Load Error:", error);
         alert("Backend Server से connection नहीं हो पाया");

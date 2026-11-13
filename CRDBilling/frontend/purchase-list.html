@@ -91,6 +91,21 @@
                 </tbody>
             </table>
         </div>
+
+        <!-- Pagination Bar -->
+        <div class="pagination-bar" id="paginationBar">
+            <div class="pagination-left">
+                <label for="pageSizeSelect">Show:</label>
+                <select id="pageSizeSelect" class="pagination-select">
+                    <option value="10" selected>10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+                <span class="pagination-info" id="paginationInfo">Showing 0 of 0 entries</span>
+            </div>
+            <div class="pagination-controls" id="paginationControls"></div>
+        </div>
     </div>
 
     <div id="previewModal" class="modal hidden" aria-modal="true" role="dialog">
@@ -107,9 +122,10 @@
         </div>
     </div>
 
-    <script src="config.js"></script>
-    <script src="auth.js"></script>
-    <script src="purchase-list.js"></script>
+    <script src="config.js?v=2.7"></script>
+    <script src="auth.js?v=2.7"></script>
+    <script src="pagination.js?v=2.7"></script>
+    <script src="purchase-list.js?v=2.7"></script>
 </body>
 
 </html>

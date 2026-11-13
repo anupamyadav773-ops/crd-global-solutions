@@ -10,6 +10,26 @@ const resetFilters = document.getElementById("resetFilters");
 
 let allInvoices = [];
 
+const salesPager = typeof createPagination === "function" ? createPagination({
+    pageSizeSelectId: "pageSizeSelect",
+    paginationInfoId: "paginationInfo",
+    paginationControlsId: "paginationControls",
+    defaultPageSize: 10,
+    onPageChange: function(page, size) {
+        renderSalesRows();
+    }
+}) : null;
+
+function renderSalesRows() {
+    if (salesPager) {
+        const pageSlice = salesPager.getSlice(allInvoices);
+        renderInvoices(pageSlice);
+        salesPager.render(allInvoices.length);
+    } else {
+        renderInvoices(allInvoices);
+    }
+}
+
 function money(value) {
     return "₹ " + Number(value || 0).toLocaleString("en-IN", {
         minimumFractionDigits: 2,
@@ -92,12 +112,14 @@ async function loadSalesInvoices() {
 
         if (!result.success) {
             allInvoices = [];
-            renderInvoices([]);
+            if (salesPager) salesPager.resetPage();
+            renderSalesRows();
             return;
         }
 
         allInvoices = result.invoices || [];
-        renderInvoices(allInvoices);
+        if (salesPager) salesPager.resetPage();
+        renderSalesRows();
     } catch (error) {
         console.error("Sales list load error:", error);
         salesTableBody.innerHTML = '<tr><td colspan="10" class="empty-message">Unable to load sales invoices.</td></tr>';

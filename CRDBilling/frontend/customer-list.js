@@ -2,8 +2,29 @@ const tableBody = document.getElementById("customerTableBody");
 const searchInput = document.getElementById("searchCustomer");
 
 let allCustomers = [];
+let currentFilteredCustomers = [];
 let currentLedgerCustomerId = null;
 let currentLedgerData = null;
+
+const customerPager = typeof createPagination === "function" ? createPagination({
+    pageSizeSelectId: "pageSizeSelect",
+    paginationInfoId: "paginationInfo",
+    paginationControlsId: "paginationControls",
+    defaultPageSize: 10,
+    onPageChange: function(page, size) {
+        renderCustomerRows();
+    }
+}) : null;
+
+function renderCustomerRows() {
+    if (customerPager) {
+        const pageSlice = customerPager.getSlice(currentFilteredCustomers);
+        displayCustomers(pageSlice);
+        customerPager.render(currentFilteredCustomers.length);
+    } else {
+        displayCustomers(currentFilteredCustomers);
+    }
+}
 
 // ==========================================
 // LOAD CUSTOMERS
@@ -16,8 +37,14 @@ async function loadCustomers() {
 
         if (result.success) {
             allCustomers = result.customers || [];
-            displayCustomers(allCustomers);
+            currentFilteredCustomers = allCustomers;
+            if (customerPager) customerPager.resetPage();
+            renderCustomerRows();
         } else {
+            allCustomers = [];
+            currentFilteredCustomers = [];
+            if (customerPager) customerPager.resetPage();
+            renderCustomerRows();
             showMessage(result.message || "Failed to load customers.");
         }
     } catch (error) {
@@ -101,14 +128,15 @@ function escapeHtml(str) {
 searchInput.addEventListener("input", function() {
     const searchText = searchInput.value.toLowerCase().trim();
 
-    const filteredCustomers = allCustomers.filter(function(customer) {
+    currentFilteredCustomers = allCustomers.filter(function(customer) {
         const name = (customer.customer_name || "").toLowerCase();
         const mobile = (customer.mobile || "").toLowerCase();
         const email = (customer.email || "").toLowerCase();
         return name.includes(searchText) || mobile.includes(searchText) || email.includes(searchText);
     });
 
-    displayCustomers(filteredCustomers);
+    if (customerPager) customerPager.resetPage();
+    renderCustomerRows();
 });
 
 

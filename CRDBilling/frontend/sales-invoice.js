@@ -3612,13 +3612,13 @@ async function loadActivePaymentAccounts() {
         optionsHtml += `<option value="Split">Split / Multi-Mode (स्प्लिट)</option>`;
         optionsHtml += `<option value="Credit">Credit (उधारी)</option>`;
 
-        if (previousVal && !accounts.some(a => a.account_name === previousVal) && previousVal !== 'Split' && previousVal !== 'Credit') {
+        if (editInvoiceId && previousVal && !accounts.some(a => a.account_name === previousVal) && previousVal !== 'Split' && previousVal !== 'Credit') {
             optionsHtml = `<option value="${escapeHtml(previousVal)}">${escapeHtml(previousVal)}</option>` + optionsHtml;
         }
 
         paymentMethodEl.innerHTML = optionsHtml;
 
-        if (previousVal && (accounts.some(a => a.account_name === previousVal) || previousVal === 'Split' || previousVal === 'Credit')) {
+        if (editInvoiceId && previousVal && (accounts.some(a => a.account_name === previousVal) || previousVal === 'Split' || previousVal === 'Credit')) {
             paymentMethodEl.value = previousVal;
         } else if (defaultVal) {
             paymentMethodEl.value = defaultVal;

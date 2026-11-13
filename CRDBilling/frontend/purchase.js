@@ -1707,7 +1707,7 @@ async function loadActivePurchaseAccounts() {
     if (!paymentMethodEl) return;
 
     try {
-        const res = await fetch(`${API_BASE}/accounts?status=active`);
+        const res = await fetch("API_BASE_URL/accounts?status=active");
         const result = await res.json();
         if (!res.ok || !result.success || !Array.isArray(result.accounts) || result.accounts.length === 0) {
             return;
@@ -1733,13 +1733,13 @@ async function loadActivePurchaseAccounts() {
 
         optionsHtml += `<option value="Credit">Credit (उधारी / क्रेडिट)</option>`;
 
-        if (previousVal && !accounts.some(a => a.account_name === previousVal) && previousVal !== 'Credit') {
+        if (editPurchaseId && previousVal && !accounts.some(a => a.account_name === previousVal) && previousVal !== 'Credit') {
             optionsHtml = `<option value="${escapeHtml(previousVal)}">${escapeHtml(previousVal)}</option>` + optionsHtml;
         }
 
         paymentMethodEl.innerHTML = optionsHtml;
 
-        if (previousVal && (accounts.some(a => a.account_name === previousVal) || previousVal === 'Credit')) {
+        if (editPurchaseId && previousVal) {
             paymentMethodEl.value = previousVal;
         } else if (defaultVal) {
             paymentMethodEl.value = defaultVal;

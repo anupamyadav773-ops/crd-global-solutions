@@ -148,6 +148,7 @@ async function deleteCustomer(id) {
 
 async function openCustomerLedger(customerId) {
     currentLedgerCustomerId = customerId;
+    loadActiveCustomerPaymentAccounts();
     const modal = document.getElementById("ledgerModal");
     if (!modal) return;
 
@@ -710,7 +711,18 @@ async function openEditPaymentModal(paymentId) {
         document.getElementById("editReceiptNoDisplay").textContent = p.receipt_number || "-";
         document.getElementById("editPayDate").value = p.payment_date || "";
         document.getElementById("editPayAmount").value = Number(p.amount || 0).toFixed(2);
-        document.getElementById("editPayMethod").value = p.payment_method || "Cash";
+        await loadActiveCustomerPaymentAccounts(p.payment_method);
+        const editPayEl = document.getElementById("editPayMethod");
+        if (editPayEl && p.payment_method) {
+            let exists = Array.from(editPayEl.options).some(opt => opt.value === p.payment_method);
+            if (!exists) {
+                const opt = document.createElement("option");
+                opt.value = p.payment_method;
+                opt.textContent = p.payment_method;
+                editPayEl.appendChild(opt);
+            }
+            editPayEl.value = p.payment_method;
+        }
         document.getElementById("editPayRefNo").value = p.reference_no || "";
         document.getElementById("editPayNotes").value = p.notes || "";
 
@@ -869,12 +881,12 @@ window.submitEditPayment = submitEditPayment;
 window.deleteCustomerPayment = deleteCustomerPayment;
 
 
-async function loadActiveCustomerPaymentAccounts() {
+async function loadActiveCustomerPaymentAccounts(selectedVal = null) {
     const paySelects = [document.getElementById("payMethod"), document.getElementById("editPayMethod")].filter(Boolean);
     if (paySelects.length === 0) return;
 
     try {
-        const res = await fetch(`${API_BASE}/accounts?status=active`);
+        const res = await fetch(API_BASE_URL + "/accounts?status=active");
         const result = await res.json();
         if (!res.ok || !result.success || !Array.isArray(result.accounts) || result.accounts.length === 0) {
             return;
@@ -883,7 +895,7 @@ async function loadActiveCustomerPaymentAccounts() {
         const accounts = result.accounts;
 
         paySelects.forEach(selectEl => {
-            const currentVal = selectEl.value;
+            const currentVal = selectedVal || selectEl.value;
             let optionsHtml = '';
             let defaultVal = '';
 
@@ -896,17 +908,17 @@ async function loadActiveCustomerPaymentAccounts() {
                 else if (acc.account_type === 'upi') typeLabel = ' (UPI)';
                 else if (acc.account_type === 'cash') typeLabel = ' (Cash)';
 
-                optionsHtml += `<option value="${accName}">${accName}${typeLabel}</option>`;
+                optionsHtml += `<option value="${escapeHtml(accName)}">${escapeHtml(accName)}${typeLabel}</option>`;
             });
 
-            if (currentVal && !accounts.some(a => a.account_name === currentVal)) {
-                optionsHtml = `<option value="${currentVal}">${currentVal}</option>` + optionsHtml;
+            if (currentVal && !accounts.some(a => a.account_name === currentVal) && !['Cash', 'UPI', 'Bank', 'Cheque', 'Card', 'Other'].includes(currentVal)) {
+                optionsHtml = `<option value="${escapeHtml(currentVal)}">${escapeHtml(currentVal)}</option>` + optionsHtml;
             }
 
             selectEl.innerHTML = optionsHtml;
-            if (currentVal && accounts.some(a => a.account_name === currentVal)) {
+            if (currentVal && (accounts.some(a => a.account_name === currentVal) || !['Cash', 'UPI', 'Bank', 'Cheque', 'Card', 'Other'].includes(currentVal))) {
                 selectEl.value = currentVal;
-            } else if (defaultVal && !currentVal) {
+            } else if (defaultVal) {
                 selectEl.value = defaultVal;
             }
         });
@@ -915,3 +927,6 @@ async function loadActiveCustomerPaymentAccounts() {
     }
 }
 
+// Call on load
+loadActiveCustomerPaymentAccounts();
+window.loadActiveCustomerPaymentAccounts = loadActiveCustomerPaymentAccounts;

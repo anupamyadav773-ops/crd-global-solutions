@@ -2942,11 +2942,22 @@ def reports_valuation():
         # 3. Customer Receivables / Credit Balance (Market Dues)
         g.cursor.execute("""
             SELECT
-                COALESCE(c.opening_balance, 0) + COALESCE(SUM(si.grand_total - si.paid_amount), 0) AS due_amt
+                ROUND(
+                    COALESCE(c.opening_balance, 0)
+                    + COALESCE(SUM(GREATEST(0, si.grand_total - si.paid_amount)), 0)
+                    - COALESCE(pay.direct_paid, 0),
+                    2
+                ) AS due_amt
             FROM customers c
-            LEFT JOIN sales_invoices si ON si.customer_id = c.id
+            LEFT JOIN sales_invoices si ON si.customer_id = c.id AND (si.document_type IS NULL OR si.document_type != 'Quotation')
+            LEFT JOIN (
+                SELECT customer_id, SUM(amount) AS direct_paid
+                FROM customer_payments
+                WHERE invoice_id IS NULL
+                GROUP BY customer_id
+            ) pay ON pay.customer_id = c.id
             WHERE c.status = 'Active'
-            GROUP BY c.id, c.opening_balance
+            GROUP BY c.id, c.opening_balance, pay.direct_paid
             HAVING due_amt > 0
         """)
         due_rows = g.cursor.fetchall()
@@ -2980,7 +2991,8 @@ def reports_valuation():
         g.cursor.execute("""
             SELECT COALESCE(SUM(grand_total), 0) AS total_sales
             FROM sales_invoices
-            WHERE DATE(invoice_date) >= %s AND DATE(invoice_date) <= %s
+            WHERE (document_type IS NULL OR document_type != 'Quotation')
+              AND DATE(invoice_date) >= %s AND DATE(invoice_date) <= %s
         """, (from_date, to_date))
         period_revenue = float(g.cursor.fetchone()["total_sales"] or 0)
 
@@ -2988,7 +3000,7 @@ def reports_valuation():
         g.cursor.execute("""
             SELECT COALESCE(SUM(sii.quantity * sii.cost_rate), 0) AS total_cost
             FROM sales_invoice_items sii
-            INNER JOIN sales_invoices si ON si.id = sii.invoice_id
+            INNER JOIN sales_invoices si ON si.id = sii.invoice_id AND (si.document_type IS NULL OR si.document_type != 'Quotation')
             INNER JOIN products p ON p.id = sii.product_id
             WHERE COALESCE(p.item_type, 'Product') <> 'Service'
               AND DATE(si.invoice_date) >= %s AND DATE(si.invoice_date) <= %s
@@ -13228,12 +13240,12 @@ def reports_profit_loss():
         sales_sql = """
             SELECT COALESCE(SUM(grand_total), 0) AS total_sales
             FROM sales_invoices
-            WHERE 1=1
+            WHERE (document_type IS NULL OR document_type != 'Quotation')
         """
         cost_sql = """
             SELECT COALESCE(SUM(sii.quantity * sii.cost_rate), 0) AS total_cost
             FROM sales_invoice_items sii
-            INNER JOIN sales_invoices si ON si.id = sii.invoice_id
+            INNER JOIN sales_invoices si ON si.id = sii.invoice_id AND (si.document_type IS NULL OR si.document_type != 'Quotation')
             INNER JOIN products p ON p.id = sii.product_id
             WHERE COALESCE(p.item_type, 'Product') <> 'Service'
         """
@@ -13296,40 +13308,60 @@ def reports_outstanding():
         from_date = normalize_date_string(request.args.get("from_date"))
         to_date = normalize_date_string(request.args.get("to_date"))
 
-        sql = """
+        si_conds = " AND (si.document_type IS NULL OR si.document_type != 'Quotation') "
+        params = []
+        if from_date:
+            si_conds += " AND DATE(si.invoice_date) >= %s "
+            params.append(from_date)
+        if to_date:
+            si_conds += " AND DATE(si.invoice_date) <= %s "
+            params.append(to_date)
+
+        sql = f"""
             SELECT
                 c.id,
                 COALESCE(c.customer_name, 'Walk-in Customer') AS customer_name,
                 c.mobile,
                 COALESCE(SUM(si.grand_total), 0) AS total_sales,
                 COALESCE(SUM(si.paid_amount), 0) AS paid_amount,
-                COALESCE(SUM(si.grand_total - si.paid_amount), 0) + COALESCE(c.opening_balance, 0) AS outstanding_amount
+                ROUND(
+                    COALESCE(c.opening_balance, 0)
+                    + COALESCE(SUM(GREATEST(0, si.grand_total - si.paid_amount)), 0)
+                    - COALESCE(pay.direct_paid, 0),
+                    2
+                ) AS outstanding_amount
             FROM customers c
             LEFT JOIN sales_invoices si
                 ON si.customer_id = c.id
+                {si_conds}
+            LEFT JOIN (
+                SELECT customer_id, SUM(amount) AS direct_paid
+                FROM customer_payments
+                WHERE invoice_id IS NULL
+                GROUP BY customer_id
+            ) pay ON pay.customer_id = c.id
             WHERE c.status = 'Active'
+            GROUP BY c.id, c.customer_name, c.mobile, c.opening_balance, pay.direct_paid
+            HAVING outstanding_amount > 0
+            ORDER BY outstanding_amount DESC, customer_name ASC
         """
-        params = []
-        if from_date:
-            sql += " AND DATE(si.invoice_date) >= %s "
-            params.append(from_date)
-        if to_date:
-            sql += " AND DATE(si.invoice_date) <= %s "
-            params.append(to_date)
-        sql += " GROUP BY c.id, c.customer_name, c.mobile, c.opening_balance HAVING outstanding_amount > 0 ORDER BY outstanding_amount DESC, customer_name ASC "
 
         g.cursor.execute(sql, tuple(params))
         rows = g.cursor.fetchall()
 
         total_receivable = round(sum(float(row["outstanding_amount"] or 0) for row in rows), 2)
         customer_count = sum(1 for row in rows if float(row["outstanding_amount"] or 0) > 0)
+        total_sales_sum = round(sum(float(row["total_sales"] or 0) for row in rows), 2)
+        total_paid_sum = round(sum(float(row["paid_amount"] or 0) for row in rows), 2)
 
         return jsonify({
             "success": True,
             "rows": rows,
             "summary": {
                 "total_receivable": total_receivable,
-                "customers_with_outstanding": customer_count
+                "customers_with_outstanding": customer_count,
+                "total_sales": total_sales_sum,
+                "paid_amount": total_paid_sum
             },
             "report_name": "Customer Outstanding Report"
         })

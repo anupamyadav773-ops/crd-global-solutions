@@ -42,6 +42,130 @@ const STAGE_NAMES = {
     "track_subsidy": "10. सब्सिडी ट्रैकिंग (Track Subsidy)"
 };
 
+const STAGE_TAB_MAP = {
+    "create_customer": "tab1",
+    "collect_docs": "tab2",
+    "pm_suryaghar": "tab3",
+    "finance_online": "tab4",
+    "bank_submission": "tab5",
+    "installation": "tab6",
+    "final_bill": "tab7",
+    "dcr_certificate": "tab8",
+    "discom_submission": "tab9",
+    "track_subsidy": "tab10"
+};
+
+function getMissingDocuments(checklist) {
+    const missing = [];
+    CHECKLIST_ITEMS.forEach(([key, label]) => {
+        if (!checklist || !checklist[key]) {
+            const cleanName = label.replace(/^\d+\.\s*/, '').split('(')[0].trim();
+            missing.push(cleanName);
+        }
+    });
+    return missing;
+}
+
+function showToast(message, isError = false) {
+    let toast = $("solarToast");
+    if (!toast) {
+        toast = document.createElement("div");
+        toast.id = "solarToast";
+        toast.style.cssText = "position:fixed; bottom:24px; right:24px; background:#0f172a; color:#fff; padding:12px 20px; border-radius:8px; box-shadow:0 10px 25px rgba(0,0,0,0.3); z-index:99999; font-size:0.88rem; font-weight:600; max-width:440px; transition:opacity 0.3s ease;";
+        document.body.appendChild(toast);
+    }
+    toast.style.borderLeft = isError ? "4px solid #ef4444" : "4px solid #10b981";
+    toast.innerHTML = message;
+    toast.style.display = "block";
+    toast.style.opacity = "1";
+    clearTimeout(toast._timeout);
+    toast._timeout = setTimeout(() => {
+        toast.style.opacity = "0";
+        setTimeout(() => { toast.style.display = "none"; }, 300);
+    }, 4500);
+}
+
+function determineAutoStage(currentStage, payload) {
+    const checklist = payload.checklist || {};
+    const checkedCount = CHECKLIST_ITEMS.filter(([key]) => !!checklist[key]).length;
+    const isFinance = payload.payment_type === "finance";
+
+    // Step 1: create_customer -> moves to collect_docs once customer name exists
+    if (currentStage === "create_customer") {
+        if (payload.customer_name && payload.customer_name.trim()) {
+            return "collect_docs";
+        }
+        return "create_customer";
+    }
+
+    // Step 2: collect_docs -> moves to pm_suryaghar only if all 7 docs are checked
+    if (currentStage === "collect_docs") {
+        if (checkedCount === CHECKLIST_ITEMS.length) {
+            return "pm_suryaghar";
+        }
+        return "collect_docs"; // Stays at Step 2 with pending documents shown
+    }
+
+    // Step 3: pm_suryaghar -> moves to finance_online (if finance) or bank_submission
+    if (currentStage === "pm_suryaghar") {
+        if (payload.portal_app_number && payload.portal_app_number.trim()) {
+            return isFinance ? "finance_online" : "bank_submission";
+        }
+        return "pm_suryaghar";
+    }
+
+    // Step 4: finance_online -> moves to bank_submission
+    if (currentStage === "finance_online") {
+        if (payload.finance_provider || (payload.finance_status && payload.finance_status !== "pending")) {
+            return "bank_submission";
+        }
+        return "finance_online";
+    }
+
+    // Step 5: bank_submission -> moves to installation
+    if (currentStage === "bank_submission") {
+        if (payload.bank_submission_date || payload.bank_branch || payload.bank_reference) {
+            return "installation";
+        }
+        return "bank_submission";
+    }
+
+    // Step 6: installation -> moves to final_bill
+    if (currentStage === "installation") {
+        if (payload.installation_status === "completed" || payload.installation_status === "installed" || payload.installation_date || payload.panel_details) {
+            return "final_bill";
+        }
+        return "installation";
+    }
+
+    // Step 7: final_bill -> moves to dcr_certificate
+    if (currentStage === "final_bill") {
+        if (payload.final_bill_number && payload.final_bill_number.trim()) {
+            return "dcr_certificate";
+        }
+        return "final_bill";
+    }
+
+    // Step 8: dcr_certificate -> moves to discom_submission
+    if (currentStage === "dcr_certificate") {
+        if (payload.dcr_cert_number && payload.dcr_cert_number.trim()) {
+            return "discom_submission";
+        }
+        return "dcr_certificate";
+    }
+
+    // Step 9: discom_submission -> moves to track_subsidy
+    if (currentStage === "discom_submission") {
+        if (payload.meter_number || payload.discom_status === "approved" || payload.discom_status === "submitted" || payload.net_meter_status === "installed") {
+            return "track_subsidy";
+        }
+        return "discom_submission";
+    }
+
+    return currentStage;
+}
+
+
 function $(id) {
     return document.getElementById(id);
 }
@@ -211,7 +335,24 @@ function renderKanban(list) {
             if (stage === "create_customer") {
                 highlightHtml = `<div class="card-highlight">💳 <strong>${p.payment_type === "finance" ? "Finance / Loan" : "सीधा भुगतान"}</strong> · Advance: ${p.advance_amount ? formatMoney(p.advance_amount) : "₹ 0"}</div>`;
             } else if (stage === "collect_docs") {
-                highlightHtml = `<div class="card-highlight">📑 डॉक्स प्राप्त: <strong>${checkedCount} / ${CHECKLIST_ITEMS.length}</strong></div>`;
+                const missingDocs = getMissingDocuments(p.checklist);
+                if (missingDocs.length === 0) {
+                    highlightHtml = `
+                        <div class="card-highlight" style="background:#f0fdf4; border-left:3px solid #16a34a; padding:6px 8px; border-radius:4px; margin-top:6px;">
+                            <div style="color:#15803d; font-weight:700; font-size:0.78rem;">✅ सभी 7 डॉक्स पूर्ण (7/7)</div>
+                            <div style="color:#166534; font-size:0.72rem; margin-top:2px;">PM सूर्यघर पोर्टल हेतु तैयार</div>
+                        </div>`;
+                } else {
+                    highlightHtml = `
+                        <div class="card-highlight" style="background:#fff7ed; border-left:3px solid #ea580c; padding:6px 8px; border-radius:4px; margin-top:6px;">
+                            <div style="color:#c2410c; font-weight:700; font-size:0.78rem;">
+                                ⚠️ 2. डॉक्स संग्रह: ${missingDocs.length} बाकी (${checkedCount}/${CHECKLIST_ITEMS.length})
+                            </div>
+                            <div style="color:#9a3412; font-size:0.72rem; margin-top:3px; line-height:1.35;">
+                                बाकी: <strong>${escapeHtml(missingDocs.join(", "))}</strong>
+                            </div>
+                        </div>`;
+                }
             } else if (stage === "pm_suryaghar") {
                 highlightHtml = `<div class="card-highlight">⚡ Portal App: <strong>${escapeHtml(p.portal_app_number || "आवेदन बाकी")}</strong><br>बिजली खाता: <strong>${escapeHtml(p.consumer_number || "-")}</strong></div>`;
             } else if (stage === "finance_online") {
@@ -300,13 +441,27 @@ function renderTable(list) {
         const pillClass = `pill-stage-${(stageIdx >= 0 ? stageIdx : 0) + 1}`;
         const stageLabel = STAGE_NAMES[p.current_stage || "create_customer"] || p.current_stage;
 
+        const missingDocs = getMissingDocuments(p.checklist);
+        let stageExtraHtml = "";
+        if (p.current_stage === "collect_docs") {
+            if (missingDocs.length > 0) {
+                stageExtraHtml = `<div style="font-size:0.72rem; color:#c2410c; margin-top:3px; font-weight:600; line-height:1.25;">
+                    ⚠️ ${missingDocs.length} बाकी: ${escapeHtml(missingDocs.join(", "))}
+                </div>`;
+            } else {
+                stageExtraHtml = `<div style="font-size:0.72rem; color:#15803d; margin-top:3px; font-weight:600;">
+                    ✅ सभी 7 डॉक्स प्राप्त
+                </div>`;
+            }
+        }
+
         return `
             <tr>
                 <td><strong>${escapeHtml(p.project_code || "SOL")}</strong></td>
                 <td><strong>${escapeHtml(p.customer_name)}</strong><br><small style="color:#64748b;">${escapeHtml(p.address || "")}</small></td>
                 <td>${escapeHtml(p.phone || "-")}<br><small style="color:#64748b;">${escapeHtml(p.email || "")}</small></td>
                 <td><strong>${p.system_capacity_kw ? p.system_capacity_kw + " kW" : "-"}</strong></td>
-                <td><span class="status-pill ${pillClass}">${stageLabel}</span></td>
+                <td><span class="status-pill ${pillClass}">${stageLabel}</span>${stageExtraHtml}</td>
                 <td>${escapeHtml(p.consumer_number || "-")}</td>
                 <td>${p.deal_amount ? formatMoney(p.deal_amount) : "-"}</td>
                 <td>${escapeHtml(p.final_bill_number || "-")}</td>
@@ -394,11 +549,36 @@ function sendWhatsAppUpdate(projectId) {
 function updateDocCountBadge() {
     const total = CHECKLIST_ITEMS.length;
     let checked = 0;
+    const currentChecklist = {};
     document.querySelectorAll("[data-check-key]").forEach(cb => {
-        if (cb.checked) checked++;
+        const key = cb.getAttribute("data-check-key");
+        if (cb.checked) {
+            checked++;
+            currentChecklist[key] = true;
+        } else {
+            currentChecklist[key] = false;
+        }
     });
     const badge = $("docCountBadge");
     if (badge) badge.textContent = `${checked} / ${total} प्राप्त`;
+
+    const noticeEl = $("docPendingNotice");
+    if (noticeEl) {
+        const missing = getMissingDocuments(currentChecklist);
+        if (missing.length === 0) {
+            noticeEl.style.display = "block";
+            noticeEl.style.background = "#f0fdf4";
+            noticeEl.style.color = "#15803d";
+            noticeEl.style.border = "1px solid #bbf7d0";
+            noticeEl.innerHTML = "✅ <strong>सभी 7 दस्तावेज़ प्राप्त हो चुके हैं!</strong> सुरक्षित करने पर फ़ाइल स्वतः <strong>Step 3 (PM सूर्यघर)</strong> पर आगे बढ़ जाएगी।";
+        } else {
+            noticeEl.style.display = "block";
+            noticeEl.style.background = "#fff7ed";
+            noticeEl.style.color = "#c2410c";
+            noticeEl.style.border = "1px solid #fed7aa";
+            noticeEl.innerHTML = `⚠️ <strong>${missing.length} दस्तावेज़ बाकी हैं:</strong> ${escapeHtml(missing.join(", "))}`;
+        }
+    }
 }
 
 // Modal & Tabs Logic
@@ -465,7 +645,8 @@ function openProjectModal(projectId = null) {
         updateDocCountBadge();
     }
 
-    switchTab("tab1");
+    const targetTab = projectId && p ? (STAGE_TAB_MAP[p.current_stage || "create_customer"] || "tab1") : "tab1";
+    switchTab(targetTab);
     $("projectModal").classList.remove("hidden");
 }
 
@@ -571,12 +752,18 @@ $("nextTabBtn").addEventListener("click", function() {
     if (idx < tabs.length - 1) switchTab(tabs[idx + 1]);
 });
 
-// Form Submit
-$("projectForm").addEventListener("submit", async function(e) {
-    e.preventDefault();
+// Form Submit & Auto-Progression Logic
+async function handleSaveProject(advanceToNextTab = false) {
     const saveBtn = $("saveProjectBtn");
-    saveBtn.disabled = true;
-    saveBtn.textContent = "⏳ सुरक्षित हो रहा है...";
+    const saveNextBtn = $("saveAndNextBtn");
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.textContent = "⏳ सुरक्षित हो रहा है...";
+    }
+    if (saveNextBtn) {
+        saveNextBtn.disabled = true;
+        saveNextBtn.textContent = "⏳ आगे बढ़ रहे हैं...";
+    }
 
     const payload = {};
     const fields = [
@@ -598,6 +785,21 @@ $("projectForm").addEventListener("submit", async function(e) {
         if (el) payload[f] = el.value.trim();
     });
 
+    if (!payload.customer_name) {
+        alert("कृपया ग्राहक का नाम (Customer Name) दर्ज करें।");
+        switchTab("tab1");
+        $("customer_name")?.focus();
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.textContent = "💾 सुरक्षित करें";
+        }
+        if (saveNextBtn) {
+            saveNextBtn.disabled = false;
+            saveNextBtn.textContent = "💾 सेव कर अगला स्टेप ▶";
+        }
+        return;
+    }
+
     // Collect checklist
     payload.checklist = {};
     document.querySelectorAll("[data-check-key]").forEach(cb => {
@@ -606,28 +808,87 @@ $("projectForm").addEventListener("submit", async function(e) {
     });
 
     const projectId = $("project_id").value;
+    const initialStage = $("current_stage").value || "create_customer";
+
+    // Auto-calculate the next stage
+    const calculatedStage = determineAutoStage(initialStage, payload);
+    const stageOrderNew = STAGE_KEYS.indexOf(calculatedStage);
+    const stageOrderCurrent = STAGE_KEYS.indexOf(initialStage);
+
+    // Only forward auto-progression (never auto-regress)
+    if (stageOrderNew >= stageOrderCurrent) {
+        payload.current_stage = calculatedStage;
+        $("current_stage").value = calculatedStage;
+    } else {
+        payload.current_stage = initialStage;
+    }
 
     try {
+        let savedProject = null;
         if (projectId) {
-            await apiCall("/solar-projects/" + projectId, {
+            const res = await apiCall("/solar-projects/" + projectId, {
                 method: "PUT",
                 body: JSON.stringify(payload)
             });
+            savedProject = res.project;
         } else {
-            await apiCall("/solar-projects", {
+            const res = await apiCall("/solar-projects", {
                 method: "POST",
                 body: JSON.stringify(payload)
             });
+            savedProject = res.project;
+            if (savedProject && savedProject.id) {
+                $("project_id").value = savedProject.id;
+            }
         }
-        closeProjectModal();
+
         await loadProjects();
+
+        const stageTitle = STAGE_NAMES[payload.current_stage] || payload.current_stage;
+        const missing = getMissingDocuments(payload.checklist);
+
+        if (advanceToNextTab) {
+            const targetTab = STAGE_TAB_MAP[payload.current_stage] || currentModalTab;
+            switchTab(targetTab);
+
+            if (payload.current_stage === "collect_docs" && missing.length > 0) {
+                showToast(`⚠️ फ़ाइल Step 2 (दस्तावेज़ संग्रह) पर है। ${missing.length} डॉक्स बाकी: ${missing.join(", ")}`);
+            } else {
+                showToast(`🚀 फ़ाइल स्वतः आगे बढ़ी: <strong>${stageTitle}</strong>`);
+            }
+        } else {
+            closeProjectModal();
+            if (payload.current_stage === "collect_docs" && missing.length > 0) {
+                showToast(`⚠️ फ़ाइल Step 2 पर सुरक्षित। ${missing.length} डॉक्स बाकी: ${missing.join(", ")}`);
+            } else {
+                showToast(`✅ फ़ाइल सफलतापूर्वक सुरक्षित! चरण: <strong>${stageTitle}</strong>`);
+            }
+        }
     } catch (err) {
         alert("प्रोजेक्ट सेव करने में त्रुटि: " + err.message);
     } finally {
-        saveBtn.disabled = false;
-        saveBtn.textContent = "💾 सुरक्षित करें";
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.textContent = "💾 सुरक्षित करें";
+        }
+        if (saveNextBtn) {
+            saveNextBtn.disabled = false;
+            saveNextBtn.textContent = "💾 सेव कर अगला स्टेप ▶";
+        }
     }
+}
+
+$("projectForm").addEventListener("submit", function(e) {
+    e.preventDefault();
+    handleSaveProject(false);
 });
+
+const saveAndNextBtn = $("saveAndNextBtn");
+if (saveAndNextBtn) {
+    saveAndNextBtn.addEventListener("click", function() {
+        handleSaveProject(true);
+    });
+}
 
 // Delete Project
 $("deleteProjectBtn").addEventListener("click", async function() {

@@ -196,15 +196,25 @@ def open_db():
         response.headers["Access-Control-Max-Age"] = "86400"
         return response
 
-    if request.path in {"/", "/health"}:
+    if (
+        request.path in {"/", "/health", "/config.js"}
+        or request.path.startswith("/downloads/")
+        or request.path.startswith("/uploads/")
+        or request.path.startswith("/static/")
+        or request.path.startswith("/frontend/")
+        or request.path.startswith("/tech")
+        or request.path.startswith("/_next/")
+    ):
         return None
 
     g.db = get_db_connection()
     g.cursor = g.db.cursor(dictionary=True, buffered=True)
-    try:
-        g.cursor.execute("SET time_zone = '+05:30'")
-    except Exception:
-        pass
+    if not getattr(g.db, "_crd_tz_set", False):
+        try:
+            g.cursor.execute("SET time_zone = '+05:30'")
+            setattr(g.db, "_crd_tz_set", True)
+        except Exception:
+            pass
 
 
 
@@ -689,12 +699,31 @@ def create_auth_token(user):
     })
 
 
+_USER_CACHE = {}
+_USER_CACHE_TTL = 60  # seconds
+
+def get_cached_user(user_id):
+    cached = _USER_CACHE.get(user_id)
+    if cached and (time.time() - cached[0] < _USER_CACHE_TTL):
+        return cached[1]
+    return None
+
+def set_cached_user(user_id, user_dict):
+    _USER_CACHE[user_id] = (time.time(), user_dict)
+
+def invalidate_cached_user(user_id=None):
+    if user_id:
+        _USER_CACHE.pop(user_id, None)
+    else:
+        _USER_CACHE.clear()
+
+
 @app.before_request
 def require_authenticated_api_request():
     """Require a short-lived signed token for every API route except login, technician login, uploads, downloads and public company settings."""
     if (
         request.method == "OPTIONS"
-        or request.path in {"/", "/login", "/api/auth/technician-login", "/api/app-info", "/downloads/CRDTechnician.apk", "/config.js"}
+        or request.path in {"/", "/health", "/login", "/api/auth/technician-login", "/api/app-info", "/downloads/CRDTechnician.apk", "/config.js"}
         or request.path.startswith("/uploads/")
         or request.path.startswith("/downloads/")
         or request.path.startswith("/static/")
@@ -721,14 +750,18 @@ def require_authenticated_api_request():
     except (BadSignature, SignatureExpired, TypeError, ValueError):
         return jsonify({"success": False, "message": "Your login has expired. Please sign in again."}), 401
 
-    try:
-        g.cursor.execute(
-            "SELECT id, username, full_name, role, status FROM users WHERE id = %s LIMIT 1",
-            (user_id,)
-        )
-        user = g.cursor.fetchone()
-    except Exception:
-        return jsonify({"success": False, "message": "Unable to verify the current user."}), 401
+    user = get_cached_user(user_id)
+    if not user:
+        try:
+            g.cursor.execute(
+                "SELECT id, username, full_name, role, status FROM users WHERE id = %s LIMIT 1",
+                (user_id,)
+            )
+            user = g.cursor.fetchone()
+            if user:
+                set_cached_user(user_id, user)
+        except Exception:
+            return jsonify({"success": False, "message": "Unable to verify the current user."}), 401
 
     if not user or str(user.get("status") or "").lower() != "active":
         return jsonify({"success": False, "message": "This user account is not active."}), 401
@@ -1963,6 +1996,15 @@ def serve_uploaded_file(filename):
 
 FRONTEND_DIR = os.path.join(_PROJECT_ROOT, "frontend")
 WEBSITE_DIR = os.path.join(_PROJECT_ROOT, "website", "out")
+
+@app.route("/health", methods=["GET"])
+def health_check():
+    return jsonify({
+        "status": "healthy",
+        "app": "CRD Global Solutions API",
+        "timestamp": datetime.now().isoformat()
+    }), 200
+
 
 @app.route("/", methods=["GET"])
 def serve_website_home():

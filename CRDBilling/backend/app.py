@@ -1523,6 +1523,7 @@ def init_all_schemas():
         ensure_technician_employee_schema(get_db_connection)
         ensure_solar_projects_schema(get_db_connection)
         ensure_api_keys_schema(get_db_connection)
+        ensure_accounts_schema()
         print("Database schemas verified successfully in background.")
     except Exception as err:
         print(f"Schema verification note: {err}")
@@ -2037,6 +2038,952 @@ def upload_settings_image():
         print("Upload Image Error:", e)
         return jsonify({"success": False, "message": str(e)}), 500
 
+
+
+
+
+# ==========================================
+# ACCOUNTS & BUSINESS VALUATION MANAGEMENT
+# ==========================================
+
+def ensure_accounts_schema():
+    try:
+        db = get_db_connection()
+        cursor = db.cursor(dictionary=True)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS accounts (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                account_name VARCHAR(150) NOT NULL UNIQUE,
+                account_type VARCHAR(50) NOT NULL DEFAULT 'bank',
+                opening_balance DECIMAL(15, 2) NOT NULL DEFAULT 0.00,
+                account_number VARCHAR(100) NULL,
+                bank_name VARCHAR(150) NULL,
+                ifsc_code VARCHAR(50) NULL,
+                branch_name VARCHAR(150) NULL,
+                upi_id VARCHAR(100) NULL,
+                notes TEXT NULL,
+                is_default TINYINT(1) NOT NULL DEFAULT 0,
+                status VARCHAR(20) NOT NULL DEFAULT 'active',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS account_transfers (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                from_account_id INT NOT NULL,
+                to_account_id INT NOT NULL,
+                amount DECIMAL(15, 2) NOT NULL,
+                transfer_date DATE NOT NULL,
+                notes TEXT NULL,
+                created_by VARCHAR(100) NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        db.commit()
+
+        cursor.execute("SELECT COUNT(*) AS cnt FROM accounts")
+        row = cursor.fetchone()
+        if row and row["cnt"] == 0:
+            default_accounts = [
+                ("Cash (कैश इन हैण्ड)", "cash", 0.00, None, 1, "active"),
+                ("Shivang Account", "upi", 0.00, None, 0, "active"),
+                ("Anupam HDFC Current", "bank", 0.00, None, 0, "active"),
+                ("Cash Neha", "other", 2000.00, None, 0, "active")
+            ]
+            for acc in default_accounts:
+                cursor.execute(
+                    "INSERT INTO accounts (account_name, account_type, opening_balance, notes, is_default, status) VALUES (%s, %s, %s, %s, %s, %s)",
+                    acc
+                )
+            db.commit()
+            print("Default accounts seeded successfully.")
+        db.close()
+    except Exception as e:
+        print(f"ensure_accounts_schema error: {e}")
+
+
+def _calculate_account_financials(acc_dict, from_date=None, to_date=None):
+    """Compute inflows, outflows, transfers and balances for a given account."""
+    acc_id = acc_dict["id"]
+    acc_name = acc_dict["account_name"]
+    acc_type = (acc_dict.get("account_type") or "bank").lower()
+    is_def = bool(acc_dict.get("is_default"))
+    opening_bal = float(acc_dict.get("opening_balance") or 0)
+
+    # Names that map to this account
+    matching_names = [acc_name]
+    if is_def and acc_type == "cash":
+        if "Cash" not in matching_names:
+            matching_names.append("Cash")
+        if "cash" not in matching_names:
+            matching_names.append("cash")
+    elif is_def and acc_type == "bank":
+        if "Bank" not in matching_names:
+            matching_names.append("Bank")
+        if "Bank Transfer" not in matching_names:
+            matching_names.append("Bank Transfer")
+    elif is_def and acc_type == "upi":
+        if "UPI" not in matching_names:
+            matching_names.append("UPI")
+
+    placeholders = ",".join(["%s"] * len(matching_names))
+
+    # 1. Sales Direct Inflows (Amount paid on invoices minus customer ledger receipts)
+    # Each invoice with paid_amount > 0 had an initial payment under payment_method
+    sales_sql = f"""
+        SELECT 
+            si.id,
+            si.invoice_number,
+            si.invoice_date,
+            si.paid_amount,
+            COALESCE((SELECT SUM(amount) FROM customer_payments WHERE invoice_id = si.id), 0) AS cp_total
+        FROM sales_invoices si
+        WHERE si.payment_method IN ({placeholders})
+          AND si.paid_amount > 0
+    """
+    sales_params = list(matching_names)
+    if to_date:
+        sales_sql += " AND DATE(si.invoice_date) <= %s "
+        sales_params.append(to_date)
+    g.cursor.execute(sales_sql, tuple(sales_params))
+    sale_rows = g.cursor.fetchall()
+    sales_inflow = 0.0
+    for sr in sale_rows:
+        initial_paid = max(0.0, float(sr["paid_amount"] or 0) - float(sr["cp_total"] or 0))
+        # If from_date is specified, check date for period inflow
+        if from_date:
+            inv_date = str(sr["invoice_date"])[:10]
+            if inv_date >= from_date:
+                sales_inflow += initial_paid
+        else:
+            sales_inflow += initial_paid
+
+    # 2. Customer Payments Inflows
+    cp_sql = f"""
+        SELECT COALESCE(SUM(amount), 0) AS total_cp
+        FROM customer_payments
+        WHERE payment_method IN ({placeholders})
+    """
+    cp_params = list(matching_names)
+    if from_date:
+        cp_sql += " AND DATE(payment_date) >= %s "
+        cp_params.append(from_date)
+    if to_date:
+        cp_sql += " AND DATE(payment_date) <= %s "
+        cp_params.append(to_date)
+    g.cursor.execute(cp_sql, tuple(cp_params))
+    cp_inflow = float(g.cursor.fetchone()["total_cp"] or 0)
+
+    # 3. Transfers IN
+    tin_sql = """
+        SELECT COALESCE(SUM(amount), 0) AS total_tin
+        FROM account_transfers
+        WHERE to_account_id = %s
+    """
+    tin_params = [acc_id]
+    if from_date:
+        tin_sql += " AND DATE(transfer_date) >= %s "
+        tin_params.append(from_date)
+    if to_date:
+        tin_sql += " AND DATE(transfer_date) <= %s "
+        tin_params.append(to_date)
+    g.cursor.execute(tin_sql, tuple(tin_params))
+    transfers_in = float(g.cursor.fetchone()["total_tin"] or 0)
+
+    # Total Inflow in period
+    inflow = round(sales_inflow + cp_inflow + transfers_in, 2)
+
+    # 4. Purchases Outflow
+    pur_sql = f"""
+        SELECT COALESCE(SUM(grand_total), 0) AS total_pur
+        FROM purchase_invoices
+        WHERE payment_method IN ({placeholders})
+          AND payment_status = 'Paid'
+    """
+    pur_params = list(matching_names)
+    if from_date:
+        pur_sql += " AND DATE(purchase_date) >= %s "
+        pur_params.append(from_date)
+    if to_date:
+        pur_sql += " AND DATE(purchase_date) <= %s "
+        pur_params.append(to_date)
+    g.cursor.execute(pur_sql, tuple(pur_params))
+    purchases_outflow = float(g.cursor.fetchone()["total_pur"] or 0)
+
+    # 5. Expenses Outflow
+    exp_sql = f"""
+        SELECT COALESCE(SUM(amount), 0) AS total_exp
+        FROM expenses
+        WHERE payment_method IN ({placeholders})
+          AND status <> 'Deleted'
+    """
+    exp_params = list(matching_names)
+    if from_date:
+        exp_sql += " AND DATE(expense_date) >= %s "
+        exp_params.append(from_date)
+    if to_date:
+        exp_sql += " AND DATE(expense_date) <= %s "
+        exp_params.append(to_date)
+    g.cursor.execute(exp_sql, tuple(exp_params))
+    expenses_outflow = float(g.cursor.fetchone()["total_exp"] or 0)
+
+    # 6. Transfers OUT
+    tout_sql = """
+        SELECT COALESCE(SUM(amount), 0) AS total_tout
+        FROM account_transfers
+        WHERE from_account_id = %s
+    """
+    tout_params = [acc_id]
+    if from_date:
+        tout_sql += " AND DATE(transfer_date) >= %s "
+        tout_params.append(from_date)
+    if to_date:
+        tout_sql += " AND DATE(transfer_date) <= %s "
+        tout_params.append(to_date)
+    g.cursor.execute(tout_sql, tuple(tout_params))
+    transfers_out = float(g.cursor.fetchone()["total_tout"] or 0)
+
+    # Total Outflow in period
+    outflow = round(purchases_outflow + expenses_outflow + transfers_out, 2)
+
+    # Cumulative Balance calculation (all transactions up to to_date)
+    # All-time sales
+    g.cursor.execute(f"""
+        SELECT 
+            si.paid_amount,
+            COALESCE((SELECT SUM(amount) FROM customer_payments WHERE invoice_id = si.id), 0) AS cp_total
+        FROM sales_invoices si
+        WHERE si.payment_method IN ({placeholders})
+          AND si.paid_amount > 0
+          {f"AND DATE(si.invoice_date) <= '{to_date}'" if to_date else ""}
+    """, tuple(matching_names))
+    all_time_sales_inflow = sum(max(0.0, float(r["paid_amount"] or 0) - float(r["cp_total"] or 0)) for r in g.cursor.fetchall())
+
+    # All-time customer payments
+    g.cursor.execute(f"""
+        SELECT COALESCE(SUM(amount), 0) AS val FROM customer_payments 
+        WHERE payment_method IN ({placeholders})
+        {f"AND DATE(payment_date) <= '{to_date}'" if to_date else ""}
+    """, tuple(matching_names))
+    all_time_cp = float(g.cursor.fetchone()["val"] or 0)
+
+    # All-time transfers IN
+    g.cursor.execute(f"""
+        SELECT COALESCE(SUM(amount), 0) AS val FROM account_transfers 
+        WHERE to_account_id = %s
+        {f"AND DATE(transfer_date) <= '{to_date}'" if to_date else ""}
+    """, (acc_id,))
+    all_time_tin = float(g.cursor.fetchone()["val"] or 0)
+
+    total_cum_in = all_time_sales_inflow + all_time_cp + all_time_tin
+
+    # All-time purchases
+    g.cursor.execute(f"""
+        SELECT COALESCE(SUM(grand_total), 0) AS val FROM purchase_invoices 
+        WHERE payment_method IN ({placeholders}) AND payment_status = 'Paid'
+        {f"AND DATE(purchase_date) <= '{to_date}'" if to_date else ""}
+    """, tuple(matching_names))
+    all_time_pur = float(g.cursor.fetchone()["val"] or 0)
+
+    # All-time expenses
+    g.cursor.execute(f"""
+        SELECT COALESCE(SUM(amount), 0) AS val FROM expenses 
+        WHERE payment_method IN ({placeholders}) AND status <> 'Deleted'
+        {f"AND DATE(expense_date) <= '{to_date}'" if to_date else ""}
+    """, tuple(matching_names))
+    all_time_exp = float(g.cursor.fetchone()["val"] or 0)
+
+    # All-time transfers OUT
+    g.cursor.execute(f"""
+        SELECT COALESCE(SUM(amount), 0) AS val FROM account_transfers 
+        WHERE from_account_id = %s
+        {f"AND DATE(transfer_date) <= '{to_date}'" if to_date else ""}
+    """, (acc_id,))
+    all_time_tout = float(g.cursor.fetchone()["val"] or 0)
+
+    total_cum_out = all_time_pur + all_time_exp + all_time_tout
+
+    current_balance = round(opening_bal + total_cum_in - total_cum_out, 2)
+
+    return {
+        "inflow": inflow,
+        "outflow": outflow,
+        "transfers_in": round(transfers_in, 2),
+        "transfers_out": round(transfers_out, 2),
+        "current_balance": current_balance
+    }
+
+
+@app.route("/accounts", methods=["GET"])
+def get_accounts():
+    try:
+        status_filter = request.args.get("status", "").strip().lower()
+        from_date = normalize_date_string(request.args.get("from_date"))
+        to_date = normalize_date_string(request.args.get("to_date"))
+
+        sql = "SELECT * FROM accounts WHERE 1=1"
+        params = []
+        if status_filter:
+            sql += " AND status = %s"
+            params.append(status_filter)
+        sql += " ORDER BY is_default DESC, account_type ASC, account_name ASC"
+
+        g.cursor.execute(sql, tuple(params))
+        accounts = g.cursor.fetchall()
+
+        result = []
+        for acc in accounts:
+            financials = _calculate_account_financials(acc, from_date, to_date)
+            acc_data = dict(acc)
+            acc_data["opening_balance"] = float(acc_data.get("opening_balance") or 0)
+            acc_data["is_default"] = bool(acc_data.get("is_default"))
+            acc_data.update(financials)
+            result.append(acc_data)
+
+        return jsonify({
+            "success": True,
+            "accounts": result
+        })
+    except Exception as e:
+        print("Get Accounts Error:", e)
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route("/accounts", methods=["POST"])
+@roles_required("Admin", "Manager")
+def create_account():
+    try:
+        data = request.get_json(silent=True) or {}
+        account_name = (data.get("account_name") or "").strip()
+        account_type = (data.get("account_type") or "bank").strip().lower()
+        opening_balance = float(data.get("opening_balance") or 0)
+        account_number = (data.get("account_number") or "").strip() or None
+        bank_name = (data.get("bank_name") or "").strip() or None
+        ifsc_code = (data.get("ifsc_code") or "").strip() or None
+        branch_name = (data.get("branch_name") or "").strip() or None
+        upi_id = (data.get("upi_id") or "").strip() or None
+        notes = (data.get("notes") or "").strip() or None
+        is_default = 1 if data.get("is_default") else 0
+        status = (data.get("status") or "active").strip().lower()
+
+        if not account_name:
+            return jsonify({"success": False, "message": "खाते का नाम (Account Name) अनिवार्य है।"}), 400
+
+        # Check unique
+        g.cursor.execute("SELECT id FROM accounts WHERE account_name = %s LIMIT 1", (account_name,))
+        if g.cursor.fetchone():
+            return jsonify({"success": False, "message": f"खाता '{account_name}' पहले से मौजूद है।"}), 400
+
+        if is_default:
+            g.cursor.execute("UPDATE accounts SET is_default = 0 WHERE account_type = %s", (account_type,))
+
+        g.cursor.execute("""
+            INSERT INTO accounts (account_name, account_type, opening_balance, account_number, bank_name, ifsc_code, branch_name, upi_id, notes, is_default, status)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (account_name, account_type, opening_balance, account_number, bank_name, ifsc_code, branch_name, upi_id, notes, is_default, status))
+        g.db.commit()
+        new_id = g.cursor.lastrowid
+
+        return jsonify({
+            "success": True,
+            "message": f"खाता '{account_name}' सफलतापूर्वक जोड़ दिया गया।",
+            "account_id": new_id
+        }), 201
+    except Exception as e:
+        g.db.rollback()
+        print("Create Account Error:", e)
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route("/accounts/<int:account_id>", methods=["GET"])
+def get_account_detail(account_id):
+    try:
+        g.cursor.execute("SELECT * FROM accounts WHERE id = %s LIMIT 1", (account_id,))
+        acc = g.cursor.fetchone()
+        if not acc:
+            return jsonify({"success": False, "message": "खाता नहीं मिला।"}), 404
+
+        financials = _calculate_account_financials(acc)
+        acc_data = dict(acc)
+        acc_data["opening_balance"] = float(acc_data.get("opening_balance") or 0)
+        acc_data["is_default"] = bool(acc_data.get("is_default"))
+        acc_data.update(financials)
+
+        return jsonify({"success": True, "account": acc_data})
+    except Exception as e:
+        print("Get Account Detail Error:", e)
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route("/accounts/<int:account_id>", methods=["PUT"])
+@roles_required("Admin", "Manager")
+def update_account(account_id):
+    try:
+        data = request.get_json(silent=True) or {}
+        account_name = (data.get("account_name") or "").strip()
+        account_type = (data.get("account_type") or "bank").strip().lower()
+        opening_balance = float(data.get("opening_balance") or 0)
+        account_number = (data.get("account_number") or "").strip() or None
+        bank_name = (data.get("bank_name") or "").strip() or None
+        ifsc_code = (data.get("ifsc_code") or "").strip() or None
+        branch_name = (data.get("branch_name") or "").strip() or None
+        upi_id = (data.get("upi_id") or "").strip() or None
+        notes = (data.get("notes") or "").strip() or None
+        is_default = 1 if data.get("is_default") else 0
+        status = (data.get("status") or "active").strip().lower()
+
+        if not account_name:
+            return jsonify({"success": False, "message": "खाते का नाम आवश्यक है।"}), 400
+
+        # Unique check excluding current
+        g.cursor.execute("SELECT id FROM accounts WHERE account_name = %s AND id != %s LIMIT 1", (account_name, account_id))
+        if g.cursor.fetchone():
+            return jsonify({"success": False, "message": f"खाता नाम '{account_name}' किसी अन्य खाते में उपयोग हो रहा है।"}), 400
+
+        if is_default:
+            g.cursor.execute("UPDATE accounts SET is_default = 0 WHERE account_type = %s AND id != %s", (account_type, account_id))
+
+        g.cursor.execute("""
+            UPDATE accounts 
+            SET account_name = %s, account_type = %s, opening_balance = %s, account_number = %s,
+                bank_name = %s, ifsc_code = %s, branch_name = %s, upi_id = %s, notes = %s,
+                is_default = %s, status = %s
+            WHERE id = %s
+        """, (account_name, account_type, opening_balance, account_number, bank_name, ifsc_code, branch_name, upi_id, notes, is_default, status, account_id))
+        g.db.commit()
+
+        return jsonify({"success": True, "message": "खाता सफलतापूर्वक अपडेट हो गया।"})
+    except Exception as e:
+        g.db.rollback()
+        print("Update Account Error:", e)
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route("/accounts/<int:account_id>", methods=["DELETE"])
+@roles_required("Admin")
+def delete_account(account_id):
+    try:
+        g.cursor.execute("SELECT * FROM accounts WHERE id = %s LIMIT 1", (account_id,))
+        acc = g.cursor.fetchone()
+        if not acc:
+            return jsonify({"success": False, "message": "खाता नहीं मिला।"}), 404
+
+        acc_name = acc["account_name"]
+
+        # Check if used in transfers
+        g.cursor.execute("SELECT COUNT(*) AS cnt FROM account_transfers WHERE from_account_id = %s OR to_account_id = %s", (account_id, account_id))
+        if g.cursor.fetchone()["cnt"] > 0:
+            # Soft delete (mark inactive)
+            g.cursor.execute("UPDATE accounts SET status = 'inactive' WHERE id = %s", (account_id,))
+            g.db.commit()
+            return jsonify({"success": True, "message": f"खाते में ट्रांसफर हिस्ट्री मौजूद है, इसलिए इसे निष्क्रिय (Inactive) कर दिया गया।"})
+
+        # Check if used in invoices or expenses
+        g.cursor.execute("SELECT COUNT(*) AS cnt FROM sales_invoices WHERE payment_method = %s", (acc_name,))
+        cnt_sales = g.cursor.fetchone()["cnt"]
+        g.cursor.execute("SELECT COUNT(*) AS cnt FROM expenses WHERE payment_method = %s", (acc_name,))
+        cnt_exp = g.cursor.fetchone()["cnt"]
+
+        if cnt_sales > 0 or cnt_exp > 0:
+            g.cursor.execute("UPDATE accounts SET status = 'inactive' WHERE id = %s", (account_id,))
+            g.db.commit()
+            return jsonify({"success": True, "message": f"खाते से जुड़े लेनदेन मौजूद हैं, इसलिए इसे निष्क्रिय (Inactive) कर दिया गया।"})
+
+        # Permanent delete if totally unused
+        g.cursor.execute("DELETE FROM accounts WHERE id = %s", (account_id,))
+        g.db.commit()
+        return jsonify({"success": True, "message": f"खाता '{acc_name}' सफलतापूर्वक हटा दिया गया।"})
+    except Exception as e:
+        g.db.rollback()
+        print("Delete Account Error:", e)
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route("/accounts/<int:account_id>/statement", methods=["GET"])
+def get_account_statement(account_id):
+    try:
+        g.cursor.execute("SELECT * FROM accounts WHERE id = %s LIMIT 1", (account_id,))
+        acc = g.cursor.fetchone()
+        if not acc:
+            return jsonify({"success": False, "message": "खाता नहीं मिला।"}), 404
+
+        acc_name = acc["account_name"]
+        acc_type = (acc.get("account_type") or "bank").lower()
+        is_def = bool(acc.get("is_default"))
+        opening_bal = float(acc.get("opening_balance") or 0)
+
+        from_date = normalize_date_string(request.args.get("from_date"))
+        to_date = normalize_date_string(request.args.get("to_date"))
+
+        matching_names = [acc_name]
+        if is_def and acc_type == "cash":
+            matching_names.extend(["Cash", "cash"])
+        elif is_def and acc_type == "bank":
+            matching_names.extend(["Bank", "Bank Transfer"])
+        elif is_def and acc_type == "upi":
+            matching_names.extend(["UPI", "upi"])
+        matching_names = list(set(matching_names))
+        placeholders = ",".join(["%s"] * len(matching_names))
+
+        entries = []
+
+        # 1. Opening Balance entry
+        entries.append({
+            "date": str(acc.get("created_at") or "2026-01-01")[:10],
+            "type": "Opening Balance",
+            "ref_no": "OPEN-BAL",
+            "particulars": "प्रारंभिक शेष (Opening Balance)",
+            "inflow": opening_bal if opening_bal > 0 else 0.0,
+            "outflow": abs(opening_bal) if opening_bal < 0 else 0.0
+        })
+
+        # 2. Sales Invoices
+        g.cursor.execute(f"""
+            SELECT 
+                si.id,
+                si.invoice_number,
+                si.invoice_date,
+                si.paid_amount,
+                COALESCE(c.customer_name, 'Walk-in Customer') AS customer_name,
+                COALESCE((SELECT SUM(amount) FROM customer_payments WHERE invoice_id = si.id), 0) AS cp_total
+            FROM sales_invoices si
+            LEFT JOIN customers c ON c.id = si.customer_id
+            WHERE si.payment_method IN ({placeholders})
+              AND si.paid_amount > 0
+            ORDER BY si.invoice_date ASC, si.id ASC
+        """, tuple(matching_names))
+        for r in g.cursor.fetchall():
+            init_paid = max(0.0, float(r["paid_amount"] or 0) - float(r["cp_total"] or 0))
+            if init_paid > 0:
+                entries.append({
+                    "date": str(r["invoice_date"])[:10],
+                    "type": "Sale Invoice",
+                    "ref_no": r["invoice_number"],
+                    "particulars": f"बिक्री बिल: {r['customer_name']}",
+                    "inflow": init_paid,
+                    "outflow": 0.0
+                })
+
+        # 3. Customer Payments (Ledger collection)
+        g.cursor.execute(f"""
+            SELECT 
+                cp.receipt_number,
+                cp.payment_date,
+                cp.amount,
+                cp.notes,
+                COALESCE(c.customer_name, 'Customer') AS customer_name
+            FROM customer_payments cp
+            LEFT JOIN customers c ON c.id = cp.customer_id
+            WHERE cp.payment_method IN ({placeholders})
+            ORDER BY cp.payment_date ASC, cp.id ASC
+        """, tuple(matching_names))
+        for r in g.cursor.fetchall():
+            entries.append({
+                "date": str(r["payment_date"])[:10],
+                "type": "Customer Payment",
+                "ref_no": r["receipt_number"],
+                "particulars": f"ग्राहक रसीद: {r['customer_name']}" + (f" ({r['notes']})" if r.get('notes') else ""),
+                "inflow": float(r["amount"] or 0),
+                "outflow": 0.0
+            })
+
+        # 4. Purchases Outflow
+        g.cursor.execute(f"""
+            SELECT 
+                pi.purchase_number,
+                pi.purchase_date,
+                pi.grand_total,
+                COALESCE(s.supplier_name, 'Supplier') AS supplier_name
+            FROM purchase_invoices pi
+            LEFT JOIN suppliers s ON s.id = pi.supplier_id
+            WHERE pi.payment_method IN ({placeholders})
+              AND pi.payment_status = 'Paid'
+            ORDER BY pi.purchase_date ASC, pi.id ASC
+        """, tuple(matching_names))
+        for r in g.cursor.fetchall():
+            entries.append({
+                "date": str(r["purchase_date"])[:10],
+                "type": "Purchase Paid",
+                "ref_no": r["purchase_number"],
+                "particulars": f"क्रय भुगतान: {r['supplier_name']}",
+                "inflow": 0.0,
+                "outflow": float(r["grand_total"] or 0)
+            })
+
+        # 5. Expenses Outflow
+        g.cursor.execute(f"""
+            SELECT 
+                e.expense_number,
+                e.expense_date,
+                e.amount,
+                e.category,
+                e.description,
+                e.paid_to
+            FROM expenses e
+            WHERE e.payment_method IN ({placeholders})
+              AND e.status <> 'Deleted'
+            ORDER BY e.expense_date ASC, e.id ASC
+        """, tuple(matching_names))
+        for r in g.cursor.fetchall():
+            entries.append({
+                "date": str(r["expense_date"])[:10],
+                "type": "Expense",
+                "ref_no": r["expense_number"] or f"EXP-{r.get('id', '')}",
+                "particulars": f"खर्च ({r['category']}): {r['description'] or r.get('paid_to') or ''}",
+                "inflow": 0.0,
+                "outflow": float(r["amount"] or 0)
+            })
+
+        # 6. Transfers IN
+        g.cursor.execute("""
+            SELECT t.id, t.amount, t.transfer_date, t.notes, a.account_name AS from_account
+            FROM account_transfers t
+            JOIN accounts a ON a.id = t.from_account_id
+            WHERE t.to_account_id = %s
+            ORDER BY t.transfer_date ASC, t.id ASC
+        """, (account_id,))
+        for r in g.cursor.fetchall():
+            entries.append({
+                "date": str(r["transfer_date"])[:10],
+                "type": "Transfer IN",
+                "ref_no": f"TRF-{r['id']}",
+                "particulars": f"अकाउंट ट्रांसफर (+): {r['from_account']} से" + (f" ({r['notes']})" if r.get('notes') else ""),
+                "inflow": float(r["amount"] or 0),
+                "outflow": 0.0
+            })
+
+        # 7. Transfers OUT
+        g.cursor.execute("""
+            SELECT t.id, t.amount, t.transfer_date, t.notes, a.account_name AS to_account
+            FROM account_transfers t
+            JOIN accounts a ON a.id = t.to_account_id
+            WHERE t.from_account_id = %s
+            ORDER BY t.transfer_date ASC, t.id ASC
+        """, (account_id,))
+        for r in g.cursor.fetchall():
+            entries.append({
+                "date": str(r["transfer_date"])[:10],
+                "type": "Transfer OUT",
+                "ref_no": f"TRF-{r['id']}",
+                "particulars": f"अकाउंट ट्रांसफर (-): {r['to_account']} को" + (f" ({r['notes']})" if r.get('notes') else ""),
+                "inflow": 0.0,
+                "outflow": float(r["amount"] or 0)
+            })
+
+        # Sort entries chronologically
+        entries.sort(key=lambda x: (x["date"], 0 if x["type"] == "Opening Balance" else 1))
+
+        # Compute running balance
+        running_bal = 0.0
+        filtered_entries = []
+        for e in entries:
+            running_bal += (e["inflow"] - e["outflow"])
+            e["balance"] = round(running_bal, 2)
+            # Apply date filters if requested
+            dt = e["date"]
+            if from_date and dt < from_date and e["type"] != "Opening Balance":
+                continue
+            if to_date and dt > to_date:
+                continue
+            filtered_entries.append(e)
+
+        total_in = round(sum(e["inflow"] for e in filtered_entries), 2)
+        total_out = round(sum(e["outflow"] for e in filtered_entries), 2)
+
+        return jsonify({
+            "success": True,
+            "account": dict(acc),
+            "statement": filtered_entries,
+            "total_inflow": total_in,
+            "total_outflow": total_out,
+            "closing_balance": round(running_bal, 2)
+        })
+    except Exception as e:
+        print("Get Account Statement Error:", e)
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route("/account-transfers", methods=["GET"])
+def get_account_transfers():
+    try:
+        g.cursor.execute("""
+            SELECT 
+                t.id,
+                t.amount,
+                t.transfer_date,
+                t.notes,
+                t.created_by,
+                t.created_at,
+                f.id AS from_account_id,
+                f.account_name AS from_account_name,
+                f.account_type AS from_account_type,
+                t2.id AS to_account_id,
+                t2.account_name AS to_account_name,
+                t2.account_type AS to_account_type
+            FROM account_transfers t
+            JOIN accounts f ON f.id = t.from_account_id
+            JOIN accounts t2 ON t2.id = t.to_account_id
+            ORDER BY t.transfer_date DESC, t.id DESC
+        """)
+        transfers = g.cursor.fetchall()
+        return jsonify({
+            "success": True,
+            "transfers": transfers
+        })
+    except Exception as e:
+        print("Get Transfers Error:", e)
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route("/account-transfers", methods=["POST"])
+@roles_required("Admin", "Manager")
+def create_account_transfer():
+    try:
+        data = request.get_json(silent=True) or {}
+        from_id = int(data.get("from_account_id") or 0)
+        to_id = int(data.get("to_account_id") or 0)
+        amount = float(data.get("amount") or 0)
+        transfer_date = normalize_date_string(data.get("transfer_date")) or get_ist_today_str()
+        notes = (data.get("notes") or "").strip() or None
+
+        if from_id <= 0 or to_id <= 0:
+            return jsonify({"success": False, "message": "कृपया भेजने वाला व पाने वाला दोनों खाते चुनें।"}), 400
+        if from_id == to_id:
+            return jsonify({"success": False, "message": "समान खाते में फंड ट्रांसफर नहीं किया जा सकता।"}), 400
+        if amount <= 0:
+            return jsonify({"success": False, "message": "ट्रांसफर राशि (Amount) 0 से अधिक होनी चाहिए।"}), 400
+
+        g.cursor.execute("SELECT account_name FROM accounts WHERE id = %s", (from_id,))
+        from_acc = g.cursor.fetchone()
+        g.cursor.execute("SELECT account_name FROM accounts WHERE id = %s", (to_id,))
+        to_acc = g.cursor.fetchone()
+
+        if not from_acc or not to_acc:
+            return jsonify({"success": False, "message": "चयनित खाता नहीं मिला।"}), 404
+
+        username = g.user.get("username") if hasattr(g, "user") and g.user else "Admin"
+
+        g.cursor.execute("""
+            INSERT INTO account_transfers (from_account_id, to_account_id, amount, transfer_date, notes, created_by)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """, (from_id, to_id, amount, transfer_date, notes, username))
+        g.db.commit()
+
+        return jsonify({
+            "success": True,
+            "message": f"₹ {amount:,.2f} सफलतापूर्वक '{from_acc['account_name']}' से '{to_acc['account_name']}' में ट्रांसफर हो गए।"
+        }), 201
+    except Exception as e:
+        g.db.rollback()
+        print("Create Transfer Error:", e)
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route("/account-transfers/<int:transfer_id>", methods=["DELETE"])
+@roles_required("Admin")
+def delete_account_transfer(transfer_id):
+    try:
+        g.cursor.execute("SELECT * FROM account_transfers WHERE id = %s LIMIT 1", (transfer_id,))
+        t = g.cursor.fetchone()
+        if not t:
+            return jsonify({"success": False, "message": "ट्रांसफर रिकॉर्ड नहीं मिला।"}), 404
+
+        g.cursor.execute("DELETE FROM account_transfers WHERE id = %s", (transfer_id,))
+        g.db.commit()
+        return jsonify({"success": True, "message": "ट्रांसफर रिकॉर्ड सफलतापूर्वक हटा दिया गया।"})
+    except Exception as e:
+        g.db.rollback()
+        print("Delete Transfer Error:", e)
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route("/reports/valuation", methods=["GET"])
+def reports_valuation():
+    try:
+        from_date = normalize_date_string(request.args.get("from_date"))
+        to_date = normalize_date_string(request.args.get("to_date"))
+
+        # Default to current month if dates not provided
+        if not from_date or not to_date:
+            today = get_ist_today()
+            from_date = from_date or f"{today.year}-{today.month:02d}-01"
+            import calendar
+            last_day = calendar.monthrange(today.year, today.month)[1]
+            to_date = to_date or f"{today.year}-{today.month:02d}-{last_day:02d}"
+
+        # 1. Accounts list & balances
+        g.cursor.execute("""
+            SELECT * FROM accounts 
+            WHERE status = 'active'
+            ORDER BY is_default DESC, account_type ASC, account_name ASC
+        """)
+        accounts = g.cursor.fetchall()
+        account_rows = []
+        total_account_balance = 0.0
+
+        for acc in accounts:
+            financials = _calculate_account_financials(acc, from_date, to_date)
+            acc_data = dict(acc)
+            acc_data["opening_balance"] = float(acc_data.get("opening_balance") or 0)
+            acc_data["is_default"] = bool(acc_data.get("is_default"))
+            acc_data.update(financials)
+            total_account_balance += financials["current_balance"]
+            account_rows.append(acc_data)
+
+        # 2. Total Stock Value (Physical Stock)
+        g.cursor.execute("""
+            SELECT 
+                COALESCE(SUM(stock * purchase_price), 0) AS purchase_value,
+                COALESCE(SUM(stock * sale_price), 0) AS retail_value,
+                COALESCE(SUM(stock), 0) AS total_units,
+                COUNT(*) AS product_count
+            FROM products
+            WHERE item_type != 'Service'
+        """)
+        stock_row = g.cursor.fetchone() or {}
+        stock_purchase_val = float(stock_row.get("purchase_value") or 0)
+        stock_retail_val = float(stock_row.get("retail_value") or 0)
+        stock_units = float(stock_row.get("total_units") or 0)
+        stock_prod_count = int(stock_row.get("product_count") or 0)
+
+        # 3. Customer Receivables / Credit Balance (Market Dues)
+        g.cursor.execute("""
+            SELECT
+                COALESCE(c.opening_balance, 0) + COALESCE(SUM(si.grand_total - si.paid_amount), 0) AS due_amt
+            FROM customers c
+            LEFT JOIN sales_invoices si ON si.customer_id = c.id
+            WHERE c.status = 'Active'
+            GROUP BY c.id, c.opening_balance
+            HAVING due_amt > 0
+        """)
+        due_rows = g.cursor.fetchall()
+        total_receivable = round(sum(float(r["due_amt"] or 0) for r in due_rows), 2)
+        active_credit_customers = len(due_rows)
+
+        # 4. Grand Valuation Total (Total Business Assets)
+        grand_total = round(stock_purchase_val + total_receivable + total_account_balance, 2)
+
+        # Calculate Share % for each component
+        for acc in account_rows:
+            bal = acc["current_balance"]
+            acc["share_pct"] = round((bal / grand_total * 100), 1) if grand_total > 0 else 0.0
+
+        stock_share_pct = round((stock_purchase_val / grand_total * 100), 1) if grand_total > 0 else 0.0
+        credit_share_pct = round((total_receivable / grand_total * 100), 1) if grand_total > 0 else 0.0
+
+        # Formula string matching screenshot:
+        # e.g. "Stock: ₹ 7,12,309.33 + Credit: ₹ 1,39,783.71 + Cash: ₹ 1,33,401.59 + Shivang: ₹ 1,10,845.00 + ..."
+        formula_parts = [
+            f"Stock: ₹ {stock_purchase_val:,.2f}",
+            f"Credit: ₹ {total_receivable:,.2f}"
+        ]
+        for acc in account_rows:
+            short_name = acc["account_name"].split()[0]
+            formula_parts.append(f"{short_name}: ₹ {acc['current_balance']:,.2f}")
+        formula_string = " + ".join(formula_parts)
+
+        # 5. Period Net Profit (Revenue - COGS - Expenses)
+        # Sales revenue
+        g.cursor.execute("""
+            SELECT COALESCE(SUM(grand_total), 0) AS total_sales
+            FROM sales_invoices
+            WHERE DATE(invoice_date) >= %s AND DATE(invoice_date) <= %s
+        """, (from_date, to_date))
+        period_revenue = float(g.cursor.fetchone()["total_sales"] or 0)
+
+        # COGS
+        g.cursor.execute("""
+            SELECT COALESCE(SUM(sii.quantity * sii.cost_rate), 0) AS total_cost
+            FROM sales_invoice_items sii
+            INNER JOIN sales_invoices si ON si.id = sii.invoice_id
+            INNER JOIN products p ON p.id = sii.product_id
+            WHERE COALESCE(p.item_type, 'Product') <> 'Service'
+              AND DATE(si.invoice_date) >= %s AND DATE(si.invoice_date) <= %s
+        """, (from_date, to_date))
+        period_cogs = float(g.cursor.fetchone()["total_cost"] or 0)
+
+        # Expenses
+        g.cursor.execute("""
+            SELECT COALESCE(SUM(amount), 0) AS total_expenses
+            FROM expenses
+            WHERE status <> 'Deleted'
+              AND DATE(expense_date) >= %s AND DATE(expense_date) <= %s
+        """, (from_date, to_date))
+        period_expenses = float(g.cursor.fetchone()["total_expenses"] or 0)
+
+        net_profit = round(period_revenue - period_cogs - period_expenses, 2)
+        profit_margin_pct = round((net_profit / period_revenue * 100), 2) if period_revenue > 0 else 0.0
+
+        # 6. Supplier Payables (Creditors)
+        g.cursor.execute("""
+            SELECT 
+                COUNT(*) AS unpaid_count,
+                COALESCE(SUM(grand_total), 0) AS unpaid_total
+            FROM purchase_invoices
+            WHERE payment_status <> 'Paid'
+        """)
+        sup_row = g.cursor.fetchone() or {}
+        supplier_unpaid_amount = float(sup_row.get("unpaid_total") or 0)
+        supplier_unpaid_count = int(sup_row.get("unpaid_count") or 0)
+
+        # 7. Scrap Value (Separate Salvage Asset)
+        g.cursor.execute("""
+            SELECT 
+                COUNT(*) AS item_count,
+                COALESCE(SUM(available_quantity), 0) AS total_qty
+            FROM scraps
+            WHERE status = 'Available'
+        """)
+        scrap_row = g.cursor.fetchone() or {}
+        scrap_units = float(scrap_row.get("total_qty") or 0)
+        scrap_items_cnt = int(scrap_row.get("item_count") or 0)
+        # Scrap estimated salvage value (~₹150/unit)
+        scrap_value = round(scrap_units * 150.0, 2)
+
+        return jsonify({
+            "success": True,
+            "report_name": "Business Valuation Dashboard",
+            "from_date": from_date,
+            "to_date": to_date,
+            "as_of_date": to_date,
+            "accounts": account_rows,
+            "total_account_balance": round(total_account_balance, 2),
+            "stock": {
+                "purchase_value": round(stock_purchase_val, 2),
+                "retail_value": round(stock_retail_val, 2),
+                "total_units": int(stock_units) if stock_units.is_integer() else round(stock_units, 2),
+                "product_count": stock_prod_count,
+                "share_pct": stock_share_pct
+            },
+            "customer_receivables": {
+                "total_receivable": total_receivable,
+                "active_customers": active_credit_customers,
+                "share_pct": credit_share_pct
+            },
+            "grand_total": grand_total,
+            "formula_string": formula_string,
+            "net_profit": {
+                "revenue": round(period_revenue, 2),
+                "cogs": round(period_cogs, 2),
+                "expenses": round(period_expenses, 2),
+                "total_cost": round(period_cogs + period_expenses, 2),
+                "net_profit": net_profit,
+                "margin_pct": profit_margin_pct
+            },
+            "supplier_payables": {
+                "unpaid_amount": round(supplier_unpaid_amount, 2),
+                "unpaid_bills_count": supplier_unpaid_count
+            },
+            "scrap": {
+                "scrap_value": scrap_value,
+                "total_units": int(scrap_units) if scrap_units.is_integer() else round(scrap_units, 2),
+                "item_count": scrap_items_cnt
+            }
+        })
+    except Exception as e:
+        print("Valuation Report Error:", e)
+        return jsonify({"success": False, "message": str(e)}), 500
 
 
 # ==========================================
@@ -12786,7 +13733,7 @@ def export_report(report_type):
 
     report_type = (report_type or "").strip().lower()
     format_type = (request.args.get("format") or "csv").strip().lower()
-    if report_type not in {"sales", "purchases", "expenses", "profit-loss", "outstanding", "services", "inventory", "fast-moving", "scrap"}:
+    if report_type not in {"sales", "purchases", "expenses", "profit-loss", "outstanding", "services", "inventory", "fast-moving", "scrap", "valuation"}:
         return jsonify({
             "success": False,
             "message": "Invalid report type"
@@ -12801,7 +13748,8 @@ def export_report(report_type):
         "services": reports_services,
         "inventory": reports_inventory,
         "fast-moving": reports_fast_moving,
-        "scrap": reports_scrap
+        "scrap": reports_scrap,
+        "valuation": reports_valuation
     }
 
     handler = report_handlers.get(report_type)
@@ -12840,6 +13788,81 @@ def export_report(report_type):
     elif report_type == "scrap":
         headers = ["Date", "Item Name", "Available Qty", "Sold Qty", "Total Qty", "Unit", "Source", "Job/Customer Ref", "Reason", "Status"]
         values = [[r.get("scrap_date"), r.get("item_name"), r.get("available_quantity"), r.get("sold_quantity"), r.get("quantity"), r.get("unit"), r.get("source_type"), r.get("customer_job_no"), r.get("reason"), r.get("status")] for r in rows]
+    elif report_type == "valuation":
+        headers = ["Classification", "Account / Component", "Inflow (+)", "Outflow (-)", "Current Balance", "Share %", "Status & Remarks"]
+        values = []
+        for a in data.get("accounts", []):
+            remarks = f"प्राप्त: ₹ {a.get('inflow', 0):,.2f} | व्यय: ₹ {a.get('outflow', 0):,.2f}"
+            if a.get("transfers_in") or a.get("transfers_out"):
+                remarks += f" | ट्रांसफर: +₹ {a.get('transfers_in', 0):,.2f} / -₹ {a.get('transfers_out', 0):,.2f}"
+            values.append([
+                a.get("account_type", "").capitalize(),
+                a.get("account_name"),
+                a.get("inflow", 0),
+                a.get("outflow", 0),
+                a.get("current_balance", 0),
+                f"{a.get('share_pct', 0)}%",
+                remarks
+            ])
+        stk = data.get("stock", {})
+        values.append([
+            "Current Inventory Asset",
+            f"कुल स्टॉक मूल्य ({stk.get('total_units', 0)} Units)",
+            stk.get("purchase_value", 0),
+            0.0,
+            stk.get("purchase_value", 0),
+            f"{stk.get('share_pct', 0)}%",
+            f"क्रय लागत मूल्य (खुदरा मूल्य: ₹ {stk.get('retail_value', 0):,.2f})"
+        ])
+        cr = data.get("customer_receivables", {})
+        values.append([
+            "Customer Receivables",
+            f"कस्टमर उधारी ({cr.get('active_customers', 0)} सक्रिय ग्राहक)",
+            cr.get("total_receivable", 0),
+            0.0,
+            cr.get("total_receivable", 0),
+            f"{cr.get('share_pct', 0)}%",
+            "बाजार में फंसा ग्राहक बकाया"
+        ])
+        values.append([
+            "Total Business Assets",
+            "TOTAL AMOUNT (कुल बिजनेस वैल्यू योग)",
+            0.0,
+            0.0,
+            data.get("grand_total", 0),
+            "100.0%",
+            "कैश + बैंक खाते + कुल स्टॉक + क्रेडिट बैलेंस का कुल योग"
+        ])
+        np_data = data.get("net_profit", {})
+        values.append([
+            "Period Net Profit",
+            f"कुल शुद्ध लाभ ({data.get('from_date')} से {data.get('to_date')})",
+            np_data.get("revenue", 0),
+            np_data.get("total_cost", 0),
+            np_data.get("net_profit", 0),
+            f"{np_data.get('margin_pct', 0)}% Margin",
+            f"कुल रेवेन्यू: ₹ {np_data.get('revenue', 0):,.2f} - (लागत + खर्चे)"
+        ])
+        sp = data.get("supplier_payables", {})
+        values.append([
+            "Current Liability (Creditors)",
+            f"सप्लायरों को देय राशि ({sp.get('unpaid_bills_count', 0)} अनपेड बिल)",
+            0.0,
+            0.0,
+            sp.get("unpaid_amount", 0),
+            "0.0%",
+            "सप्लायर को देना है लेकिन अभी दिया नहीं है"
+        ])
+        sc = data.get("scrap", {})
+        values.append([
+            "Separate Salvage Asset",
+            f"स्क्रैप सामग्री मूल्य ({sc.get('total_units', 0)} मात्रा / {sc.get('item_count', 0)} मदें)",
+            sc.get("scrap_value", 0),
+            0.0,
+            sc.get("scrap_value", 0),
+            "अलग (Excluded)",
+            "स्क्रैप की वैल्यू अलग रखी गई है - कुल योग में शामिल नहीं है"
+        ])
     elif report_type == "fast-moving":
         headers = ["Rank", "Product Name", "Category", "Brand", "Sold Qty", "Unit", "Total Revenue (Rs.)", "Avg Price (Rs.)", "Current Stock", "Movement Status"]
         values = [[r.get("rank"), r.get("product_name"), r.get("category"), r.get("brand"), r.get("total_sold_qty"), r.get("unit"), r.get("total_revenue"), r.get("avg_price"), r.get("current_stock"), r.get("status_badge")] for r in rows]

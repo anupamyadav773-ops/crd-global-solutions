@@ -867,3 +867,51 @@ window.openEditPaymentModal = openEditPaymentModal;
 window.closeEditPaymentModal = closeEditPaymentModal;
 window.submitEditPayment = submitEditPayment;
 window.deleteCustomerPayment = deleteCustomerPayment;
+
+
+async function loadActiveCustomerPaymentAccounts() {
+    const paySelects = [document.getElementById("payMethod"), document.getElementById("editPayMethod")].filter(Boolean);
+    if (paySelects.length === 0) return;
+
+    try {
+        const res = await fetch(`${API_BASE}/accounts?status=active`);
+        const result = await res.json();
+        if (!res.ok || !result.success || !Array.isArray(result.accounts) || result.accounts.length === 0) {
+            return;
+        }
+
+        const accounts = result.accounts;
+
+        paySelects.forEach(selectEl => {
+            const currentVal = selectEl.value;
+            let optionsHtml = '';
+            let defaultVal = '';
+
+            accounts.forEach(acc => {
+                const accName = acc.account_name;
+                const isDef = Boolean(acc.is_default);
+                if (isDef && !defaultVal) defaultVal = accName;
+                let typeLabel = '';
+                if (acc.account_type === 'bank') typeLabel = ' (Bank)';
+                else if (acc.account_type === 'upi') typeLabel = ' (UPI)';
+                else if (acc.account_type === 'cash') typeLabel = ' (Cash)';
+
+                optionsHtml += `<option value="${accName}">${accName}${typeLabel}</option>`;
+            });
+
+            if (currentVal && !accounts.some(a => a.account_name === currentVal)) {
+                optionsHtml = `<option value="${currentVal}">${currentVal}</option>` + optionsHtml;
+            }
+
+            selectEl.innerHTML = optionsHtml;
+            if (currentVal && accounts.some(a => a.account_name === currentVal)) {
+                selectEl.value = currentVal;
+            } else if (defaultVal && !currentVal) {
+                selectEl.value = defaultVal;
+            }
+        });
+    } catch (e) {
+        console.warn("Could not load dynamic accounts for customer payments:", e);
+    }
+}
+

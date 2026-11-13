@@ -1392,3 +1392,394 @@ body {
     font-family: monospace;
     font-size: 12.5px;
 }
+
+
+/* ==========================================
+   BANK & CASH ACCOUNTS MANAGEMENT STYLES
+   ========================================== */
+
+.accounts-mgmt-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    animation: fadeIn 0.2s ease-in-out;
+}
+
+.accounts-header-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 22px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.accounts-header-left {
+    max-width: 700px;
+}
+
+.accounts-header-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.btn-refresh-accounts {
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    color: #475569;
+    padding: 9px 16px;
+    border-radius: 8px;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-refresh-accounts:hover {
+    background: #f8fafc;
+    border-color: #94a3b8;
+    color: #1e293b;
+}
+
+.btn-add-account {
+    background: #ff6600;
+    border: 1px solid #ff6600;
+    color: #ffffff;
+    padding: 9px 18px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 2px 4px rgba(255,102,0,0.25);
+}
+
+.btn-add-account:hover {
+    background: #e65c00;
+    border-color: #e65c00;
+    transform: translateY(-1px);
+}
+
+/* Stats Cards */
+.accounts-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+}
+
+.acc-stat-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 18px 20px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+
+.acc-stat-label {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.acc-stat-value {
+    font-size: 24px;
+    font-weight: 800;
+    color: #0f172a;
+    margin-top: 6px;
+}
+
+/* Accounts Table */
+.accounts-table-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    overflow: hidden;
+}
+
+.accounts-table-header {
+    padding: 16px 20px;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.accounts-table-responsive {
+    overflow-x: auto;
+}
+
+.accounts-mgmt-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+}
+
+.accounts-mgmt-table th {
+    background: #f8fafc;
+    color: #475569;
+    font-weight: 700;
+    text-align: left;
+    padding: 12px 16px;
+    border-bottom: 2px solid #e2e8f0;
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+.accounts-mgmt-table td {
+    padding: 14px 16px;
+    border-bottom: 1px solid #f1f5f9;
+    color: #334155;
+    vertical-align: middle;
+}
+
+.accounts-mgmt-table tr:hover td {
+    background: #f8fafc;
+}
+
+.acc-row-inactive td {
+    opacity: 0.6;
+}
+
+/* Badges */
+.acc-type-pill {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.acc-pill-cash {
+    background: #dcfce7;
+    color: #15803d;
+    border: 1px solid #bbf7d0;
+}
+
+.acc-pill-bank {
+    background: #e0f2fe;
+    color: #0369a1;
+    border: 1px solid #bae6fd;
+}
+
+.acc-pill-upi {
+    background: #f3e8ff;
+    color: #7e22ce;
+    border: 1px solid #e9d5ff;
+}
+
+.acc-pill-other {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+}
+
+.acc-default-badge {
+    background: #fef3c7;
+    color: #b45309;
+    border: 1px solid #fde68a;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 10px;
+}
+
+.acc-status-active {
+    color: #16a34a;
+    font-weight: 700;
+    font-size: 12.5px;
+}
+
+.acc-status-inactive {
+    color: #dc2626;
+    font-weight: 700;
+    font-size: 12.5px;
+}
+
+/* Action Buttons */
+.btn-acc-action {
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin: 0 3px;
+}
+
+.btn-acc-edit {
+    background: #e0f2fe;
+    color: #0284c7;
+}
+
+.btn-acc-edit:hover {
+    background: #0284c7;
+    color: #ffffff;
+}
+
+.btn-acc-delete {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.btn-acc-delete:hover {
+    background: #dc2626;
+    color: #ffffff;
+}
+
+/* Modal */
+.acc-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(2px);
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.acc-modal-content {
+    background: #ffffff;
+    border-radius: 14px;
+    width: 100%;
+    max-width: 620px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    animation: zoomIn 0.2s ease-out;
+}
+
+@keyframes zoomIn {
+    from { opacity: 0; transform: scale(0.96); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.acc-modal-header {
+    padding: 18px 24px;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.acc-modal-close {
+    background: transparent;
+    border: none;
+    font-size: 26px;
+    line-height: 1;
+    color: #94a3b8;
+    cursor: pointer;
+    transition: color 0.15s;
+}
+
+.acc-modal-close:hover {
+    color: #dc2626;
+}
+
+.acc-modal-body {
+    padding: 20px 24px;
+    overflow-y: auto;
+}
+
+.acc-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.acc-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.acc-form-group.full-width {
+    grid-column: 1 / -1;
+}
+
+.acc-form-group label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+}
+
+.acc-form-input {
+    padding: 9px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 7px;
+    font-size: 13.5px;
+    color: #0f172a;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.acc-form-input:focus {
+    border-color: #ff6600;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(255,102,0,0.15);
+}
+
+.acc-modal-footer {
+    padding: 16px 24px;
+    background: #f8fafc;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.btn-acc-cancel {
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    color: #475569;
+    padding: 9px 18px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 13.5px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.btn-acc-cancel:hover {
+    background: #e2e8f0;
+}
+
+.btn-acc-save {
+    background: #ff6600;
+    border: 1px solid #ff6600;
+    color: #ffffff;
+    padding: 9px 22px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 13.5px;
+    cursor: pointer;
+    transition: background 0.15s;
+    box-shadow: 0 2px 4px rgba(255,102,0,0.25);
+}
+
+.btn-acc-save:hover {
+    background: #e65c00;
+}

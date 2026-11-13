@@ -3308,6 +3308,13 @@ async function loadInvoiceForEdit(invoiceId) {
 
         const paymentMethodEl = document.getElementById("payment_method");
         if (paymentMethodEl && invoice.payment_method) {
+            let exists = Array.from(paymentMethodEl.options).some(opt => opt.value === invoice.payment_method);
+            if (!exists) {
+                const opt = document.createElement("option");
+                opt.value = invoice.payment_method;
+                opt.textContent = invoice.payment_method;
+                paymentMethodEl.appendChild(opt);
+            }
             paymentMethodEl.value = invoice.payment_method;
         }
 
@@ -3572,9 +3579,59 @@ async function loadInvoiceForEdit(invoiceId) {
 // START
 // ==========================================
 
+
+async function loadActivePaymentAccounts() {
+    const paymentMethodEl = document.getElementById("payment_method");
+    if (!paymentMethodEl) return;
+
+    try {
+        const res = await fetch(`${API_BASE}/accounts?status=active`);
+        const result = await res.json();
+        if (!res.ok || !result.success || !Array.isArray(result.accounts) || result.accounts.length === 0) {
+            return;
+        }
+
+        const accounts = result.accounts;
+        const previousVal = paymentMethodEl.value;
+
+        let optionsHtml = '';
+        let defaultVal = '';
+
+        accounts.forEach(acc => {
+            const accName = acc.account_name;
+            const isDef = Boolean(acc.is_default);
+            if (isDef && !defaultVal) defaultVal = accName;
+            let typeLabel = '';
+            if (acc.account_type === 'bank') typeLabel = ' (Bank)';
+            else if (acc.account_type === 'upi') typeLabel = ' (UPI)';
+            else if (acc.account_type === 'cash') typeLabel = ' (Cash)';
+
+            optionsHtml += `<option value="${escapeHtml(accName)}">${escapeHtml(accName)}${typeLabel}</option>`;
+        });
+
+        optionsHtml += `<option value="Split">Split / Multi-Mode (स्प्लिट)</option>`;
+        optionsHtml += `<option value="Credit">Credit (उधारी)</option>`;
+
+        if (previousVal && !accounts.some(a => a.account_name === previousVal) && previousVal !== 'Split' && previousVal !== 'Credit') {
+            optionsHtml = `<option value="${escapeHtml(previousVal)}">${escapeHtml(previousVal)}</option>` + optionsHtml;
+        }
+
+        paymentMethodEl.innerHTML = optionsHtml;
+
+        if (previousVal && (accounts.some(a => a.account_name === previousVal) || previousVal === 'Split' || previousVal === 'Credit')) {
+            paymentMethodEl.value = previousVal;
+        } else if (defaultVal) {
+            paymentMethodEl.value = defaultVal;
+        }
+    } catch (e) {
+        console.warn("Could not load dynamic accounts for sales:", e);
+    }
+}
+
 async function initSalesPage() {
     initPaymentControls();
     initCustomerSearch();
+    await loadActivePaymentAccounts();
     await loadCustomers();
     await loadProducts();
 

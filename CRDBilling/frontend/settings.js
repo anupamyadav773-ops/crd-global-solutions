@@ -125,6 +125,11 @@ const settingsConfig = [
         ]
     },
     {
+        id: 'accounts-management',
+        name: '🏦 Bank & Cash Accounts (खाता प्रबंधन)',
+        fields: []
+    },
+    {
         id: 'users-security',
         name: 'Users & Security',
         fields: [
@@ -612,6 +617,10 @@ function initImageUploaders(container) {
 
 function renderActiveCategory() {
     const category = settingsConfig.find((item) => item.id === state.activeTab) || settingsConfig[0];
+    if (category.id === 'accounts-management') {
+        renderAccountsManagementSection();
+        return;
+    }
     if (category.id === 'ai-assistant') {
         renderAiAssistantSection();
         return;
@@ -1608,3 +1617,472 @@ window.handleCreateAiKey = handleCreateAiKey;
 window.handleToggleAiKey = handleToggleAiKey;
 window.handleDeleteAiKey = handleDeleteAiKey;
 window.loadAiKeysTable = loadAiKeysTable;
+
+
+/* ==========================================
+   BANK & CASH ACCOUNTS MANAGEMENT
+   ========================================== */
+
+let systemAccountsCache = [];
+
+function renderAccountsManagementSection() {
+    contentEl.innerHTML = `
+        <div class="accounts-mgmt-wrapper">
+            <!-- Header Card -->
+            <div class="accounts-header-card">
+                <div class="accounts-header-left">
+                    <h3 style="margin: 0; font-size: 18px; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+                        <span>🏦</span> Bank & Cash Accounts Management (खाता प्रबंधन)
+                    </h3>
+                    <p style="margin: 6px 0 0 0; color: #64748b; font-size: 13.5px;">
+                        अपने सभी बैंक, कैश इन हैण्ड, UPI और अन्य वित्तीय खातों को जोड़ें, एडिट करें या हटाएं। ये खाते सेल, परचेज और खर्च एंट्री में स्वतः दिखाई देंगे।
+                    </p>
+                </div>
+                <div class="accounts-header-actions">
+                    <button type="button" class="btn-refresh-accounts" id="btnRefreshAccounts" title="रिफ्रेश करें">
+                        🔄 रिफ्रेश
+                    </button>
+                    <button type="button" class="btn-add-account" id="btnOpenAddAccountModal">
+                        <span>➕</span> नया खाता जोड़ें
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats Bar -->
+            <div class="accounts-stats-grid" id="accountsStatsGrid">
+                <div class="acc-stat-card">
+                    <div class="acc-stat-label">कुल खाते (Total Accounts)</div>
+                    <div class="acc-stat-value" id="statTotalAccounts">-</div>
+                </div>
+                <div class="acc-stat-card">
+                    <div class="acc-stat-label">सक्रिय खाते (Active)</div>
+                    <div class="acc-stat-value" style="color: #16a34a;" id="statActiveAccounts">-</div>
+                </div>
+                <div class="acc-stat-card">
+                    <div class="acc-stat-label">कुल उपलब्ध बैलेंस (Total Balance)</div>
+                    <div class="acc-stat-value" style="color: #0284c7;" id="statTotalBalance">₹ 0.00</div>
+                </div>
+            </div>
+
+            <!-- Accounts Table Card -->
+            <div class="accounts-table-card">
+                <div class="accounts-table-header">
+                    <span style="font-weight: 700; color: #1e293b; font-size: 15px;">📋 बैंक व नकद खातों की सूची</span>
+                    <span id="accountsCountBadge" style="font-size: 12px; background: #e2e8f0; color: #475569; padding: 2px 8px; border-radius: 12px; font-weight: 600;">Loading...</span>
+                </div>
+                <div class="accounts-table-responsive">
+                    <table class="accounts-mgmt-table">
+                        <thead>
+                            <tr>
+                                <th>खाता नाम (Account Name)</th>
+                                <th>प्रकार (Type)</th>
+                                <th>बैंक / UPI विवरण</th>
+                                <th style="text-align: right;">प्रारंभिक शेष (₹)</th>
+                                <th style="text-align: right;">प्राप्त (+)</th>
+                                <th style="text-align: right;">व्यय (-)</th>
+                                <th style="text-align: right;">वर्तमान बैलेंस (₹)</th>
+                                <th>स्थिति</th>
+                                <th style="text-align: center;">एक्शन (Actions)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="accountsTableBody">
+                            <tr>
+                                <td colspan="9" style="text-align: center; padding: 30px; color: #64748b;">
+                                    ⏳ खाते लोड हो रहे हैं...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add/Edit Account Modal -->
+        <div id="accountModal" class="acc-modal-overlay" style="display: none;">
+            <div class="acc-modal-content">
+                <div class="acc-modal-header">
+                    <h3 id="accModalTitle" style="margin: 0; font-size: 17px; font-weight: 700; color: #0f172a;">
+                        ➕ नया खाता जोड़ें (Add Account)
+                    </h3>
+                    <button type="button" class="acc-modal-close" id="btnCloseAccModal">&times;</button>
+                </div>
+                <form id="accountForm" onsubmit="event.preventDefault(); handleSaveAccount();">
+                    <input type="hidden" id="accFormId" value="" />
+                    <div class="acc-modal-body">
+                        <div class="acc-form-grid">
+                            <div class="acc-form-group full-width">
+                                <label for="accFormName">खाता नाम (Account Name) <span style="color: #dc2626;">*</span></label>
+                                <input type="text" id="accFormName" class="acc-form-input" required placeholder="e.g. HDFC Current Account, Cash Counter 1, UPI PhonePe" />
+                            </div>
+
+                            <div class="acc-form-group">
+                                <label for="accFormType">खाता प्रकार (Account Type) <span style="color: #dc2626;">*</span></label>
+                                <select id="accFormType" class="acc-form-input" required onchange="toggleAccountTypeFields()">
+                                    <option value="bank">🏦 Bank Account (बैंक खाता)</option>
+                                    <option value="cash">💵 Cash in Hand (कैश इन हैण्ड)</option>
+                                    <option value="upi">📱 UPI / QR (यूपीआई)</option>
+                                    <option value="wallet">👛 Wallet (वॉलेट)</option>
+                                    <option value="other">💼 Other (अन्य वित्तीय खाता)</option>
+                                </select>
+                            </div>
+
+                            <div class="acc-form-group">
+                                <label for="accFormOpeningBalance">प्रारंभिक शेष (Opening Balance ₹)</label>
+                                <input type="number" step="0.01" id="accFormOpeningBalance" class="acc-form-input" placeholder="0.00" value="0.00" />
+                            </div>
+
+                            <!-- Bank specific fields -->
+                            <div class="acc-form-group bank-field">
+                                <label for="accFormBankName">बैंक का नाम (Bank Name)</label>
+                                <input type="text" id="accFormBankName" class="acc-form-input" placeholder="e.g. HDFC Bank, SBI" />
+                            </div>
+
+                            <div class="acc-form-group bank-field">
+                                <label for="accFormAccountNo">खाता संख्या (Account Number)</label>
+                                <input type="text" id="accFormAccountNo" class="acc-form-input" placeholder="e.g. 50200012345678" />
+                            </div>
+
+                            <div class="acc-form-group bank-field">
+                                <label for="accFormIfsc">IFSC कोड (IFSC Code)</label>
+                                <input type="text" id="accFormIfsc" class="acc-form-input" placeholder="e.g. HDFC0001234" />
+                            </div>
+
+                            <div class="acc-form-group bank-field">
+                                <label for="accFormBranch">शाखा का नाम (Branch Name)</label>
+                                <input type="text" id="accFormBranch" class="acc-form-input" placeholder="e.g. Station Road Branch" />
+                            </div>
+
+                            <!-- UPI specific field -->
+                            <div class="acc-form-group full-width upi-field">
+                                <label for="accFormUpiId">UPI ID / VPA</label>
+                                <input type="text" id="accFormUpiId" class="acc-form-input" placeholder="e.g. 9876543210@paytm, business@okhdfcbank" />
+                            </div>
+
+                            <div class="acc-form-group">
+                                <label for="accFormStatus">स्थिति (Status)</label>
+                                <select id="accFormStatus" class="acc-form-input">
+                                    <option value="active">🟢 सक्रिय (Active)</option>
+                                    <option value="inactive">🔴 निष्क्रिय (Inactive)</option>
+                                </select>
+                            </div>
+
+                            <div class="acc-form-group" style="display: flex; align-items: center; gap: 8px; margin-top: 24px;">
+                                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600; color: #1e293b; user-select: none;">
+                                    <input type="checkbox" id="accFormIsDefault" style="width: 18px; height: 18px; cursor: pointer;" />
+                                    <span>डिफ़ॉल्ट खाता बनाएं (Set as Default)</span>
+                                </label>
+                            </div>
+
+                            <div class="acc-form-group full-width">
+                                <label for="accFormNotes">विवरण / टिप्पणी (Notes / Description)</label>
+                                <textarea id="accFormNotes" class="acc-form-input" rows="2" placeholder="खाते से संबंधित कोई भी जानकारी..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="acc-modal-footer">
+                        <button type="button" class="btn-acc-cancel" id="btnCancelAccModal">रद्द करें (Cancel)</button>
+                        <button type="submit" class="btn-acc-save" id="btnSaveAccount">💾 सुरक्षित करें (Save Account)</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    `;
+
+    initAccountsEventListeners();
+    loadAccountsTable();
+}
+
+async function loadAccountsTable() {
+    const tbody = document.getElementById('accountsTableBody');
+    if (!tbody) return;
+
+    try {
+        const response = await fetch(`${API_BASE}/accounts`);
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="9" style="text-align: center; color: #dc2626; padding: 24px;">
+                        ⚠️ खाते लोड करने में समस्या: ${escapeHtml(result.message || 'Server error')}
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        const accounts = result.accounts || [];
+        systemAccountsCache = accounts;
+
+        const countBadge = document.getElementById('accountsCountBadge');
+        if (countBadge) countBadge.textContent = `${accounts.length} खाते`;
+
+        const statTotal = document.getElementById('statTotalAccounts');
+        const statActive = document.getElementById('statActiveAccounts');
+        const statBal = document.getElementById('statTotalBalance');
+
+        if (statTotal) statTotal.textContent = accounts.length;
+        if (statActive) statActive.textContent = accounts.filter(a => a.status === 'active').length;
+        const totalBal = accounts.reduce((sum, a) => sum + (Number(a.current_balance) || 0), 0);
+        if (statBal) statBal.textContent = '₹ ' + totalBal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        if (accounts.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="9" style="text-align: center; color: #64748b; padding: 30px;">
+                        💡 अभी तक कोई खाता नहीं बनाया गया है। ऊपर 'नया खाता जोड़ें' बटन से खाता जोड़ें।
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        tbody.innerHTML = accounts.map((acc) => {
+            const isDef = Boolean(acc.is_default);
+            const isActive = acc.status === 'active';
+
+            let typeBadge = '';
+            if (acc.account_type === 'cash') {
+                typeBadge = '<span class="acc-type-pill acc-pill-cash">💵 Cash in Hand</span>';
+            } else if (acc.account_type === 'bank') {
+                typeBadge = '<span class="acc-type-pill acc-pill-bank">🏦 Bank Account</span>';
+            } else if (acc.account_type === 'upi') {
+                typeBadge = '<span class="acc-type-pill acc-pill-upi">📱 UPI / QR</span>';
+            } else {
+                typeBadge = `<span class="acc-type-pill acc-pill-other">💼 ${escapeHtml(acc.account_type)}</span>`;
+            }
+
+            let detailText = '-';
+            if (acc.account_type === 'bank') {
+                const parts = [];
+                if (acc.bank_name) parts.push(acc.bank_name);
+                if (acc.account_number) parts.push(`A/C: ${acc.account_number}`);
+                if (acc.ifsc_code) parts.push(`IFSC: ${acc.ifsc_code}`);
+                detailText = parts.length > 0 ? parts.join('<br>') : '-';
+            } else if (acc.account_type === 'upi') {
+                detailText = acc.upi_id ? `<code style="font-size:12px; background:#f1f5f9; padding:2px 6px; border-radius:4px;">${escapeHtml(acc.upi_id)}</code>` : '-';
+            } else if (acc.notes) {
+                detailText = `<span style="font-size:12px; color:#64748b;">${escapeHtml(acc.notes)}</span>`;
+            }
+
+            const curBal = Number(acc.current_balance) || 0;
+            const balColor = curBal >= 0 ? '#0f172a' : '#dc2626';
+
+            return `
+                <tr class="${!isActive ? 'acc-row-inactive' : ''}">
+                    <td style="font-weight: 700; color: #0f172a;">
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <span>${escapeHtml(acc.account_name)}</span>
+                            ${isDef ? '<span class="acc-default-badge" title="डिफ़ॉल्ट खाता">★ Default</span>' : ''}
+                        </div>
+                    </td>
+                    <td>${typeBadge}</td>
+                    <td style="font-size: 12.5px; color: #475569;">${detailText}</td>
+                    <td style="text-align: right; font-size: 13px;">₹ ${(Number(acc.opening_balance) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    <td style="text-align: right; color: #16a34a; font-weight: 600; font-size: 13px;">+₹ ${(Number(acc.inflow) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    <td style="text-align: right; color: #dc2626; font-weight: 600; font-size: 13px;">-₹ ${(Number(acc.outflow) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    <td style="text-align: right; font-weight: 800; font-size: 14px; color: ${balColor};">
+                        ₹ ${curBal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </td>
+                    <td>
+                        ${isActive
+                            ? '<span class="acc-status-active">● सक्रिय</span>'
+                            : '<span class="acc-status-inactive">● निष्क्रिय</span>'}
+                    </td>
+                    <td style="text-align: center; white-space: nowrap;">
+                        <button type="button" class="btn-acc-action btn-acc-edit" onclick="openAccountModal(${acc.id})" title="संशोधित करें (Edit)">
+                            ✏️ Edit
+                        </button>
+                        <button type="button" class="btn-acc-action btn-acc-delete" onclick="handleDeleteAccount(${acc.id}, '${escapeHtml(acc.account_name).replace(/'/g, "\\'")}')" title="हटाएं (Delete)">
+                            🗑️ Delete
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+    } catch (err) {
+        console.error('Error loading accounts:', err);
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="9" style="text-align: center; color: #dc2626; padding: 24px;">
+                    ⚠️ लोड करने में त्रुटि: ${escapeHtml(err.message || 'Network error')}
+                </td>
+            </tr>
+        `;
+    }
+}
+
+function initAccountsEventListeners() {
+    const btnAdd = document.getElementById('btnOpenAddAccountModal');
+    const btnClose = document.getElementById('btnCloseAccModal');
+    const btnCancel = document.getElementById('btnCancelAccModal');
+    const btnRefresh = document.getElementById('btnRefreshAccounts');
+
+    if (btnAdd) btnAdd.onclick = () => openAccountModal();
+    if (btnClose) btnClose.onclick = closeAccountModal;
+    if (btnCancel) btnCancel.onclick = closeAccountModal;
+    if (btnRefresh) btnRefresh.onclick = () => loadAccountsTable();
+}
+
+function openAccountModal(accountId = null) {
+    const modal = document.getElementById('accountModal');
+    const form = document.getElementById('accountForm');
+    if (!modal || !form) return;
+
+    form.reset();
+    document.getElementById('accFormId').value = '';
+
+    const titleEl = document.getElementById('accModalTitle');
+
+    if (accountId) {
+        const acc = systemAccountsCache.find(a => a.id === accountId);
+        if (!acc) return;
+        if (titleEl) titleEl.textContent = `✏️ खाता संशोधित करें: ${acc.account_name}`;
+        document.getElementById('accFormId').value = acc.id;
+        document.getElementById('accFormName').value = acc.account_name || '';
+        document.getElementById('accFormType').value = acc.account_type || 'bank';
+        document.getElementById('accFormOpeningBalance').value = acc.opening_balance || 0;
+        document.getElementById('accFormBankName').value = acc.bank_name || '';
+        document.getElementById('accFormAccountNo').value = acc.account_number || '';
+        document.getElementById('accFormIfsc').value = acc.ifsc_code || '';
+        document.getElementById('accFormBranch').value = acc.branch_name || '';
+        document.getElementById('accFormUpiId').value = acc.upi_id || '';
+        document.getElementById('accFormStatus').value = acc.status || 'active';
+        document.getElementById('accFormIsDefault').checked = Boolean(acc.is_default);
+        document.getElementById('accFormNotes').value = acc.notes || '';
+    } else {
+        if (titleEl) titleEl.textContent = '➕ नया खाता जोड़ें (Add Account)';
+        document.getElementById('accFormType').value = 'bank';
+        document.getElementById('accFormOpeningBalance').value = '0.00';
+        document.getElementById('accFormStatus').value = 'active';
+        document.getElementById('accFormIsDefault').checked = false;
+    }
+
+    toggleAccountTypeFields();
+    modal.style.display = 'flex';
+}
+
+function closeAccountModal() {
+    const modal = document.getElementById('accountModal');
+    if (modal) modal.style.display = 'none';
+}
+
+function toggleAccountTypeFields() {
+    const type = document.getElementById('accFormType')?.value || 'bank';
+    const bankFields = document.querySelectorAll('.bank-field');
+    const upiFields = document.querySelectorAll('.upi-field');
+
+    if (type === 'bank') {
+        bankFields.forEach(el => el.style.display = 'block');
+        upiFields.forEach(el => el.style.display = 'block');
+    } else if (type === 'upi') {
+        bankFields.forEach(el => el.style.display = 'none');
+        upiFields.forEach(el => el.style.display = 'block');
+    } else {
+        bankFields.forEach(el => el.style.display = 'none');
+        upiFields.forEach(el => el.style.display = 'none');
+    }
+}
+
+async function handleSaveAccount() {
+    const id = document.getElementById('accFormId').value;
+    const name = document.getElementById('accFormName').value.trim();
+    const type = document.getElementById('accFormType').value;
+    const openingBal = parseFloat(document.getElementById('accFormOpeningBalance').value) || 0;
+    const bankName = document.getElementById('accFormBankName').value.trim();
+    const accountNo = document.getElementById('accFormAccountNo').value.trim();
+    const ifsc = document.getElementById('accFormIfsc').value.trim();
+    const branch = document.getElementById('accFormBranch').value.trim();
+    const upiId = document.getElementById('accFormUpiId').value.trim();
+    const status = document.getElementById('accFormStatus').value;
+    const isDefault = document.getElementById('accFormIsDefault').checked;
+    const notes = document.getElementById('accFormNotes').value.trim();
+
+    if (!name) {
+        alert('कृपया खाता नाम (Account Name) अवश्य लिखें।');
+        document.getElementById('accFormName')?.focus();
+        return;
+    }
+
+    const payload = {
+        account_name: name,
+        account_type: type,
+        opening_balance: openingBal,
+        bank_name: bankName,
+        account_number: accountNo,
+        ifsc_code: ifsc,
+        branch_name: branch,
+        upi_id: upiId,
+        status: status,
+        is_default: isDefault,
+        notes: notes
+    };
+
+    const saveBtn = document.getElementById('btnSaveAccount');
+    const originalText = saveBtn ? saveBtn.innerHTML : '';
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '⏳ सेव हो रहा है...';
+    }
+
+    try {
+        const url = id ? `${API_BASE}/accounts/${id}` : `${API_BASE}/accounts`;
+        const method = id ? 'PUT' : 'POST';
+
+        const response = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+            alert('खाता सेव करने में त्रुटि: ' + (result.message || 'Error'));
+            return;
+        }
+
+        alert(result.message || 'खाता सफलतापूर्वक सुरक्षित कर लिया गया।');
+        closeAccountModal();
+        await loadAccountsTable();
+    } catch (err) {
+        console.error('Save account error:', err);
+        alert('सर्वर त्रुटि: ' + err.message);
+    } finally {
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = originalText;
+        }
+    }
+}
+
+async function handleDeleteAccount(id, name) {
+    const isConfirmed = confirm(
+        `क्या आप वाकई '${name}' खाता को हटाना (Delete) चाहते हैं?\n\n` +
+        `• यदि इस खाते से संबंधित कोई ट्रांजेक्शन (सेल/परचेज/खर्च) मौजूद हैं, तो यह खाता स्वतः निष्क्रीय (Inactive) कर दिया जाएगा ताकि पुराना रिकॉर्ड सुरक्षित रहे।\n` +
+        `• यदि कोई पुराना ट्रांजेक्शन नहीं है, तो यह खाता स्थायी रूप से हटा दिया जाएगा।`
+    );
+    if (!isConfirmed) return;
+
+    try {
+        const response = await fetch(`${API_BASE}/accounts/${id}`, {
+            method: 'DELETE'
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+            alert('खाता हटाने में त्रुटि: ' + (result.message || 'Error'));
+            return;
+        }
+        alert(result.message || 'खाता सफलतापूर्वक हटा दिया गया।');
+        await loadAccountsTable();
+    } catch (err) {
+        console.error('Delete account error:', err);
+        alert('सर्वर त्रुटि: ' + err.message);
+    }
+}
+
+window.openAccountModal = openAccountModal;
+window.handleDeleteAccount = handleDeleteAccount;
+window.toggleAccountTypeFields = toggleAccountTypeFields;
+window.handleSaveAccount = handleSaveAccount;
+window.renderAccountsManagementSection = renderAccountsManagementSection;

@@ -85,10 +85,24 @@
                 <button class="report-tab" data-report="inventory" type="button">Inventory</button>
                 <button class="report-tab" data-report="fast-moving" type="button">🚀 Fast Moving Products</button>
                 <button class="report-tab" data-report="scrap" type="button">♻️ Scrap Report</button>
+                <button class="report-tab valuation-tab" data-report="valuation" type="button">💼 Business Valuation Dashboard</button>
             </div>
 
             <div class="filter-box">
-                <div class="filter-grid">
+                            <!-- Valuation Period Presets Bar -->
+            <div id="valuationPresetsBar" class="valuation-presets-bar hidden" style="margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #e2e8f0;">
+                <div style="font-weight: 700; color: #1e293b; font-size: 13.5px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+                    <span>📅</span> अवधि चुनें (Period Preset):
+                </div>
+                <div class="val-preset-btn-group" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button type="button" class="val-preset-btn active" data-preset="month">📅 This Month (इस माह)</button>
+                    <button type="button" class="val-preset-btn" data-preset="quarter">📊 This Quarter (तिमाही)</button>
+                    <button type="button" class="val-preset-btn" data-preset="year">📈 Financial Year (वार्षिक)</button>
+                    <button type="button" class="val-preset-btn" data-preset="custom">⚙️ Custom Date (कस्टम अवधि)</button>
+                </div>
+            </div>
+
+            <div class="filter-grid">
                     <div class="form-group date-filter-group">
                         <label for="fromDate">From Date</label>
                         <input type="date" id="fromDate" />
@@ -255,6 +269,12 @@
                 <div class="filter-actions">
                     <button id="applyFiltersBtn" class="primary-btn" type="button">Apply</button>
                     <button id="resetFiltersBtn" class="secondary-btn" type="button">Reset</button>
+                    <button id="valFundTransferBtn" class="btn-val-transfer hidden" type="button" style="background: #0284c7; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                        <span>💸</span> Fund Transfer (अकाउंट ट्रांसफर)
+                    </button>
+                    <button id="valHistoryBtn" class="btn-val-history hidden" type="button" style="background: white; color: #0284c7; border: 1.5px solid #0284c7; padding: 8px 14px; border-radius: 6px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                        <span>📜</span> Transfer History (इतिहास)
+                    </button>
                     <button id="printReportBtn" class="outline-btn" type="button">Print Report</button>
                     <button id="exportCsvBtn" class="outline-btn" type="button">Export to CSV</button>
                     <button id="exportExcelBtn" class="outline-btn" type="button">Export to Excel</button>
@@ -276,6 +296,225 @@
                     </table>
                 </div>
             </div>
+        
+            <!-- Business Valuation Dashboard Container (Active when valuation tab is selected) -->
+            <div id="valuationDashboardContainer" class="valuation-dashboard-shell hidden">
+                <!-- Section 1: Header with Date and Transfer Buttons -->
+                <div class="val-section-header">
+                    <div class="val-section-title" id="valHeaderTitle">
+                        💼 सभी खाते व परिसंपत्तियां (Account Balances & Assets)
+                    </div>
+                    <div class="val-section-actions">
+                        <button type="button" class="val-btn-top-transfer" id="btnTopFundTransfer">
+                            <span>💸</span> Transfer Funds (ट्रांसफर करें)
+                        </button>
+                        <button type="button" class="val-btn-top-history" id="btnTopHistory">
+                            <span>📜</span> Transfer History (इतिहास)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Section 2: Cards Grid -->
+                <div class="val-cards-grid" id="valCardsGrid">
+                    <!-- Populated dynamically via JS -->
+                </div>
+
+                <!-- Section 3: Grand Valuation Total Banner -->
+                <div class="val-grand-banner">
+                    <div class="val-banner-left">
+                        <div class="val-banner-sub">GRAND VALUATION TOTAL</div>
+                        <div class="val-banner-title">⭐ TOTAL AMOUNT (कुल बिजनेस वैल्यू योग)</div>
+                        <div class="val-banner-formula" id="valFormulaDisplay">
+                            योग घटक: लोड हो रहा है...
+                        </div>
+                    </div>
+                    <div class="val-banner-right">
+                        <div class="val-banner-amount-row">
+                            <span class="val-banner-rupee">₹</span>
+                            <span class="val-banner-value" id="valGrandTotalValue">0.00</span>
+                        </div>
+                        <div class="val-banner-asof" id="valAsOfDisplay">स्थिति दिनांक: -- तक (Cumulative)</div>
+                    </div>
+                </div>
+
+                <!-- Section 3 Summary Cards Row (Net Profit, Supplier Payables, Scrap Value) -->
+                <div class="val-summary-row" id="valSummaryRow">
+                    <!-- Card 1: Total Net Profit -->
+                    <div class="val-summary-card val-profit-card">
+                        <div class="val-card-top">
+                            <span class="val-card-icon">📈</span>
+                            <span class="val-card-label">Total Net Profit (कुल शुद्ध लाभ)</span>
+                        </div>
+                        <div class="val-card-amount" id="valNetProfitAmount">₹ 0.00</div>
+                        <div class="val-card-subtext" id="valNetProfitSubtext">
+                            अवधि का वास्तविक शुद्ध लाभ (Revenue - COGS - Expenses)
+                        </div>
+                    </div>
+
+                    <!-- Card 2: Supplier Payables -->
+                    <div class="val-summary-card val-supplier-card">
+                        <div class="val-card-top">
+                            <span class="val-card-icon">🚚</span>
+                            <span class="val-card-label">Supplier Payables (सप्लायर को देय राशि)</span>
+                        </div>
+                        <div class="val-card-amount" id="valSupplierAmount">₹ 0.00</div>
+                        <div class="val-card-subtext" id="valSupplierSubtext">
+                            कुल वो राशि जो सप्लायर को देना है लेकिन अभी दिया नहीं है (0 अनपेड बिल)
+                        </div>
+                    </div>
+
+                    <!-- Card 3: Scrap Value -->
+                    <div class="val-summary-card val-scrap-card">
+                        <div class="val-card-top">
+                            <span class="val-card-icon">♻️</span>
+                            <span class="val-card-label">Scrap Value (स्क्रैप सामग्री मूल्य)</span>
+                        </div>
+                        <div class="val-card-amount" id="valScrapAmount">₹ 0.00</div>
+                        <div class="val-card-subtext" id="valScrapSubtext">
+                            ⚠️ स्क्रैप की वैल्यू अलग रखी गई है — इसे मुख्य टोटल में शामिल नहीं किया गया है
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 4: Detailed Breakdown Table Card -->
+                <div class="val-table-card">
+                    <div class="val-table-header">
+                        <div class="val-table-title">
+                            💼 Business Valuation Dashboard (व्यापार मूल्यांकन व वित्तीय स्थिति)
+                        </div>
+                        <div class="val-table-meta" id="valTableMeta">10 records</div>
+                    </div>
+                    <div class="val-table-wrap">
+                        <table class="val-breakdown-table">
+                            <thead>
+                                <tr>
+                                    <th>Classification (प्रकार)</th>
+                                    <th>Account / Component (खाता / मद नाम)</th>
+                                    <th style="text-align: right;">Inflow (+) (प्राप्त)</th>
+                                    <th style="text-align: right;">Outflow (-) (व्यय)</th>
+                                    <th style="text-align: right;">Current Balance (शेष राशि ₹)</th>
+                                    <th style="text-align: right;">Share % (हिस्सा)</th>
+                                    <th>Status & Remarks (विवरण / स्थिति)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="valTableBody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal 1: Fund Transfer Modal -->
+            <div id="valTransferModal" class="val-modal-overlay" style="display: none;">
+                <div class="val-modal-box">
+                    <div class="val-modal-head">
+                        <h3>💸 खातों के बीच फंड ट्रांसफर (Fund Transfer)</h3>
+                        <button type="button" class="val-modal-close" onclick="closeValTransferModal()">&times;</button>
+                    </div>
+                    <form id="valTransferForm" onsubmit="event.preventDefault(); submitValFundTransfer();">
+                        <div class="val-modal-body">
+                            <div class="val-modal-grid">
+                                <div class="val-form-item">
+                                    <label>पैसा भेजने वाला खाता (From Account) *</label>
+                                    <select id="valTransferFrom" required class="val-modal-input"></select>
+                                </div>
+                                <div class="val-form-item">
+                                    <label>पैसा प्राप्त करने वाला खाता (To Account) *</label>
+                                    <select id="valTransferTo" required class="val-modal-input"></select>
+                                </div>
+                                <div class="val-form-item">
+                                    <label>ट्रांसफर राशि (Transfer Amount ₹) *</label>
+                                    <input type="number" step="0.01" min="0.01" id="valTransferAmount" required class="val-modal-input" placeholder="0.00" />
+                                </div>
+                                <div class="val-form-item">
+                                    <label>तारीख (Date) *</label>
+                                    <input type="date" id="valTransferDate" required class="val-modal-input" />
+                                </div>
+                                <div class="val-form-item full-width">
+                                    <label>विवरण / संदर्भ (Reference / Notes)</label>
+                                    <input type="text" id="valTransferNotes" class="val-modal-input" placeholder="उदा. बैंक में कैश जमा, एटीएम निकासी, इंटरनल ट्रांसफर" />
+                                </div>
+                            </div>
+                        </div>
+                        <div class="val-modal-foot">
+                            <button type="button" class="val-modal-btn-cancel" onclick="closeValTransferModal()">रद्द करें (Cancel)</button>
+                            <button type="submit" class="val-modal-btn-submit" id="btnSubmitValTransfer">💸 ट्रांसफर पूरा करें (Confirm Transfer)</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Modal 2: Transfer History Modal -->
+            <div id="valHistoryModal" class="val-modal-overlay" style="display: none;">
+                <div class="val-modal-box wide">
+                    <div class="val-modal-head">
+                        <h3>📜 फंड ट्रांसफर इतिहास (Transfer History)</h3>
+                        <button type="button" class="val-modal-close" onclick="closeValHistoryModal()">&times;</button>
+                    </div>
+                    <div class="val-modal-body">
+                        <div class="val-table-wrap" style="max-height: 400px; overflow-y: auto;">
+                            <table class="val-breakdown-table">
+                                <thead>
+                                    <tr>
+                                        <th>तारीख (Date)</th>
+                                        <th>कहाँ से (From Account)</th>
+                                        <th>कहाँ को (To Account)</th>
+                                        <th style="text-align: right;">राशि (Amount ₹)</th>
+                                        <th>विवरण (Reference)</th>
+                                        <th style="text-align: center;">हटाएं (Action)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="valHistoryTableBody">
+                                    <tr><td colspan="6" style="text-align: center; padding: 20px;">लोड हो रहा है...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="val-modal-foot">
+                        <button type="button" class="val-modal-btn-cancel" onclick="closeValHistoryModal()">बंद करें (Close)</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal 3: Account Passbook / Statement Modal -->
+            <div id="valPassbookModal" class="val-modal-overlay" style="display: none;">
+                <div class="val-modal-box wide">
+                    <div class="val-modal-head">
+                        <div>
+                            <h3 id="valPassbookAccountName" style="margin: 0; font-size: 17px;">📜 खाता स्टेटमेंट (Passbook)</h3>
+                            <div id="valPassbookAccountMeta" style="font-size: 13px; color: #64748b; margin-top: 4px;">Loading...</div>
+                        </div>
+                        <button type="button" class="val-modal-close" onclick="closeValPassbookModal()">&times;</button>
+                    </div>
+                    <div class="val-modal-body">
+                        <div class="val-passbook-stats" id="valPassbookStatsBar" style="display: flex; gap: 14px; margin-bottom: 14px; background: #f8fafc; padding: 12px 16px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                            <!-- Populated in JS -->
+                        </div>
+                        <div class="val-table-wrap" style="max-height: 420px; overflow-y: auto;">
+                            <table class="val-breakdown-table">
+                                <thead>
+                                    <tr>
+                                        <th>तारीख (Date)</th>
+                                        <th>प्रकार (Type)</th>
+                                        <th>विवरण / संदर्भ (Description)</th>
+                                        <th style="text-align: right; color: #16a34a;">जमा / प्राप्त (+)</th>
+                                        <th style="text-align: right; color: #dc2626;">निकासी / व्यय (-)</th>
+                                        <th style="text-align: right; font-weight: 700;">शेष बैलेंस (Balance ₹)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="valPassbookTableBody">
+                                    <tr><td colspan="6" style="text-align: center; padding: 20px;">लोड हो रहा है...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="val-modal-foot">
+                        <button type="button" class="val-modal-btn-cancel" onclick="closeValPassbookModal()">बंद करें (Close)</button>
+                    </div>
+                </div>
+            </div>
+
         </section>
     </main>
 

@@ -1,3 +1,49 @@
+
+async function loadActiveExpenseAccounts() {
+    const paymentMethodEl = document.getElementById("payment_method");
+    if (!paymentMethodEl) return;
+
+    try {
+        const res = await fetch(`${API_BASE}/accounts?status=active`);
+        const result = await res.json();
+        if (!res.ok || !result.success || !Array.isArray(result.accounts) || result.accounts.length === 0) {
+            return;
+        }
+
+        const accounts = result.accounts;
+        const previousVal = paymentMethodEl.value;
+
+        let optionsHtml = '<option value="">Select Payment Method / Account</option>';
+        let defaultVal = '';
+
+        accounts.forEach(acc => {
+            const accName = acc.account_name;
+            const isDef = Boolean(acc.is_default);
+            if (isDef && !defaultVal) defaultVal = accName;
+            let typeLabel = '';
+            if (acc.account_type === 'bank') typeLabel = ' (Bank)';
+            else if (acc.account_type === 'upi') typeLabel = ' (UPI)';
+            else if (acc.account_type === 'cash') typeLabel = ' (Cash)';
+
+            optionsHtml += `<option value="${accName}">${accName}${typeLabel}</option>`;
+        });
+
+        if (previousVal && !accounts.some(a => a.account_name === previousVal)) {
+            optionsHtml = `<option value="${previousVal}">${previousVal}</option>` + optionsHtml;
+        }
+
+        paymentMethodEl.innerHTML = optionsHtml;
+
+        if (previousVal) {
+            paymentMethodEl.value = previousVal;
+        } else if (defaultVal && !expenseId) {
+            paymentMethodEl.value = defaultVal;
+        }
+    } catch (e) {
+        console.warn("Could not load dynamic accounts for expenses:", e);
+    }
+}
+
 const API_BASE = "API_BASE_URL";
 const form = document.getElementById("expenseForm");
 const pageTitle = document.getElementById("pageTitle");
@@ -44,7 +90,17 @@ async function loadExpense(id) {
         document.getElementById("category").value = expense.category || "";
         document.getElementById("description").value = expense.description || "";
         document.getElementById("amount").value = expense.amount || 0;
-        document.getElementById("payment_method").value = expense.payment_method || "";
+        const expPayEl = document.getElementById("payment_method");
+        if (expPayEl && expense.payment_method) {
+            let exists = Array.from(expPayEl.options).some(opt => opt.value === expense.payment_method);
+            if (!exists) {
+                const opt = document.createElement("option");
+                opt.value = expense.payment_method;
+                opt.textContent = expense.payment_method;
+                expPayEl.appendChild(opt);
+            }
+            expPayEl.value = expense.payment_method;
+        }
         document.getElementById("paid_to").value = expense.paid_to || "";
         document.getElementById("reference_number").value = expense.reference_number || "";
         document.getElementById("status").value = expense.status || "Paid";
@@ -105,3 +161,5 @@ form.addEventListener("submit", async function (event) {
         alert("Expense save नहीं हुआ");
     }
 });
+
+loadActiveExpenseAccounts();

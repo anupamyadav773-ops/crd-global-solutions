@@ -1750,17 +1750,56 @@ function updateSplitAmounts() {
     if (!paymentMethodEl || paymentMethodEl.value !== "Split") return;
 
     const grandTotal = getGrandTotal();
-    const cash = parseFloat(document.getElementById("cash_amount")?.value || 0) || 0;
-    const upi = parseFloat(document.getElementById("upi_amount")?.value || 0) || 0;
-    const card = parseFloat(document.getElementById("card_amount")?.value || 0) || 0;
-    const bank = parseFloat(document.getElementById("bank_amount")?.value || 0) || 0;
-    const totalSplit = cash + upi + card + bank;
-    const due = Math.max(0, grandTotal - totalSplit);
+    const splitInputs = document.querySelectorAll(".split-account-input");
+    let totalSplit = 0;
+    let cashSum = 0;
+    let upiSum = 0;
+    let cardSum = 0;
+    let bankSum = 0;
 
+    if (splitInputs && splitInputs.length > 0) {
+        splitInputs.forEach(inp => {
+            const val = parseFloat(inp.value || 0) || 0;
+            totalSplit += val;
+            const type = (inp.getAttribute("data-account-type") || "").toLowerCase();
+            if (type === "cash") cashSum += val;
+            else if (type === "upi") upiSum += val;
+            else if (type === "card") cardSum += val;
+            else if (type === "bank") bankSum += val;
+            else cashSum += val;
+        });
+    } else {
+        const cash = parseFloat(document.getElementById("cash_amount")?.value || 0) || 0;
+        const upi = parseFloat(document.getElementById("upi_amount")?.value || 0) || 0;
+        const card = parseFloat(document.getElementById("card_amount")?.value || 0) || 0;
+        const bank = parseFloat(document.getElementById("bank_amount")?.value || 0) || 0;
+        cashSum = cash;
+        upiSum = upi;
+        cardSum = card;
+        bankSum = bank;
+        totalSplit = cash + upi + card + bank;
+    }
+
+    // Sync legacy inputs (hidden or visible)
+    const cashEl = document.getElementById("cash_amount");
+    const upiEl = document.getElementById("upi_amount");
+    const cardEl = document.getElementById("card_amount");
+    const bankEl = document.getElementById("bank_amount");
+    if (cashEl && !cashEl.classList.contains("split-account-input")) cashEl.value = cashSum;
+    if (upiEl && !upiEl.classList.contains("split-account-input")) upiEl.value = upiSum;
+    if (cardEl && !cardEl.classList.contains("split-account-input")) cardEl.value = cardSum;
+    if (bankEl && !bankEl.classList.contains("split-account-input")) bankEl.value = bankSum;
+
+    const due = Math.max(0, grandTotal - totalSplit);
     const splitTotalPaid = document.getElementById("splitTotalPaid");
     const splitRemainingDue = document.getElementById("splitRemainingDue");
     if (splitTotalPaid) splitTotalPaid.textContent = "₹ " + totalSplit.toFixed(2);
     if (splitRemainingDue) splitRemainingDue.textContent = "₹ " + due.toFixed(2);
+
+    const paidAmountInput = document.getElementById("paid_amount");
+    const balanceDueDisplay = document.getElementById("balance_due_display");
+    if (paidAmountInput) paidAmountInput.value = totalSplit.toFixed(2);
+    if (balanceDueDisplay) balanceDueDisplay.value = "₹ " + due.toFixed(2);
 
     const paymentStatusEl = document.getElementById("payment_status");
     if (paymentStatusEl) {
@@ -1852,16 +1891,32 @@ function initPaymentControls() {
     if (autoFillSplitBtn) {
         autoFillSplitBtn.addEventListener("click", function() {
             const grandTotal = getGrandTotal();
-            const cashEl = document.getElementById("cash_amount");
-            const upiEl = document.getElementById("upi_amount");
-            const cardEl = document.getElementById("card_amount");
-            const bankEl = document.getElementById("bank_amount");
-            const otherSum = (parseFloat(upiEl?.value || 0) || 0) + (parseFloat(cardEl?.value || 0) || 0) + (parseFloat(bankEl?.value || 0) || 0);
-            const remaining = Math.max(0, grandTotal - otherSum);
-            if (cashEl) {
-                cashEl.value = remaining.toFixed(2);
-                updateSplitAmounts();
+            const splitInputs = Array.from(document.querySelectorAll(".split-account-input"));
+            if (splitInputs.length === 0) {
+                const cashEl = document.getElementById("cash_amount");
+                const upiEl = document.getElementById("upi_amount");
+                const cardEl = document.getElementById("card_amount");
+                const bankEl = document.getElementById("bank_amount");
+                const otherSum = (parseFloat(upiEl?.value || 0) || 0) + (parseFloat(cardEl?.value || 0) || 0) + (parseFloat(bankEl?.value || 0) || 0);
+                const remaining = Math.max(0, grandTotal - otherSum);
+                if (cashEl) {
+                    cashEl.value = remaining.toFixed(2);
+                    updateSplitAmounts();
+                }
+                return;
             }
+
+            // Target input: find first input that is 0 or default to first input
+            let targetInput = splitInputs.find(inp => (parseFloat(inp.value || 0) || 0) === 0) || splitInputs[0];
+            let otherSum = 0;
+            splitInputs.forEach(inp => {
+                if (inp !== targetInput) {
+                    otherSum += (parseFloat(inp.value || 0) || 0);
+                }
+            });
+            const remaining = Math.max(0, grandTotal - otherSum);
+            targetInput.value = remaining.toFixed(2);
+            updateSplitAmounts();
         });
     }
 
@@ -2148,11 +2203,16 @@ function buildPreviewDraft() {
     const payMethod = document.getElementById("payment_method")?.value || "Cash";
     let draftPaid = 0;
     if (payMethod === "Split") {
-        const cash = parseFloat(document.getElementById("cash_amount")?.value || 0) || 0;
-        const upi = parseFloat(document.getElementById("upi_amount")?.value || 0) || 0;
-        const card = parseFloat(document.getElementById("card_amount")?.value || 0) || 0;
-        const bank = parseFloat(document.getElementById("bank_amount")?.value || 0) || 0;
-        draftPaid = cash + upi + card + bank;
+        const splitInputs = document.querySelectorAll(".split-account-input");
+        if (splitInputs && splitInputs.length > 0) {
+            splitInputs.forEach(inp => { draftPaid += (parseFloat(inp.value || 0) || 0); });
+        } else {
+            const cash = parseFloat(document.getElementById("cash_amount")?.value || 0) || 0;
+            const upi = parseFloat(document.getElementById("upi_amount")?.value || 0) || 0;
+            const card = parseFloat(document.getElementById("card_amount")?.value || 0) || 0;
+            const bank = parseFloat(document.getElementById("bank_amount")?.value || 0) || 0;
+            draftPaid = cash + upi + card + bank;
+        }
     } else if (payStatus === "Paid") {
         draftPaid = grandTotal;
     } else if (payStatus === "Partial") {
@@ -2532,6 +2592,12 @@ async function saveInvoice() {
                 const method = document.getElementById("payment_method").value;
                 const status = document.getElementById("payment_status").value;
                 if (method === "Split") {
+                    const splitInputs = document.querySelectorAll(".split-account-input");
+                    if (splitInputs && splitInputs.length > 0) {
+                        let total = 0;
+                        splitInputs.forEach(inp => { total += (parseFloat(inp.value || 0) || 0); });
+                        return total;
+                    }
                     const c = parseFloat(document.getElementById("cash_amount")?.value || 0) || 0;
                     const u = parseFloat(document.getElementById("upi_amount")?.value || 0) || 0;
                     const cr = parseFloat(document.getElementById("card_amount")?.value || 0) || 0;
@@ -2542,6 +2608,21 @@ async function saveInvoice() {
                 if (status === "Partial") return parseFloat(document.getElementById("paid_amount")?.value || 0) || 0;
                 return 0;
             })(),
+
+        split_details: isQuotation ? null : (() => {
+            const splitInputs = document.querySelectorAll(".split-account-input");
+            const details = {};
+            if (splitInputs && splitInputs.length > 0) {
+                splitInputs.forEach(inp => {
+                    const amt = parseFloat(inp.value || 0) || 0;
+                    if (amt > 0) {
+                        const accName = inp.getAttribute("data-account-name");
+                        if (accName) details[accName] = amt;
+                    }
+                });
+            }
+            return Object.keys(details).length > 0 ? JSON.stringify(details) : null;
+        })(),
 
         cash_amount: isQuotation ? 0 : (parseFloat(document.getElementById("cash_amount")?.value || 0) || 0),
         upi_amount: isQuotation ? 0 : (parseFloat(document.getElementById("upi_amount")?.value || 0) || 0),
@@ -3329,16 +3410,50 @@ async function loadInvoiceForEdit(invoiceId) {
         }
 
         if (invoice.payment_method === "Split") {
-            const cashEl = document.getElementById("cash_amount");
-            const upiEl = document.getElementById("upi_amount");
-            const cardEl = document.getElementById("card_amount");
-            const bankEl = document.getElementById("bank_amount");
-            if (cashEl) cashEl.value = invoice.cash_amount || 0;
-            if (upiEl) upiEl.value = invoice.upi_amount || 0;
-            if (cardEl) cardEl.value = invoice.card_amount || 0;
-            if (bankEl) bankEl.value = invoice.bank_amount || 0;
             const splitBox = document.getElementById("splitPaymentBox");
             if (splitBox) splitBox.style.display = "block";
+
+            let parsedSplit = null;
+            if (invoice.split_details) {
+                try {
+                    parsedSplit = typeof invoice.split_details === "string" ? JSON.parse(invoice.split_details) : invoice.split_details;
+                } catch (e) {
+                    parsedSplit = null;
+                }
+            }
+
+            const splitInputs = document.querySelectorAll(".split-account-input");
+            if (splitInputs && splitInputs.length > 0) {
+                if (parsedSplit && typeof parsedSplit === "object") {
+                    splitInputs.forEach(inp => {
+                        const accName = inp.getAttribute("data-account-name");
+                        if (accName && parsedSplit[accName] != null) {
+                            inp.value = parsedSplit[accName];
+                        } else {
+                            inp.value = 0;
+                        }
+                    });
+                } else {
+                    splitInputs.forEach(inp => {
+                        const type = (inp.getAttribute("data-account-type") || "").toLowerCase();
+                        if (type === "cash" && invoice.cash_amount) inp.value = invoice.cash_amount;
+                        else if (type === "upi" && invoice.upi_amount) inp.value = invoice.upi_amount;
+                        else if (type === "card" && invoice.card_amount) inp.value = invoice.card_amount;
+                        else if (type === "bank" && invoice.bank_amount) inp.value = invoice.bank_amount;
+                        else inp.value = 0;
+                    });
+                }
+            } else {
+                const cashEl = document.getElementById("cash_amount");
+                const upiEl = document.getElementById("upi_amount");
+                const cardEl = document.getElementById("card_amount");
+                const bankEl = document.getElementById("bank_amount");
+                if (cashEl) cashEl.value = invoice.cash_amount || 0;
+                if (upiEl) upiEl.value = invoice.upi_amount || 0;
+                if (cardEl) cardEl.value = invoice.card_amount || 0;
+                if (bankEl) bankEl.value = invoice.bank_amount || 0;
+            }
+            updateSplitAmounts();
         }
 
         const notesEl = document.getElementById("notes");
@@ -3580,18 +3695,74 @@ async function loadInvoiceForEdit(invoiceId) {
 // ==========================================
 
 
+function renderSplitAccountInputs(accounts) {
+    const grid = document.getElementById("splitPaymentInputsGrid");
+    const legacyContainer = document.getElementById("splitLegacyHiddenInputs");
+    if (!grid || !Array.isArray(accounts) || accounts.length === 0) return;
+
+    if (legacyContainer) {
+        legacyContainer.innerHTML = `
+            <input type="hidden" id="cash_amount" value="0">
+            <input type="hidden" id="upi_amount" value="0">
+            <input type="hidden" id="card_amount" value="0">
+            <input type="hidden" id="bank_amount" value="0">
+        `;
+    }
+
+    let gridHtml = '';
+    accounts.forEach(acc => {
+        let icon = '🏦';
+        const t = (acc.account_type || '').toLowerCase();
+        if (t === 'cash') icon = '💵';
+        else if (t === 'upi') icon = '📱';
+        else if (t === 'card') icon = '💳';
+        else if (t === 'other') icon = '💼';
+
+        const accName = acc.account_name;
+        gridHtml += `
+            <div style="background: #ffffff; border: 1.5px solid #dcdde1; border-radius: 8px; padding: 8px 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                <label style="font-size: 12px; display: block; margin-bottom: 4px; font-weight: 600; color: #2c3e50; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(accName)}">
+                    ${icon} ${escapeHtml(accName)} (₹)
+                </label>
+                <input type="number" 
+                       class="split-account-input" 
+                       data-account-id="${acc.id}" 
+                       data-account-name="${escapeHtml(accName)}" 
+                       data-account-type="${escapeHtml(t)}" 
+                       id="split_acc_${acc.id}" 
+                       value="0" 
+                       min="0" 
+                       step="0.01" 
+                       placeholder="0.00"
+                       style="padding: 8px; width: 100%; border: 1px solid #ced6e0; border-radius: 6px; font-size: 14px; font-weight: 600; color: #1e293b; outline: none; transition: border-color 0.2s;"
+                       onfocus="this.style.borderColor='#3b82f6'"
+                       onblur="this.style.borderColor='#ced6e0'">
+            </div>
+        `;
+    });
+
+    grid.innerHTML = gridHtml;
+
+    grid.querySelectorAll(".split-account-input").forEach(inp => {
+        inp.addEventListener("input", updateSplitAmounts);
+    });
+}
+
 async function loadActivePaymentAccounts() {
     const paymentMethodEl = document.getElementById("payment_method");
     if (!paymentMethodEl) return;
 
     try {
-        const res = await fetch(`${API_BASE}/accounts?status=active`);
+        const url = (typeof API_BASE !== "undefined" && API_BASE) ? `${API_BASE}/accounts?status=active` : "API_BASE_URL/accounts?status=active";
+        const res = await fetch(url);
         const result = await res.json();
         if (!res.ok || !result.success || !Array.isArray(result.accounts) || result.accounts.length === 0) {
             return;
         }
 
         const accounts = result.accounts;
+        renderSplitAccountInputs(accounts);
+
         const previousVal = paymentMethodEl.value;
 
         let optionsHtml = '';

@@ -335,7 +335,8 @@ def ensure_sales_schema():
             "card_amount": "DECIMAL(12,2) NOT NULL DEFAULT 0",
             "bank_amount": "DECIMAL(12,2) NOT NULL DEFAULT 0",
             "document_type": "VARCHAR(20) NOT NULL DEFAULT 'Invoice'",
-            "service_job_id": "INT DEFAULT NULL"
+            "service_job_id": "INT DEFAULT NULL",
+            "split_details": "TEXT NULL"
         }
         for col, col_def in sales_additions.items():
             if col not in columns:
@@ -2103,6 +2104,32 @@ def ensure_accounts_schema():
         print(f"ensure_accounts_schema error: {e}")
 
 
+def _extract_account_split_amount(row, matching_names, acc_type, is_def):
+    """Determine the amount allocated to an account from a split sales invoice row."""
+    s_details = row.get("split_details")
+    allocated = 0.0
+    if s_details:
+        try:
+            s_map = json.loads(s_details) if isinstance(s_details, str) else (s_details or {})
+            if isinstance(s_map, dict):
+                for m_name in matching_names:
+                    if m_name in s_map:
+                        allocated += float(s_map[m_name] or 0)
+        except Exception:
+            pass
+    if allocated == 0.0 and is_def:
+        # Fallback to legacy columns if no specific account match in split_details
+        if acc_type == "cash":
+            allocated = float(row.get("cash_amount") or 0)
+        elif acc_type == "upi":
+            allocated = float(row.get("upi_amount") or 0)
+        elif acc_type == "bank":
+            allocated = float(row.get("bank_amount") or 0)
+        elif acc_type == "card":
+            allocated = float(row.get("card_amount") or 0)
+    return allocated
+
+
 def _calculate_account_financials(acc_dict, from_date=None, to_date=None):
     """Compute inflows, outflows, transfers and balances for a given account."""
     acc_id = acc_dict["id"]
@@ -2158,6 +2185,40 @@ def _calculate_account_financials(acc_dict, from_date=None, to_date=None):
                 sales_inflow += initial_paid
         else:
             sales_inflow += initial_paid
+
+    # 1b. Sales Split Inflows (where payment_method = 'Split')
+    split_sales_sql = """
+        SELECT 
+            si.id,
+            si.invoice_number,
+            si.invoice_date,
+            si.paid_amount,
+            si.cash_amount,
+            si.upi_amount,
+            si.card_amount,
+            si.bank_amount,
+            si.split_details
+        FROM sales_invoices si
+        WHERE si.payment_method = 'Split'
+          AND si.paid_amount > 0
+    """
+    split_sales_params = []
+    if to_date:
+        split_sales_sql += " AND DATE(si.invoice_date) <= %s "
+        split_sales_params.append(to_date)
+    g.cursor.execute(split_sales_sql, tuple(split_sales_params))
+    split_sale_rows = g.cursor.fetchall()
+    all_time_split_sales_inflow = 0.0
+    for sr in split_sale_rows:
+        allocated = _extract_account_split_amount(sr, matching_names, acc_type, is_def)
+        if allocated > 0:
+            if from_date:
+                inv_date = str(sr["invoice_date"])[:10]
+                if inv_date >= from_date:
+                    sales_inflow += allocated
+            else:
+                sales_inflow += allocated
+            all_time_split_sales_inflow += allocated
 
     # 2. Customer Payments Inflows
     cp_sql = f"""
@@ -2276,7 +2337,7 @@ def _calculate_account_financials(acc_dict, from_date=None, to_date=None):
     """, (acc_id,))
     all_time_tin = float(g.cursor.fetchone()["val"] or 0)
 
-    total_cum_in = all_time_sales_inflow + all_time_cp + all_time_tin
+    total_cum_in = all_time_sales_inflow + all_time_split_sales_inflow + all_time_cp + all_time_tin
 
     # All-time purchases
     g.cursor.execute(f"""
@@ -2562,6 +2623,37 @@ def get_account_statement(account_id):
                     "ref_no": r["invoice_number"],
                     "particulars": f"बिक्री बिल: {r['customer_name']}",
                     "inflow": init_paid,
+                    "outflow": 0.0
+                })
+
+        # 2b. Sales Invoices (Split payments)
+        g.cursor.execute("""
+            SELECT 
+                si.id,
+                si.invoice_number,
+                si.invoice_date,
+                si.paid_amount,
+                si.cash_amount,
+                si.upi_amount,
+                si.card_amount,
+                si.bank_amount,
+                si.split_details,
+                COALESCE(c.customer_name, 'Walk-in Customer') AS customer_name
+            FROM sales_invoices si
+            LEFT JOIN customers c ON c.id = si.customer_id
+            WHERE si.payment_method = 'Split'
+              AND si.paid_amount > 0
+            ORDER BY si.invoice_date ASC, si.id ASC
+        """)
+        for r in g.cursor.fetchall():
+            allocated = _extract_account_split_amount(r, matching_names, acc_type, is_def)
+            if allocated > 0:
+                entries.append({
+                    "date": str(r["invoice_date"])[:10],
+                    "type": "Sale Invoice (Split)",
+                    "ref_no": r["invoice_number"],
+                    "particulars": f"बिक्री बिल (स्प्लिट भुगतान): {r['customer_name']}",
+                    "inflow": allocated,
                     "outflow": 0.0
                 })
 
@@ -9233,21 +9325,41 @@ def add_sale():
 
     service_job_id = data.get("service_job_id")
 
+    split_details_raw = data.get("split_details")
+    split_details = None
+    if isinstance(split_details_raw, dict):
+        split_details = json.dumps(split_details_raw, ensure_ascii=False)
+    elif isinstance(split_details_raw, str) and split_details_raw.strip():
+        split_details = split_details_raw.strip()
+
     if document_type != "Quotation":
-        split_sum = cash_amount + upi_amount + card_amount + bank_amount
-        if split_sum > 0:
-            paid_amount = split_sum
-            modes_used = sum([1 for m in [cash_amount, upi_amount, card_amount, bank_amount] if m > 0])
-            if modes_used > 1:
-                payment_method = "Split"
-            elif cash_amount > 0:
-                payment_method = "Cash"
-            elif upi_amount > 0:
-                payment_method = "UPI"
-            elif card_amount > 0:
-                payment_method = "Card"
-            elif bank_amount > 0:
-                payment_method = "Bank Transfer"
+        if payment_method == "Split" or split_details:
+            payment_method = "Split"
+            split_dict = {}
+            if split_details:
+                try:
+                    split_dict = json.loads(split_details) if isinstance(split_details, str) else split_details
+                except Exception:
+                    split_dict = {}
+            total_from_details = sum(float(v or 0) for v in split_dict.values()) if split_dict else 0.0
+            split_sum = max(cash_amount + upi_amount + card_amount + bank_amount, total_from_details)
+            if split_sum > 0:
+                paid_amount = split_sum
+        else:
+            split_sum = cash_amount + upi_amount + card_amount + bank_amount
+            if split_sum > 0:
+                paid_amount = split_sum
+                modes_used = sum([1 for m in [cash_amount, upi_amount, card_amount, bank_amount] if m > 0])
+                if modes_used > 1:
+                    payment_method = "Split"
+                elif cash_amount > 0:
+                    payment_method = "Cash"
+                elif upi_amount > 0:
+                    payment_method = "UPI"
+                elif card_amount > 0:
+                    payment_method = "Card"
+                elif bank_amount > 0:
+                    payment_method = "Bank Transfer"
 
 
     if not customer_id:
@@ -9316,14 +9428,15 @@ def add_sale():
                 upi_amount,
                 card_amount,
                 bank_amount,
-                service_job_id
+                service_job_id,
+                split_details
             )
             VALUES
             (
                 %s, %s, %s, %s, %s,
                 %s, %s, %s, %s, %s,
                 %s, %s, %s, %s, %s,
-                %s, %s
+                %s, %s, %s
             )
             """,
             (
@@ -9343,7 +9456,8 @@ def add_sale():
                 upi_amount,
                 card_amount,
                 bank_amount,
-                service_job_id
+                service_job_id,
+                split_details
             )
         )
 
@@ -9906,6 +10020,48 @@ def update_sale(invoice_id):
             discount,
             default_tax_inclusive=doc_tax_incl
         )
+
+        cash_amount = float(data.get("cash_amount", 0) or 0)
+        upi_amount = float(data.get("upi_amount", 0) or 0)
+        card_amount = float(data.get("card_amount", 0) or 0)
+        bank_amount = float(data.get("bank_amount", 0) or 0)
+
+        split_details_raw = data.get("split_details")
+        split_details = None
+        if isinstance(split_details_raw, dict):
+            split_details = json.dumps(split_details_raw, ensure_ascii=False)
+        elif isinstance(split_details_raw, str) and split_details_raw.strip():
+            split_details = split_details_raw.strip()
+
+        if not is_quotation:
+            if payment_method == "Split" or split_details:
+                payment_method = "Split"
+                split_dict = {}
+                if split_details:
+                    try:
+                        split_dict = json.loads(split_details) if isinstance(split_details, str) else split_details
+                    except Exception:
+                        split_dict = {}
+                total_from_details = sum(float(v or 0) for v in split_dict.values()) if split_dict else 0.0
+                split_sum = max(cash_amount + upi_amount + card_amount + bank_amount, total_from_details)
+                if split_sum > 0:
+                    paid_amount = split_sum
+            else:
+                split_sum = cash_amount + upi_amount + card_amount + bank_amount
+                if split_sum > 0:
+                    paid_amount = split_sum
+                    modes_used = sum([1 for m in [cash_amount, upi_amount, card_amount, bank_amount] if m > 0])
+                    if modes_used > 1:
+                        payment_method = "Split"
+                    elif cash_amount > 0:
+                        payment_method = "Cash"
+                    elif upi_amount > 0:
+                        payment_method = "UPI"
+                    elif card_amount > 0:
+                        payment_method = "Card"
+                    elif bank_amount > 0:
+                        payment_method = "Bank Transfer"
+
         payment_status, paid_amount = normalize_sale_payment(
             grand_total,
             payment_status,
@@ -10268,7 +10424,12 @@ def update_sale(invoice_id):
                 payment_method = %s,
                 payment_status = %s,
                 notes = %s,
-                document_type = %s
+                document_type = %s,
+                cash_amount = %s,
+                upi_amount = %s,
+                card_amount = %s,
+                bank_amount = %s,
+                split_details = %s
             WHERE id = %s
             """,
             (
@@ -10283,6 +10444,11 @@ def update_sale(invoice_id):
                 payment_status,
                 notes,
                 doc_type,
+                cash_amount,
+                upi_amount,
+                card_amount,
+                bank_amount,
+                split_details,
                 invoice_id
             )
         )
@@ -10465,6 +10631,7 @@ def get_sale_details(invoice_id):
                 si.upi_amount,
                 si.card_amount,
                 si.bank_amount,
+                si.split_details,
                 si.service_job_id,
 
                 c.customer_name,
